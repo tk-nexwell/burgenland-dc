@@ -437,4 +437,271 @@ function summaryPage(){
   ${row('Solar','var(--solar)',fmt(S.totalCapex,0),fmt(S.equity,0),fmt(S.debt,0),fmt(S.prod/1000,0),fmt(S.rev,1),fmt(S.ebitda,1),fmt(S.irr*100,1)+'%',fmt(S.lcoe,0))}
   ${row('Battery','var(--batt)',fmt(B.capex,0),fmt(BF.equity,0),fmt(BF.debt,0),fmt(battGen/1000,0),fmt(battRev,1),fmt(battEbitda,1),(isNaN(BF.irr)?'n/m':fmt(BF.irr*100,1)+'%'),fmt(battLCOS,0))}
   <tr class="tot"><td>Total (incl line €${fmt(line,0)}m)</td><td>${fmt((wOn?W.totalCapex:0)+(sOn?S.totalCapex:0)+(bOn?B.capex:0)+line,0)}</td><td>${fmt(totEqLCOE,0)}</td><td>${fmt((wOn?W.debt:0)+(sOn?S.debt:0)+(bOn?BF.debt:0)+line*M.macro.gearing,0)}</td><td>${fmt(((wOn?W.prod:0)+(sOn?S.prod:0))/1000,0)}</td><td>${fmt((wOn?W.rev:0)+(sOn?S.rev:0)+battRevG,1)}</td><td>${fmt((wOn?W.ebitda:0)+(sOn?S.ebitda:0)+battEbitdaG,1)}</td><td><b style="color:var(--acc)">${fmt(spvIRR*100,1)}%</b></td><td>-</td></tr>
-  </tbody></table><div class="muted" style="margin-top:8px">Battery is storage (${fmt(B.energy/1000,1)} GWh, ${fmt(M.battery
+  </tbody></table><div class="muted" style="margin-top:8px">Battery is storage (${fmt(B.energy/1000,1)} GWh, ${fmt(M.battery.durationH,1)}h): "Gen" is its annual discharge / export to the DC (${fmt(battGen/1e6,2)} TWh throughput), and its last-column figure is <b>LCOS</b> (levelized cost of storage), not LCOE. Gen total shows renewables only.</div></div>`;
+ const spvBlock=`<div class="panel"><h3>Supply to the data center - economics</h3>
+   <div class="seg"><button class="${spvOwned?'on':''}" onclick="M.dc.resMode='lcoe';render()">RES owned · LCOE</button><button class="${spvOwned?'':'on'}" onclick="M.dc.resMode='ppa';render()">RES bought · PPA €${fmt(ppaUnit,0)}</button></div>
+   <table><tbody>
+   <tr><td>DC load = ${fmt(M.dc.firmMW,0)} MW<sub>AC</sub> × 8,760 h</td><td>${fmt(dcLoad/1e6,2)} TWh</td></tr>
+   <tr class="tot"><td>Renewables self-supply</td><td><b style="color:var(--acc)">${fmt(selfPct,1)}%</b> · ${fmt(resGen/1e6,2)} TWh</td></tr>
+   <tr><td>Grid ride-through (balance)</td><td>${fmt(gridPct,1)}% · ${fmt(gridGen/1e6,2)} TWh</td></tr>
+   <tr><td>DC price yr1 = €${fmt(M.dc.dcPrice,0)} today + ${FF-2026}y inflation to ${FF}</td><td>€${fmt(priceYr1,1)}/MWh</td></tr>
+   <tr><td>DC revenue = ${fmt(dcLoad/1e6,2)} TWh × €${fmt(priceYr1,1)}</td><td>€${fmt(s29.dcRev,0)}m</td></tr>
+   <tr><td>(−) Renewables <b>${spvOwned?'owned':'bought'}</b>: ${fmt(resGen/1e6,2)} TWh × €${fmt(resUnit,1)}/MWh <i>${spvOwned?'LCOE':'PPA'}</i></td><td>€${fmt(resCost,0)}m</td></tr>
+   <tr><td>(−) Grid ride-through: ${fmt(gridGen/1e6,2)} TWh × €${fmt(gridPr,1)}/MWh</td><td>€${fmt(gridSrcCost,0)}m</td></tr>
+   <tr><td>(+) Battery trading + ancillary</td><td>€${fmt(battRevG,0)}m</td></tr>
+   <tr><td>Blended power sourcing cost</td><td>€${fmt(blendPr,1)}/MWh</td></tr>
+   <tr class="tot"><td>= Yr-1 margin (sold − sourced + battery)</td><td>€${fmt(s29.dcRev-resCost-gridSrcCost+battRevG,0)}m</td></tr>
+   <tr><td>SPV equity: ${spvOwned?`W €${fmt(W.equity,0)} + S €${fmt(S.equity,0)} + B €${fmt(BF.equity,0)} + line €${fmt(lineEq,0)}`:`battery €${fmt(BF.equity,0)} + line €${fmt(lineEq,0)}`}</td><td><b>€${fmt(spvOwned?totEqLCOE:totEqPPA,0)}m</b></td></tr>
+   <tr><td>Consolidated equity IRR @ €${fmt(M.dc.dcPrice,0)}</td><td>${fmt(spvIRR*100,1)}%</td></tr>
+   <tr class="tot"><td>DC price for a 9% IRR</td><td><b style="color:var(--acc)">€${fmt(price9,1)}/MWh</b></td></tr></tbody></table>
+   <div class="info">Self-supply = ${fmt(M.wind.mw,0)} MW<sub>AC</sub> wind × ${pct(effCF(M.wind),1)} + ${fmt(M.solar.mw,0)} MWp<sub>DC</sub> solar × ${pct(effCF(M.solar),1)} = <b>${fmt(resBaseMW,0)} MW</b> baseload-equivalent, over the ${fmt(M.dc.firmMW,0)} MW<sub>AC</sub> load = <b>${fmt(selfPct,1)}%</b>. The grid supplies the other <b>${fmt(gridPct,1)}%</b> (${fmt(gridGen/1e6,2)} TWh).</div>
+   <div class="warn">${spvOwned?`Renewables are <b>owned at ~€${fmt(resLCOE,1)}/MWh</b> (not bought at €100), below the sale price, so they subsidise the pricier ~€${fmt(gridPr,1)}/MWh grid. Blended power cost €${fmt(blendPr,1)}, so selling at €${fmt(price9,1)}/MWh still clears 9%.`:`At the €${fmt(price9,1)}/MWh break-even the per-MWh power margin is thin. The 9% is built from the <b>battery trading</b> (€${fmt(battRev,0)}m/yr) plus the sourcing wedge, <b>levered</b> on a small €${fmt(totEqPPA,0)}m equity check (RES bought, not owned) with depreciation shielding tax. Toggle to LCOE: owning the RES at ~€${fmt(resLCOE,1)}/MWh widens the margin.`}</div></div>`;
+ const masters=`<div class="panel"><h3>Master toggles</h3>
+  <div class="inp"><label>Include in SPV (on / off)</label><div class="seg">
+   <button class="${M.wind.on!==false?'on':''}" onclick="M.wind.on=(M.wind.on===false);render()">Wind</button>
+   <button class="${M.solar.on!==false?'on':''}" onclick="M.solar.on=(M.solar.on===false);render()">Solar</button>
+   <button class="${M.battery.on!==false?'on':''}" onclick="M.battery.on=(M.battery.on===false);render()">Battery</button></div></div>
+  ${sliderHTML('wind','mw','Wind',50,600,5,' MW<sub>AC</sub>')}${sliderHTML('solar','mw','Solar',50,600,5,' MWp<sub>DC</sub>')}
+  ${sliderHTML('battery','powerMW','Battery',0,900,10,' MW<sub>AC</sub>')}${sliderHTML('battery','durationH','Battery hrs',1,12,1,' h')}
+  ${sliderHTML('wind','ppa','PPA wind',0,150,1,' €/MWh')}${sliderHTML('solar','ppa','PPA solar',0,150,1,' €/MWh')}
+  ${sliderHTML('dc','dcPrice','DC price',80,180,1,' €/MWh')}${sliderHTML('dc','firmMW','DC firm',100,900,10,' MW<sub>AC</sub>')}
+  ${sliderHTML('macro','gearing','Gearing',0,0.9,0.05,'%',100)}${sliderHTML('macro','tenor','Debt tenor',5,25,1,' yrs')}
+  ${sliderHTML('macro','allInRate','All-in rate',0.02,0.08,0.0025,'%',100)}${sliderHTML('battery','compression','Batt compression',0,0.2,0.005,'%/yr',100)}
+  ${sliderHTML('conn','directPer100','Direct line',0,20,0.5,' €m/100MW')}${sliderHTML('macro','infl','Inflation',0,0.05,0.005,'%',100)}
+  <div class="inp"><label>Decouple preset</label><div class="seg"><button onclick="M.wind.ppa=85;M.solar.ppa=40;render()">Wind 85 / Solar 40</button><button onclick="M.wind.ppa=100;M.solar.ppa=100;render()">Flat 100</button></div></div></div>`;
+ const eqRow=(n,c,l,p)=>`<tr><td><b style="color:${c}">${n}</b></td><td>${l}</td><td>${p}</td></tr>`;
+ const equityBuild=`<div class="panel"><h3>Equity capex buildup (both sourcing cases)</h3><table><thead><tr><th>Component</th><th>LCOE owned €m</th><th>PPA €${fmt(ppaUnit,0)} €m</th></tr></thead><tbody>
+   ${eqRow('Wind','var(--wind)',wOn?fmt(W.equity,0):'off','-')}
+   ${eqRow('Solar','var(--solar)',sOn?fmt(S.equity,0):'off','-')}
+   ${eqRow('Battery','var(--batt)',bOn?fmt(BF.equity,0):'off',bOn?fmt(BF.equity,0):'off')}
+   ${eqRow('Direct line','#8b98a9',fmt(lineEq,0),fmt(lineEq,0))}
+   <tr class="tot"><td>Total SPV equity</td><td>${fmt(totEqLCOE,0)}</td><td>${fmt(totEqPPA,0)}</td></tr>
+   </tbody></table><div class="muted" style="margin-top:8px">LCOE case: the SPV owns wind, solar, battery and the line. PPA case: only the battery and line (renewables bought at €${fmt(ppaUnit,0)}), a far smaller equity check. Wind, solar and line levered ${pct(M.macro.gearing,0)}; battery ${pct(M.battery.gearing,0)}.</div>
+   <div class="warn" style="margin-top:10px"><b>Interconnection burden (€${fmt(line+M.battery.substation+M.battery.interconnect,0)}m):</b> private RES tie-lines €${fmt(line,0)}m (€7.5m per 100 MW × ${fmt(M.wind.mw+M.solar.mw,0)} MW) + substation €${fmt(M.battery.substation,0)}m + interconnection €${fmt(M.battery.interconnect,0)}m. This, not the €100 PPA, is what TeraWulf has to amortise and what makes the deal hard. Passing ~half the substation to TeraWulf (they own the usage side) trims ~€20m and is the lever that lifts the battery return.</div></div>`;
+ return `<div class="grid cols">${masters}<div class="grid">${table}${spvBlock}${equityBuild}<div class="chart tall" id="spvEcon"></div><div class="chart tall" id="spvcf"></div><div class="chart" id="sbal"></div></div></div>`;
+}
+function estReserve(R){const first=R.rows.find(r=>r.y===FF);return first?first.debt*(M.macro.base+M.macro.margin):0;}
+function drawSummaryBalance(){
+ const W=computeAsset(M.wind),S=computeAsset(M.solar),dcLoad=M.dc.firmMW*8760/1e6;
+ const ops=W.rows.filter(r=>r.y>=FF&&r.y<=2040), yrs=ops.map(r=>r.y);
+ const res=ops.map(r=>{const s=S.rows.find(x=>x.y===r.y);return (r.prod+s.prod)/1e6;});
+ const grid=res.map(v=>Math.max(0,dcLoad-v));
+ Plotly.react('sbal',[
+  {x:yrs,y:res,name:'RES → DC',type:'bar',marker:{color:'#39d3bb'},hovertemplate:HT('TWh',2)},
+  {x:yrs,y:grid,name:'Grid → DC',type:'bar',marker:{color:'#3a4761'},hovertemplate:HT('TWh',2)},
+  {x:yrs,y:yrs.map(()=>dcLoad),name:'DC load',type:'scatter',line:{color:'#ff6b6b',dash:'dot'},hovertemplate:HT('TWh',2)}
+ ],lay('Energy balance - RES vs grid supply to DC (TWh/yr)',{barmode:'stack',showlegend:true}),CFG);
+}
+function drawSpvEcon(){
+ const W=computeAsset(M.wind),S=computeAsset(M.solar),B=computeBattery(M.battery);
+ const infl=M.macro.infl,dcLoad=M.dc.firmMW*8760;
+ const wr=W.rows.find(r=>r.y===FF),sr=S.rows.find(r=>r.y===FF),res=wr.prod+sr.prod;
+ const dcRev=dcLoad*M.dc.dcPrice*Math.pow(1+infl,FF-2026)/1e6;
+ const owned=(M.dc.resMode||'lcoe')==='lcoe';
+ const resCost=res>0?(owned?(wr.prod*W.lcoe+sr.prod*S.lcoe)/1e6:(M.wind.ppa*wr.prod+M.solar.ppa*sr.prod)/1e6):0;
+ const grid=Math.max(0,dcLoad-res),gridCost=grid*M.macro.merchReal*Math.pow(1+infl,FF-2023)*(1-M.dc.tradingProfit)/1e6;
+ const batt=B.totalRev,margin=dcRev-resCost-gridCost+batt;
+ Plotly.react('spvEcon',[{type:'waterfall',orientation:'v',
+   measure:['absolute','relative','relative','relative','total'],
+   x:['DC revenue',owned?'− RES (owned, LCOE)':'− RES (PPA, fixed)','− Grid ride-through','+ Battery trading','= Margin on power'],
+   y:[dcRev,-resCost,-gridCost,batt,margin],
+   text:[dcRev,-resCost,-gridCost,batt,margin].map(v=>'€'+Math.round(v)+'m'),textposition:'outside',
+   increasing:{marker:{color:'#39d98a'}},decreasing:{marker:{color:'#ff6b6b'}},totals:{marker:{color:'#39d3bb'}},
+   connector:{line:{color:'#3a4761'}},hovertemplate:'%{x}: €%{y:,.0f}m<extra></extra>'
+ }],lay('Margin over the data-center power purchase (yr1, €m) - buy RES + grid, trade battery, sell to DC',{showlegend:false,margin:{l:54,r:20,t:64,b:66}}),CFG);
+}
+// Consolidated SPV: owns RES+battery+line, buys grid ride-through, sells to DC. Levered equity IRR.
+function computeSPV(dcP){
+ const mac=M.macro,infl=mac.infl,allIn=mac.allInRate,g=mac.gearing,tenor=mac.tenor,comp=M.battery.compression,gy=M.battery.gridYear,bdeg=M.battery.degr;
+ const owned=(M.dc.resMode||'lcoe')==='lcoe';
+ const W=computeAsset(M.wind),S=computeAsset(M.solar),B=computeBattery(M.battery);
+ const wOn=M.wind.on!==false, sOn=M.solar.on!==false, bOn=M.battery.on!==false;
+ const dcLoad=M.dc.firmMW*8760;
+ const resCx=(wOn?W.totalCapex:0)+(sOn?S.totalCapex:0), battCx=bOn?B.capex:0, lineCx=((wOn?M.wind.mw:0)+(sOn?M.solar.mw:0))*M.conn.directPer100/100;
+ const resOpex=(wOn?M.wind.opexPerMW*M.wind.mw:0)+(sOn?M.solar.opexPerMW*M.solar.mw:0);
+ // owned: SPV builds & finances RES (capex in SPV, no PPA). bought: SPV buys RES at PPA (no RES capex, PPA is a COGS).
+ const cap=owned?{2027:0.30*resCx,2028:0.70*resCx+battCx+lineCx}:{2027:0,2028:battCx+lineCx};
+ const battG=(M.battery.gearing!=null?M.battery.gearing:g);
+ const resIn=owned?resCx:0, totCap=resIn+battCx+lineCx, totDebt=g*(resIn+lineCx)+battG*battCx, blendG=totCap>0?totDebt/totCap:g;
+ const lev=cap, depBase=owned?(resCx+battCx+lineCx):(battCx+lineCx);
+ let bal=0,nol=0,ppy=0; const rows=[];
+ const resLife=Math.max(M.wind.lifeY||25,M.solar.lifeY||25), spvEnd=FF+resLife, effTen=Math.min(tenor,resLife), depN=Math.min(20,resLife), battEnd=COD+(M.battery.lifeY||25);
+ for(let y=Y0;y<=YN;y++){
+  const op=(y>=FF&&y<spvEnd)?1:0, wr=W.rows.find(r=>r.y===y), sr=S.rows.find(r=>r.y===y);
+  const resGen=(wOn&&wr?wr.prod:0)+(sOn&&sr?sr.prod:0);
+  const rev=op?dcLoad*dcP*Math.pow(1+infl,y-2026)/1e6:0;
+  const bRev=(bOn&&y>=gy&&y<battEnd)?(B.arbRev*Math.pow(1-bdeg,y-gy)+B.ancRev)*Math.pow(1-comp,y-gy)*Math.pow(1+infl,y-gy):0;
+  const gridMWh=Math.max(0,dcLoad-resGen);
+  const gridCost=op?gridMWh*mac.merchReal*Math.pow(1+infl,y-2023)*(1-M.dc.tradingProfit)/1e6:0;
+  const resPPA=(!owned&&op)?((wOn?M.wind.ppa*(wr?wr.prod:0):0)+(sOn?M.solar.ppa*(sr?sr.prod:0):0))/1e6:0;   // fixed PPA, no escalation
+  const opex=op?((owned?resOpex:0)*Math.pow(1+infl,y-2023)+(bOn?B.opex:0)):0;
+  const ebitda=rev+bRev-gridCost-resPPA-opex;
+  const dep=(y>=FF&&y<FF+depN)?depBase/depN:0, capex=cap[y]||0;
+  let int=0,t=0,repay=0,fcfe=0;
+  if(y<FF){const draw=(lev[y]||0)*blendG;const idc=(bal+draw/2)*allIn*(capex>0?1:0);bal+=draw+idc;fcfe=-capex+draw;}
+  else{if(y===FF)ppy=bal/effTen;int=bal*allIn;const ebt=ebitda-dep-int;let tb=ebt+nol;if(tb>0){t=tb*mac.tax;nol=0;}else{nol=tb;}repay=(y<FF+effTen)?Math.min(bal,ppy):0;bal-=repay;fcfe=ebitda-t-capex-repay-int;}
+  rows.push({y,rev,bRev,gridCost,resPPA,opex,int,repay,tax:t,ebitda,fcfe});
+ }
+ const irr=xirr(rows.map(r=>r.fcfe),rows.map(r=>r.y+0.99));
+ const equity=-rows.filter(r=>r.fcfe<0).reduce((s,r)=>s+r.fcfe,0);
+ return{rows,irr,equity,capex:(owned?resCx:0)+battCx+lineCx,owned};
+}
+function solveDcFor(target){let a=40,b=220;for(let i=0;i<48;i++){const m=(a+b)/2,r=computeSPV(m).irr;if(isNaN(r)||r<target)a=m;else b=m;}return (a+b)/2;}
+function drawSpvCashflow(){
+ const SP=computeSPV(M.dc.dcPrice), ops=SP.rows.filter(r=>r.y>=FF&&r.rev>0), yrs=ops.map(r=>r.y);
+ Plotly.react('spvcf',[
+   {x:yrs,y:ops.map(r=>r.rev+r.bRev),name:'Revenue',type:'bar',marker:{color:'#39d3bb'},hovertemplate:HT('€m')},
+   {x:yrs,y:ops.map(r=>-(r.gridCost+r.opex)),name:'Grid + opex',type:'bar',marker:{color:'#ff6b6b'},hovertemplate:HT('€m')},
+   {x:yrs,y:ops.map(r=>-(r.int+r.repay)),name:'Financing',type:'bar',marker:{color:'#5a6b8c'},hovertemplate:HT('€m')},
+   {x:yrs,y:ops.map(r=>-r.tax),name:'Tax',type:'bar',marker:{color:'#ffb23e'},hovertemplate:HT('€m')},
+   {x:yrs,y:ops.map(r=>r.fcfe),name:'Dividends (equity CF)',type:'scatter',line:{color:'#b98cff',width:3},hovertemplate:HT('€m')}
+ ],lay('SPV cash-flow build → equity IRR '+fmt(SP.irr*100,1)+'% on €'+fmt(SP.equity,0)+'m equity (Rev − grid/opex − financing − tax = dividends)',{barmode:'relative',showlegend:true}),CFG);
+}
+let profView='heat', profAsset='wind';
+function profilesPage(){
+ setTimeout(drawProfiles,0);
+ return `<div class="panel" style="margin-bottom:14px"><div class="seg">
+   <button class="${profView==='heat'?'on':''}" onclick="profView='heat';render()">Heatmap</button>
+   <button class="${profView==='surf'?'on':''}" onclick="profView='surf';render()">3D surface</button>
+   <button class="${profView==='shape'?'on':''}" onclick="profView='shape';render()">Shape</button>
+   <button class="${profView==='risk'?'on':''}" onclick="profView='risk';render()">Supply</button>
+   <button class="${profView==='mix'?'on':''}" onclick="profView='mix';render()">Austria grid mix</button></div>
+   <span class="muted" style="margin-left:10px">Heatmap and 3D show wind, solar and combined stacked. CF axis fixed 0-${CFMAX} for comparability.</span></div>
+  <div class="chart tall" id="pmain"></div><div id="pstats"></div>`;
+}
+function mat(asset){return asset==='solar'?PROFILES.solarMonthHour:PROFILES.windMonthHour;}
+function drawProfiles(){
+ const el='pmain'; document.getElementById('pstats').innerHTML='';
+ if(profView==='heat'){
+  const zc=()=>PROFILES.windMonthHour.map((r,m)=>r.map((v,h)=>v*M.wind.mw+PROFILES.solarMonthHour[m][h]*M.solar.mw));
+  const hm=(elid,asset)=>{const comb=asset==='combined';const z=comb?zc():mat(asset);
+    const tr={z,x:[...Array(24).keys()],y:MONTHS,type:'heatmap',colorscale:GREEN,hovertemplate:(comb?'%{y}, %{x}:00 → %{z:,.0f} MW':'%{y}, %{x}:00 → CF %{z:.2f}')+'<extra></extra>'};
+    if(!comb){tr.zmin=0;tr.zmax=CFMAX;tr.colorbar={title:'CF'};}else{tr.zmin=0;tr.colorbar={title:'MW'};}
+    Plotly.react(elid,[tr],lay((comb?'Combined output (MW)':(asset==='wind'?'Wind':'Solar')+' capacity factor')+' - month × hour',{hovermode:'closest',yaxis:{autorange:'reversed'},xaxis:{title:'hour of day'}}),CFG);};
+  document.getElementById('pstats').innerHTML=`<div class="chart tall" id="ph2" style="margin-top:14px"></div><div class="chart tall" id="ph3" style="margin-top:14px"></div>`;
+  hm('pmain','wind');setTimeout(()=>{hm('ph2','solar');hm('ph3','combined');},0);
+ }else if(profView==='surf'){
+  const zc=()=>PROFILES.windMonthHour.map((r,m)=>r.map((v,h)=>v*M.wind.mw+PROFILES.solarMonthHour[m][h]*M.solar.mw));
+  const sf=(elid,asset)=>{const comb=asset==='combined';const z=comb?zc():mat(asset);
+    const tr={z,x:[...Array(24).keys()],y:MONTHS,type:'surface',colorscale:GREEN,showscale:false,hovertemplate:'%{y}, %{x}:00 → '+(comb?'%{z:,.0f} MW':'CF %{z:.2f}')+'<extra></extra>'};
+    if(!comb){tr.cmin=0;tr.cmax=CFMAX;}
+    const sc={xaxis:{title:'hour'},yaxis:{title:'month'},zaxis:{title:comb?'MW':'CF'}};if(!comb)sc.zaxis.range=[0,CFMAX];
+    Plotly.react(elid,[tr],lay((comb?'Combined':(asset==='wind'?'Wind':'Solar'))+' - 3D shape',{hovermode:'closest',scene:sc}),CFG);};
+  document.getElementById('pstats').innerHTML=`<div class="chart tall" id="ph2" style="margin-top:14px"></div><div class="chart tall" id="ph3" style="margin-top:14px"></div>`;
+  sf('pmain','wind');setTimeout(()=>{sf('ph2','solar');sf('ph3','combined');},0);
+ }else if(profView==='shape'){
+  Plotly.react(el,[
+    {x:MONTHS,y:PROFILES.windMonthlyCF,name:'Wind',type:'bar',marker:{color:'#4aa8ff'},hovertemplate:'Wind CF %{y:.1%}<extra></extra>'},
+    {x:MONTHS,y:PROFILES.solarMonthlyCF,name:'Solar',type:'bar',marker:{color:'#ffb23e'},hovertemplate:'Solar CF %{y:.1%}<extra></extra>'}
+  ],lay('Yearly shape: monthly capacity factor (winter wind vs summer solar)',{barmode:'group',showlegend:true,yaxis:{range:[0,CFMAX],tickformat:'.0%'}}),CFG);
+  const w=[...Array(24).keys()].map(h=>avg(PROFILES.windMonthHour.map(r=>r[h])));
+  const s=[...Array(24).keys()].map(h=>avg(PROFILES.solarMonthHour.map(r=>r[h])));
+  document.getElementById('pstats').innerHTML=`<div class="chart tall" id="pdaily" style="margin-top:14px"></div><div class="info" style="margin-top:12px"><b>Complementarity:</b> wind peaks in winter (Jan 55.6% CF) when solar bottoms (Jan 6.8%); solar peaks midday in summer. Stacking the two smooths the shape delivered to the DC.</div>`;
+  setTimeout(()=>Plotly.react('pdaily',[
+   {x:[...Array(24).keys()],y:w,name:'Wind',line:{color:'#4aa8ff'},hovertemplate:'Wind CF %{y:.2f}<extra></extra>'},
+   {x:[...Array(24).keys()],y:s,name:'Solar',line:{color:'#ffb23e'},hovertemplate:'Solar CF %{y:.2f}<extra></extra>'}
+  ],lay('Daily shape: average CF by hour of day',{showlegend:true,yaxis:{range:[0,CFMAX]},xaxis:{title:'hour of day',dtick:2}}),CFG),0);
+ }else if(profView==='mix'){
+  Plotly.react('pmain',[
+    {x:EMBER.years,y:EMBER.solar,name:'Solar generation',type:'bar',marker:{color:'#ffb23e'},hovertemplate:'%{y} TWh<extra></extra>'},
+    {x:EMBER.years,y:EMBER.wind,name:'Wind generation',type:'bar',marker:{color:'#4aa8ff'},hovertemplate:'%{y} TWh<extra></extra>'},
+    {x:EMBER.years,y:EMBER.years.map(y=>PRICES.per_year[y]?PRICES.per_year[y].solar/PRICES.per_year[y].baseload*100:null),name:'Solar capture % of base',type:'scatter',yaxis:'y2',line:{color:'#ff6b6b',width:2.5,dash:'dot'},hovertemplate:'%{y:.0f}% of baseload<extra></extra>'}
+  ],lay('Austria: solar and wind generation (TWh) vs solar capture ratio',{barmode:'group',showlegend:true,yaxis:{title:{text:'TWh/yr',font:{size:9}}},yaxis2:{overlaying:'y',side:'right',range:[0,110],title:{text:'% of baseload',font:{size:9}},gridcolor:'transparent'}}),CFG);
+  document.getElementById('pstats').innerHTML=`<div class="info" style="margin-top:12px"><b>The cannibalisation driver.</b> Austrian solar generation grew from ${EMBER.solar[0]} TWh (2015) to ${EMBER.solar[EMBER.solar.length-1]} TWh (2025), roughly 10x, while wind grew far less (${EMBER.wind[0]} to ${EMBER.wind[EMBER.wind.length-1]} TWh). As the red line shows, solar's capture price fell as its volume rose, the same decoupling seen across Germany and Spain. Source: Ember monthly electricity data.</div>`;
+ }else if(profView==='risk'){ drawRisk(); }
+}
+function drawRisk(){
+ const T=typicalYear(),load=M.dc.firmMW,n=T.w.length;
+ const wNet=M.wind.grossCF*(1-M.wind.loss),sNet=M.solar.grossCF*(1-M.solar.loss);
+ const wS=avg(T.w)>0?wNet/avg(T.w):0, sS=avg(T.s)>0?sNet/avg(T.s):0;
+ const comb=T.w.map((w,i)=>w*wS*M.wind.mw+T.s[i]*sS*M.solar.mw);
+ const cover=comb.map(g=>Math.min(g,load)/load*100).sort((a,b)=>a-b), gridSh=cover.map(c=>100-c);
+ const xpct=[...Array(n).keys()].map(i=>i/(n-1)*100);
+ let deficitHours=0,gridE=0,resServed=0,daysNeed=0,idx=0;
+ const mR=Array(12).fill(0),mG=Array(12).fill(0),mL=Array(12).fill(0),hR=Array(24).fill(0),hG=Array(24).fill(0),hL=Array(24).fill(0);
+ for(let m=0;m<12;m++){for(let d=0;d<DAYS[m];d++){let dDef=0;for(let h=0;h<24;h++){
+   const g=T.w[idx]*wS*M.wind.mw+T.s[idx]*sS*M.solar.mw,served=Math.min(g,load),def=Math.max(0,load-g);
+   if(g<load)deficitHours++;gridE+=def;resServed+=served;dDef+=def;
+   mR[m]+=served;mG[m]+=def;mL[m]+=load;hR[h]+=served;hG[h]+=def;hL[h]+=load;idx++;}if(dDef>0)daysNeed++;}}
+ const totLoad=load*8760;
+ Plotly.react('pmain',[
+   {x:xpct,y:cover,name:'Renewables',stackgroup:'one',mode:'lines',fillcolor:'rgba(57,211,187,0.5)',line:{color:'#39d3bb',width:1},hovertemplate:'RES covers %{y:.0f}% of load<extra></extra>'},
+   {x:xpct,y:gridSh,name:'Grid ride-through',stackgroup:'one',mode:'lines',fillcolor:'rgba(90,107,140,0.7)',line:{color:'#5a6b8c',width:1},hovertemplate:'Grid covers %{y:.0f}% of load<extra></extra>'}
+ ],lay('Load coverage duration - % of DC load met by renewables vs grid (hours sorted worst→best)',{showlegend:true,xaxis:{title:'percentile of hours',ticksuffix:'%'},yaxis:{range:[0,100],ticksuffix:'%',title:'% of load'}}),CFG);
+ const rM=mR.map((r,i)=>r/mL[i]*100),gM=mG.map((g,i)=>g/mL[i]*100),rH=hR.map((r,i)=>r/hL[i]*100),gH=hG.map((g,i)=>g/hL[i]*100);
+ document.getElementById('pstats').innerHTML=`<div class="kpis" style="margin-top:14px">
+   ${kpi('Days needing grid',fmt(daysNeed/365*100,0),'% of days')}
+   ${kpi('Grid import',fmt(gridE/totLoad*100,0),'% of load')}
+   ${kpi('RES self-supply',fmt(resServed/totLoad*100,0),'% of load')}
+   ${kpi('Hours in deficit',fmt(deficitHours/8760*100,0),'% of hours')}
+   ${kpi('Avg shortfall',fmt(gridE/Math.max(1,deficitHours),0),'MW when short')}</div>
+   <div class="chart" id="pmain2" style="margin-top:14px"></div>
+   <div class="chart" id="pmain3" style="margin-top:14px"></div>
+   <div class="info" style="margin-top:12px">Renewables self-supply <b>${fmt(resServed/totLoad*100,0)}%</b> of DC load; the grid rides through the other <b>${fmt(gridE/totLoad*100,0)}%</b>. The stacked bars split every month (annual view) and every hour of the day (daily view) into renewables vs grid, each summing to 100% of load.</div>`;
+ setTimeout(()=>{
+  Plotly.react('pmain2',[
+    {x:MONTHS,y:rM,name:'Renewables',type:'bar',marker:{color:'#39d3bb'},hovertemplate:'RES %{y:.0f}% of load<extra></extra>'},
+    {x:MONTHS,y:gM,name:'Grid',type:'bar',marker:{color:'#3a4761'},hovertemplate:'Grid %{y:.0f}% of load<extra></extra>'}
+  ],lay('Annual view - supply mix by month (% of DC load)',{barmode:'stack',showlegend:true,yaxis:{range:[0,100],ticksuffix:'%'}}),CFG);
+  Plotly.react('pmain3',[
+    {x:[...Array(24).keys()],y:rH,name:'Renewables',type:'bar',marker:{color:'#39d3bb'},hovertemplate:'RES %{y:.0f}% of load<extra></extra>'},
+    {x:[...Array(24).keys()],y:gH,name:'Grid',type:'bar',marker:{color:'#3a4761'},hovertemplate:'Grid %{y:.0f}% of load<extra></extra>'}
+  ],lay('Daily view - supply mix by hour of day (% of DC load)',{barmode:'stack',showlegend:true,xaxis:{title:'hour of day',dtick:2},yaxis:{range:[0,100],ticksuffix:'%'}}),CFG);
+ },0);
+}
+let priceYear='2025';
+function pricesPage(){
+ setTimeout(drawPrices,0);
+ const yrs=['2015','2016','2017','2018','2019','2020','2021','2022','2023','2024','2025'];
+ const py=PRICES.per_year[priceYear], bl=py.baseload, wc=py.wind, sc=py.solar;
+ const wCF=effCF(M.wind)*100, sCF=effCF(M.solar)*100;
+ const ex=['2019','2020','2021','2023','2024','2025'], avg=k=>ex.reduce((s,y)=>s+PRICES.per_year[y][k],0)/ex.length;
+ const avgBl=avg('baseload'),avgW=avg('wind'),avgS=avg('solar');
+ const sel=`<div class="panel" style="margin-bottom:14px"><div class="seg">${yrs.map(y=>`<button class="${priceYear===y?'on':''}" onclick="priceYear='${y}';render()">${y}</button>`).join('')}</div>
+   <span class="muted" style="margin-left:8px">Capture price = the wholesale price averaged over the hours each plant generates (modelled hourly profile). Charts use the <b>${priceYear}</b> curve.</span></div>`;
+ const kpis=`<div class="kpis">
+   ${kpi('Baseload '+priceYear,'€'+fmt(bl,1),'/MWh')}
+   <div class="kpi" style="border-color:var(--wind)"><div class="l">Wind capture ${priceYear}</div><div class="v" style="color:var(--wind)">€${fmt(wc,1)}<small> ${fmt(wc/bl*100,0)}% base · CF ${fmt(wCF,0)}%</small></div></div>
+   <div class="kpi" style="border-color:var(--solar)"><div class="l">Solar capture ${priceYear}</div><div class="v" style="color:var(--solar)">€${fmt(sc,1)}<small> ${fmt(sc/bl*100,0)}% base · CF ${fmt(sCF,0)}%</small></div></div>
+   ${kpi('7-yr avg (ex-2022)','W €'+fmt(avgW,0)+' / S €'+fmt(avgS,0),'/MWh')}</div>`;
+ const trow=(y)=>{const p=PRICES.per_year[y];return `<tr class="${y===priceYear?'tot':''}"><td>${y}</td><td>€${fmt(p.baseload,0)}</td><td style="color:var(--wind)">€${fmt(p.wind,0)}</td><td>${fmt(p.wind/p.baseload*100,0)}%</td><td style="color:var(--solar)">€${fmt(p.solar,0)}</td><td>${fmt(p.solar/p.baseload*100,0)}%</td></tr>`;};
+ const table=`<div class="panel" style="margin-bottom:14px"><h3>Capture price by year (€/MWh)</h3><table><thead><tr><th>Year</th><th>Baseload</th><th>Wind cap</th><th>Wind %</th><th>Solar cap</th><th>Solar %</th></tr></thead><tbody>
+   ${yrs.map(trow).join('')}
+   <tr class="tot"><td>Avg ex-2022</td><td>€${fmt(avgBl,0)}</td><td style="color:var(--wind)">€${fmt(avgW,0)}</td><td>${fmt(avgW/avgBl*100,0)}%</td><td style="color:var(--solar)">€${fmt(avgS,0)}</td><td>${fmt(avgS/avgBl*100,0)}%</td></tr>
+   </tbody></table><div class="muted" style="margin-top:8px">2022 is the Ukraine gas crisis (baseload €263) and is excluded from the 7-year average. Wind net CF ${fmt(wCF,0)}%, solar net CF ${fmt(sCF,0)}% at the Burgenland site.</div></div>`;
+ const note=`<div class="info"><b>Solar is decoupling from baseload.</b> Austrian solar generation grew roughly 10x, from ${EMBER.solar[0]} TWh (2015) to ${EMBER.solar[EMBER.solar.length-1]} TWh (2025), so midday prices crash exactly when solar produces: solar capture fell from ${fmt(PRICES.per_year['2019'].solar/PRICES.per_year['2019'].baseload*100,0)}% of baseload in 2019 to ${fmt(PRICES.per_year['2025'].solar/PRICES.per_year['2025'].baseload*100,0)}% in 2025, the same pattern as Germany and Spain. Wind stays near baseload (it blows day and night). A flat PPA well above the ~€${fmt(avgS,0)} solar capture carries real value.</div>`;
+ return kpis+sel+table+`<div class="charts"><div class="chart tall" id="pr_trend"></div><div class="chart tall" id="pr_daily"></div><div class="chart tall" id="pr_season"></div></div>`+note;
+}
+function drawPrices(){
+ const yrs=Object.keys(PRICES.per_year).filter(y=>+y>=2015&&+y<=2025);
+ Plotly.react('pr_trend',[
+   {x:yrs,y:yrs.map(y=>PRICES.per_year[y].baseload),name:'Baseload',type:'scatter',line:{color:'#8b98a9',width:2.5},hovertemplate:HT('€/MWh')},
+   {x:yrs,y:yrs.map(y=>PRICES.per_year[y].wind),name:'Wind capture',type:'scatter',line:{color:'#4aa8ff',width:2.5},hovertemplate:HT('€/MWh')},
+   {x:yrs,y:yrs.map(y=>PRICES.per_year[y].solar),name:'Solar capture',type:'scatter',line:{color:'#ffb23e',width:2.5},hovertemplate:HT('€/MWh')}
+ ],lay('Austrian wholesale: baseload vs wind and solar capture (€/MWh, 2015-2025)',{showlegend:true}),CFG);
+ const py=PRICES.per_year[priceYear], H=[...Array(24).keys()];
+ Plotly.react('pr_daily',[
+   {x:H,y:py.ph,name:'Price '+priceYear,type:'scatter',line:{color:'#ff6b6b',width:2.6},hovertemplate:HT('€/MWh')},
+   {x:H,y:PRICES.solarHr,name:'Solar CF',type:'scatter',yaxis:'y2',fill:'tozeroy',line:{color:'#ffb23e'},fillcolor:'rgba(255,178,62,0.18)',hovertemplate:'solar CF %{y:.2f}<extra></extra>'},
+   {x:H,y:PRICES.windHr,name:'Wind CF',type:'scatter',yaxis:'y2',line:{color:'#4aa8ff',width:2},hovertemplate:'wind CF %{y:.2f}<extra></extra>'}
+ ],lay('Daily shape: hourly price vs wind and solar output ('+priceYear+')',{showlegend:true,xaxis:{title:'hour of day',dtick:2,gridcolor:'#28313f',zeroline:false},yaxis:{title:{text:'€/MWh',font:{size:9}},gridcolor:'#28313f',zeroline:false},yaxis2:{overlaying:'y',side:'right',range:[0,0.7],title:{text:'CF',font:{size:9}},gridcolor:'transparent'}}),CFG);
+ Plotly.react('pr_season',[
+   {x:MONTHS,y:py.pm,name:'Price '+priceYear,type:'bar',marker:{color:'#ff6b6b'},hovertemplate:HT('€/MWh')},
+   {x:MONTHS,y:PRICES.solarMo,name:'Solar CF',type:'scatter',yaxis:'y2',line:{color:'#ffb23e',width:2.5},hovertemplate:'solar CF %{y:.2f}<extra></extra>'},
+   {x:MONTHS,y:PRICES.windMo,name:'Wind CF',type:'scatter',yaxis:'y2',line:{color:'#4aa8ff',width:2.5},hovertemplate:'wind CF %{y:.2f}<extra></extra>'}
+ ],lay('Seasonal: monthly price vs wind and solar CF ('+priceYear+')',{showlegend:true,yaxis:{title:{text:'€/MWh',font:{size:9}},gridcolor:'#28313f',zeroline:false},yaxis2:{overlaying:'y',side:'right',range:[0,0.6],gridcolor:'transparent'}}),CFG);
+}
+function render(){
+ const m=document.getElementById('main');
+ if(active==='wind')m.innerHTML=assetPage('wind');
+ else if(active==='solar')m.innerHTML=assetPage('solar');
+ else if(active==='battery')m.innerHTML=batteryPage();
+ else if(active==='summary'){m.innerHTML=summaryPage();setTimeout(drawSummaryBalance,0);setTimeout(drawSpvEcon,0);setTimeout(drawSpvCashflow,0);}
+ else if(active==='prices')m.innerHTML=pricesPage();
+ else if(active==='profiles')m.innerHTML=profilesPage();
+}
+buildNav();render();
+if(typeof Plotly==='undefined'){(function w(){ (typeof Plotly!=='undefined') ? render() : setTimeout(w,100); })();}
+</script>
+</body>
+</html>
