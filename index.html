@@ -224,7 +224,7 @@ function pct(x,d=1){return (x*100).toFixed(d)+'%';}
 function avg(a){return a.reduce((x,y)=>x+y,0)/a.length;}
 const CFG={displayModeBar:false,responsive:true};
 function lay(title,opts){return Object.assign({
-  title:{text:title,font:{size:12.5,color:'#8b98a9'},x:0.5,xanchor:'center',xref:'paper',y:1,yref:'container',yanchor:'top',pad:{t:6}},
+  title:{text:title,font:{size:12.5,color:'#8b98a9'},x:0.5,xanchor:'center',xref:'paper'},
   paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{color:'#e6edf3',size:11},
   margin:{l:54,r:50,t:80,b:38},
   xaxis:{gridcolor:'#28313f',zeroline:false},yaxis:{gridcolor:'#28313f',zeroline:false},
@@ -323,10 +323,11 @@ function drawAssetCharts(R,col){
  ],lay('Debt service',{barmode:'stack',showlegend:true,yaxis:{range:[0,Z.ds],gridcolor:'#28313f',title:{text:'€m',font:{size:10}}},yaxis2:{overlaying:'y',side:'right',range:[0,Z.bal],gridcolor:'transparent',title:{text:'balance €m',font:{size:9}}}}),CFG);
  const cfl=R.rows.filter(r=>r.y<FF+R.life); const sub=[],dts=[],roll=[];
  cfl.forEach(r=>{sub.push(r.fcfe);dts.push(r.y+0.99);const ir=(sub.some(v=>v<0)&&sub.some(v=>v>0))?xirr(sub.slice(),dts.slice()):NaN;roll.push(isNaN(ir)?null:ir*100);});
+ const zf=(0-Z.fcfeMin)/(Z.fcfeMax-Z.fcfeMin), iMax=Math.max(30,R.irr*130), iMin=(zf>0&&zf<1)?(-iMax*zf/(1-zf)):0; // align both axes' zero lines
  Plotly.react('c_eq',[
    {x:cfl.map(r=>r.y),y:cfl.map(r=>r.fcfe),name:'Equity CF',type:'bar',marker:{color:cfl.map(r=>r.fcfe>=0?'#39d98a':'#ff6b6b')},hovertemplate:HT('€m')},
    {x:cfl.map(r=>r.y),y:roll,name:'Cumulative IRR',type:'scatter',yaxis:'y2',line:{color:'#39d3bb',width:2},hovertemplate:'%{y:.1f}%<extra></extra>'}
- ],lay('Equity cash flow<br><span style="font-size:10px">IRR '+fmt(R.irr*100,2)+'% · MOIC '+fmt(R.moic,2)+'x</span>',{showlegend:true,yaxis:{range:[Z.fcfeMin,Z.fcfeMax],gridcolor:'#28313f',title:{text:'€m',font:{size:10}}},yaxis2:{overlaying:'y',side:'right',range:[0,Math.max(30,R.irr*130)],gridcolor:'transparent',title:{text:'cumulative IRR %',font:{size:9}}}}),CFG);
+ ],lay('Equity cash flow<br><span style="font-size:10px">IRR '+fmt(R.irr*100,2)+'% · MOIC '+fmt(R.moic,2)+'x</span>',{showlegend:true,yaxis:{range:[Z.fcfeMin,Z.fcfeMax],gridcolor:'#28313f',title:{text:'€m',font:{size:10}}},yaxis2:{overlaying:'y',side:'right',range:[iMin,iMax],gridcolor:'transparent',title:{text:'cumulative IRR %',font:{size:9}}}}),CFG);
  drawSensitivity(R,col);
 }
 function drawSensitivity(R,col){
@@ -431,11 +432,10 @@ function drawBatteryCharts(){
  ],lay('Dispatch on the '+b.priceYear+' curve<br><span style="font-size:10px">'+nCh+'h charge + '+nCh+'h discharge · spread €'+fmt(B.capturedSpread,0)+'/MWh · −'+fmt((1-b.rte)*100,0)+'% RTE · '+fmt((b.socFloor||0)*100,0)+'% SoC floor</span>',
    {showlegend:true,xaxis:{title:'hour of day',dtick:2,gridcolor:'#28313f'},yaxis:{title:{text:'MW',font:{size:10}}},
     yaxis2:{overlaying:'y',side:'right',range:[0,maxP],title:{text:'€/MWh (SoC scaled)',font:{size:9}},gridcolor:'transparent'}}),CFG);
- const F=computeBatteryFin(), fr=F.rows.filter(r=>r.y>=COD&&r.y<COD+(M.battery.lifeY||25)), fyrs=fr.map(r=>r.y);
+ const F=computeBatteryFin(), fr=F.rows.filter(r=>r.y>=COD&&r.y<COD+(M.battery.lifeY||25)), fyrs=fr.map(r=>r.y), Zb=assetRanges();
  Plotly.react('bch_econ',[
-   {x:fyrs,y:fr.map(r=>r.fcfe),name:'Equity cash flow',type:'bar',marker:{color:fr.map(r=>r.fcfe>=0?'#39d98a':'#ff6b6b')},hovertemplate:HT('€m')},
-   {x:fyrs,y:fr.map(r=>r.rev),name:'Revenue (compressing)',type:'scatter',line:{color:'#b98cff',width:2.4},hovertemplate:HT('€m')}
- ],lay('Battery equity cash flow<br><span style="font-size:10px">capex '+COD+' · merchant from '+b.gridYear+' · '+(b.lifeY||25)+'-yr life · IRR '+(isNaN(F.irr)?'n/m':fmt(F.irr*100,2)+'%')+' on €'+fmt(F.equity,0)+'m equity</span>',{barmode:'relative',showlegend:true,yaxis:{range:[assetRanges().fcfeMin,assetRanges().fcfeMax],title:{text:'€m',font:{size:10}},gridcolor:'#28313f'}}),CFG);
+   {x:fyrs,y:fr.map(r=>r.fcfe),name:'Equity cash flow',type:'bar',marker:{color:fr.map(r=>r.fcfe>=0?'#39d98a':'#ff6b6b')},hovertemplate:HT('€m')}
+ ],lay('Battery equity cash flow<br><span style="font-size:10px">capex '+COD+' · costs from '+(COD+1)+' · merchant from '+b.gridYear+' · IRR '+(isNaN(F.irr)?'n/m':fmt(F.irr*100,2)+'%')+' on €'+fmt(F.equity,0)+'m equity</span>',{barmode:'relative',showlegend:true,yaxis:{range:[Zb.fcfeMin,Zb.fcfeMax],title:{text:'€m',font:{size:10}},gridcolor:'#28313f'}}),CFG);
 }
 function summaryPage(){
  const W=computeAsset(M.wind),S=computeAsset(M.solar),B=computeBattery(M.battery);
