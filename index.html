@@ -139,8 +139,8 @@ const CAP7=(function(){const ys=['2019','2020','2021','2023','2024','2025'];cons
 const M={
  view:'INT',
  macro:{infl:0.02,tax:0.23,base:0.025,margin:0.019,gearing:0.70,merchReal:100,tenor:20,allInRate:0.045,ppaTermY:20},
- wind:{on:true,mw:320,capexPerMW:1.30,grossCF:0.290636,loss:0.02,opexPerMW:0.04,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25},
- solar:{on:true,mw:370,capexPerMW:0.45,grossCF:0.126169,loss:0.02,opexPerMW:0.02,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25},
+ wind:{on:true,mw:320,capexPerMW:1.30,grossCF:0.290636,loss:0.02,opexPerMW:0.04,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2029},
+ solar:{on:true,mw:357,capexPerMW:0.45,grossCF:0.126169,loss:0.02,opexPerMW:0.02,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2030},
  battery:{on:true,powerMW:500,durationH:12,capexPerKWh:130,rte:0.87,opexPct:0.02,degr:0.015,socFloor:0.10,gridYear:2035,priceYear:'2025',captureFactor:1.0,cyclesDay:1,ancPerMW:20,capChargeMWyr:0,compression:0.02,gearing:0.60,debtRate:0.05,substation:24.25,interconnect:17,gridCapFee:42.84,gridEnergyFee:8.4,lifeY:25},
  dc:{firmMW:500,puE:1.35,dcPrice:120,srcMode:'fixed',resFix:99,beMargin:0.03,gridEnergyFee:8.4,gridCapFeeKW:42.84,resMode:'ppa'},
  conn:{nebZutritt:24.25,custConn:17.0,netzbereit:6.0,directPer100:7.54} // NEB 20260626: Netzzutritt €24.25m (actual-cost) + customer 3×3.5km 110kV ~€17m + Netzbereitstellung 12€/kW = €6m
@@ -156,13 +156,14 @@ function xirr(cfs,dt){const npv=r=>cfs.reduce((s,c,i)=>s+c/Math.pow(1+r,dt[i]-dt
 function effCF(a){ if(a.basis==='profile') return (a===M.wind?PROFILES.meta.wind_cf:PROFILES.meta.solar_cf); return a.grossCF*(1-a.loss);}
 function computeAsset(a){
  const mac=M.macro, allIn=mac.allInRate, netCF=effCF(a);
- const life=a.lifeY||25, endY=FF+life, ppaEnd=FF+Math.min(mac.ppaTermY||20,life), effTenor=Math.min(mac.tenor,life), depY=Math.min(DEPRY,life);
+ const cod=a.codY||FF; // per-asset first generation year (capacity-weighted from BE project list 10 Jul 26)
+ const life=a.lifeY||25, endY=cod+life, ppaEnd=cod+Math.min(mac.ppaTermY||20,life), effTenor=Math.min(mac.tenor,life), depY=Math.min(DEPRY,life);
  const tail=(a===M.solar?CAP7.solar:CAP7.wind);
- const cap={2027:0.30*a.mw*a.capexPerMW,2028:0.70*a.mw*a.capexPerMW};
+ const cap={}; cap[cod-2]=0.30*a.mw*a.capexPerMW; cap[cod-1]=0.70*a.mw*a.capexPerMW;
  const rows=[]; let bal=0,nol=0,ppy=0;
  for(let y=Y0;y<=YN;y++){
-   const op=(y>=FF&&y<endY)?1:0;
-   const prod=op? a.mw*8760*netCF*Math.pow(1-a.degr,y-FF):0;
+   const op=(y>=cod&&y<endY)?1:0;
+   const prod=op? a.mw*8760*netCF*Math.pow(1-a.degr,y-cod):0;
    const esc=Math.pow(1+mac.infl,y-2023);
    const merch=mac.merchReal*esc, tailP=tail;
    const ppaOn=y<ppaEnd;
@@ -170,18 +171,18 @@ function computeAsset(a){
    const opex=op?a.opexPerMW*a.mw*esc:0;
    const ebitda=rev-opex;
    const capex=cap[y]||0;
-   const dep=(y>=FF&&y<FF+depY)?(a.mw*a.capexPerMW)/depY:0;
+   const dep=(y>=cod&&y<cod+depY)?(a.mw*a.capexPerMW)/depY:0;
    let draw=0,int=0,tax=0,repay=0,fcfe=0;
-   if(y<FF){draw=mac.gearing*capex;const idc=(bal+draw/2)*allIn*(capex>0?1:0);bal+=draw+idc;fcfe=-capex+draw;}
-   else{if(y===FF)ppy=bal/effTenor;int=bal*allIn;const ebt=ebitda-dep-int;let taxable=ebt+nol;if(taxable>0){tax=taxable*mac.tax;nol=0;}else{nol=taxable;}repay=(y<FF+effTenor)?Math.min(bal,ppy):0;bal-=repay;fcfe=ebitda-tax-capex-repay-int;}
+   if(y<cod){draw=mac.gearing*capex;const idc=(bal+draw/2)*allIn*(capex>0?1:0);bal+=draw+idc;fcfe=-capex+draw;}
+   else{if(y===cod)ppy=bal/effTenor;int=bal*allIn;const ebt=ebitda-dep-int;let taxable=ebt+nol;if(taxable>0){tax=taxable*mac.tax;nol=0;}else{nol=taxable;}repay=(y<cod+effTenor)?Math.min(bal,ppy):0;bal-=repay;fcfe=ebitda-tax-capex-repay-int;}
    rows.push({y,prod,rev,opex,ebitda,dep,capex,int,tax,repay,fcfe,debt:bal});
  }
  const totalCapex=a.mw*a.capexPerMW,equity=(1-mac.gearing)*totalCapex,debt=mac.gearing*totalCapex;
  const irr=xirr(rows.map(r=>r.fcfe),rows.map(r=>r.y+0.99));
  const divs=rows.filter(r=>r.fcfe>0).reduce((s,r)=>s+r.fcfe,0), inj=-rows.filter(r=>r.fcfe<0).reduce((s,r)=>s+r.fcfe,0);
- const p29=rows.find(r=>r.y===FF);
+ const p29=rows.find(r=>r.y===cod);
  const annuity=totalCapex*allIn/(1-Math.pow(1+allIn,-DEPRY));
- return{rows,totalCapex,equity,debt,irr,moic:divs/inj,prod:p29.prod,rev:p29.rev,ebitda:p29.ebitda,ebitdaMargin:p29.ebitda/p29.rev,lcoe:(annuity+p29.opex)*1e6/p29.prod,netCF,life};
+ return{rows,totalCapex,equity,debt,irr,moic:divs/inj,prod:p29.prod,rev:p29.rev,ebitda:p29.ebitda,ebitdaMargin:p29.ebitda/p29.rev,lcoe:(annuity+p29.opex)*1e6/p29.prod,netCF,life,cod};
 }
 function computeBattery(b){
  const energy=b.powerMW*b.durationH; const cellCapex=energy*1000*b.capexPerKWh/1e6; const sub=(b.substation||0), inter=(b.interconnect||0), icx=sub+inter; const capex=cellCapex+icx;
@@ -268,18 +269,19 @@ function assetPage(sec){
   ${sliderHTML('macro','tenor','Debt tenor',5,25,1,' yrs')}
   ${sliderHTML('macro','allInRate','All-in rate',0.02,0.08,0.0025,'%',100)}
   ${sliderHTML('macro','infl','Inflation',0,0.05,0.0025,'%',100)}
-  <div class="muted" style="margin-top:8px">Net CF = gross ${pct(a.grossCF,1)} × (1 - ${pct(a.loss,1)} loss) = <b>${pct(a.grossCF*(1-a.loss),1)}</b>. Yield = ${fmt(a.mw,0)} ${isWind?'MW<sub>AC</sub>':'MWp<sub>DC</sub>'} × 8,760 h × ${pct(a.grossCF*(1-a.loss),1)} = <b>${fmt(a.mw*8760*a.grossCF*(1-a.loss)/1000,0)} GWh/yr</b>.<br>${pct(M.macro.allInRate,1)} all-in debt · ${fmt(M.macro.tenor,0)}y amortization · tax ${pct(M.macro.tax,0)}<br><b>RTB ${FF-2}</b> · <b>COD ${FF}</b> (NEB: 36-month grid build runs from network-access-agreement signing) · <b>useful life ${fmt(a.lifeY,0)} yr</b> (to ${FF+a.lifeY-1}). PPA fixed <b>${fmt(M.macro.ppaTermY,0)} yr</b> at €${fmt(a.ppa,0)} (to ${FF+Math.min(M.macro.ppaTermY,a.lifeY)-1}); ${a.lifeY>M.macro.ppaTermY?`then ${a.lifeY-M.macro.ppaTermY} yr merchant at ~€${fmt(a===M.solar?CAP7.solar:CAP7.wind,0)} capture`:`PPA capped at plant life (plant retires first)`}.</div></div>`;
+  <div class="muted" style="margin-top:8px">Net CF = gross ${pct(a.grossCF,1)} × (1 - ${pct(a.loss,1)} loss) = <b>${pct(a.grossCF*(1-a.loss),1)}</b>. Yield = ${fmt(a.mw,0)} ${isWind?'MW<sub>AC</sub>':'MWp<sub>DC</sub>'} × 8,760 h × ${pct(a.grossCF*(1-a.loss),1)} = <b>${fmt(a.mw*8760*a.grossCF*(1-a.loss)/1000,0)} GWh/yr</b>.<br>${pct(M.macro.allInRate,1)} all-in debt · ${fmt(M.macro.tenor,0)}y amortization · tax ${pct(M.macro.tax,0)}<br><b>RTB ${(a.codY||FF)-2}</b> · <b>COD ${a.codY||FF}</b> (capacity-weighted from BE project list 10 Jul 26; NEB: 36-month grid build from network-access-agreement signing) · <b>useful life ${fmt(a.lifeY,0)} yr</b> (to ${(a.codY||FF)+a.lifeY-1}). PPA fixed <b>${fmt(M.macro.ppaTermY,0)} yr</b> at €${fmt(a.ppa,0)} (to ${(a.codY||FF)+Math.min(M.macro.ppaTermY,a.lifeY)-1}); ${a.lifeY>M.macro.ppaTermY?`then ${a.lifeY-M.macro.ppaTermY} yr merchant at ~€${fmt(a===M.solar?CAP7.solar:CAP7.wind,0)} capture`:`PPA capped at plant life (plant retires first)`}.</div></div>`;
  const unit=isWind?'MW<sub>AC</sub>':'MWp<sub>DC</sub>';
  const kpis=`<div class="kpis">
   ${kpiM([['Installed',fmt(a.mw,0),unit],['Production yr1',fmt(R.prod/1000,1),'GWh']],col)}
   ${kpiM([['Total capex','€'+fmt(R.totalCapex,0),'m'],['Equity','€'+fmt(R.equity,0),'m'],['Debt','€'+fmt(R.debt,0),'m ('+pct(M.macro.gearing,0)+')']])}
   ${kpiM([['Yield',fmt(R.prod/a.mw,0),isWind?'MWh/MW<sub>AC</sub>':'MWh/MWp'],['Capacity factor',pct(effCF(a),1),'net']])}
   ${kpiM([['Equity IRR',fmt(R.irr*100,2),'%'],['MOIC',fmt(R.moic,2),'x'],['LCOE',fmt(R.lcoe,0),'€/MWh']],col)}</div>`;
- setTimeout(()=>drawAssetCharts(R,col),0);
+ setTimeout(()=>{drawAssetCharts(R,col);drawMap();},0);
  return kpis+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr 1fr">
    <div class="chart" id="c_prod"></div><div class="chart" id="c_pl"></div>
    <div class="chart" id="c_fin"></div><div class="chart" id="c_debt"></div>
-   <div class="chart" id="c_eq"></div><div class="chart" id="c_sens"></div></div>${inputsR}</div>`;
+   <div class="chart" id="c_eq"></div><div class="chart" id="c_sens"></div></div>${inputsR}</div>
+   <div class="chart tall" id="c_map" style="margin-top:12px"></div>`;
 }
 function assetRanges(){
  // shared €m scales across wind, solar AND battery so charts are visually comparable
@@ -301,8 +303,39 @@ function assetRanges(){
   cum:cumMax*1.1
  };
 }
+// BE project list 10 Jul 2026 (locations approximate). dist = direct-line km to UW Zurndorf per BE.
+const PROJECTS=[
+ {n:'Nick Alpha',t:'wind',mw:19,s:'In Operations',d:'1',av:"Direct line H2'28",lat:47.945,lon:17.052},
+ {n:'Andau II',t:'wind',mw:60,s:'In Zoning',d:'~18',av:'01.06.2030',lat:47.778,lon:17.055},
+ {n:'Zurndorf II',t:'wind',mw:9,s:'In Operations',d:'~3',av:"Direct line H2'28",lat:47.972,lon:16.988},
+ {n:'Halbturn/Mönchhof',t:'wind',mw:52,s:'In Operations',d:'~3',av:"Direct line H2'28",lat:47.905,lon:16.972},
+ {n:'Frauenkirchen I',t:'wind',mw:60,s:'In Planning',d:'~19',av:'2031/32',lat:47.845,lon:16.925},
+ {n:'Frauenkirchen II',t:'wind',mw:100,s:'In Planning',d:'~19',av:'01.02.2028',lat:47.838,lon:16.916},
+ {n:'Frauenkirchen III',t:'wind',mw:20,s:'In Planning',d:'~19',av:'01.02.2028',lat:47.830,lon:16.932},
+ {n:'St. Andrä',t:'solar',mw:25,s:'Ready-to-build',d:'~20',av:'01.02.2028',lat:47.790,lon:16.938},
+ {n:'Mönchhof',t:'solar',mw:51,s:'Ready-to-build',d:'~3',av:'01.02.2028',lat:47.888,lon:16.948},
+ {n:'Nickelsdorf-Ratzenböck',t:'solar',mw:24,s:'Ready-to-build',d:'1',av:'01.02.2028',lat:47.930,lon:17.082},
+ {n:'Tadten-Wallern',t:'solar',mw:38,s:'Ready-to-build',d:'~27',av:'2031/32',lat:47.758,lon:16.918},
+ {n:'Halbturn I',t:'solar',mw:49,s:'Ready-to-build',d:'~5,5',av:'01.02.2028',lat:47.872,lon:16.968},
+ {n:'Halbturn II',t:'solar',mw:100,s:'Ready-to-build',d:'~5,5',av:'2031/32',lat:47.865,lon:16.956},
+ {n:'Halbturn III',t:'solar',mw:43,s:'Ready-to-build',d:'~5,5',av:'01.02.2028',lat:47.858,lon:16.978},
+ {n:'Frauenkirchen PV',t:'solar',mw:26,s:'Zoned',d:'~19',av:'2030',lat:47.842,lon:16.910}];
+const SITES=[{n:'UW Zurndorf (grid connection)',lat:47.966,lon:17.006},{n:'UW Andau',lat:47.773,lon:17.033},{n:'GDC Nickelsdorf (data center)',lat:47.938,lon:17.066}];
+function drawMap(){
+ if(!document.getElementById('c_map'))return;
+ const mk=t=>PROJECTS.filter(p=>p.t===t);
+ const tr=(t,c,name)=>({type:'scattermap',lat:mk(t).map(p=>p.lat),lon:mk(t).map(p=>p.lon),name,mode:'markers',
+   marker:{size:mk(t).map(p=>Math.max(10,Math.sqrt(p.mw)*3.2)),color:c,opacity:0.85},
+   text:mk(t).map(p=>`<b>${p.n}</b><br>${p.mw} MW${t==='solar'?'p':''} ${t}<br>Status: ${p.s}<br>Available: ${p.av}<br>Direct line to UW Zurndorf: ${p.d} km`),hovertemplate:'%{text}<extra></extra>'});
+ const st={type:'scattermap',lat:SITES.map(s=>s.lat),lon:SITES.map(s=>s.lon),name:'Substations / GDC',mode:'markers+text',
+   marker:{size:14,color:'#e6edf3',symbol:'circle'},text:SITES.map(s=>s.n.split(' (')[0]),textposition:'top right',textfont:{size:10,color:'#e6edf3'},
+   customdata:SITES.map(s=>s.n),hovertemplate:'%{customdata}<extra></extra>'};
+ Plotly.react('c_map',[tr('wind','#4aa8ff','Wind projects'),tr('solar','#ffb23e','Solar projects'),st],
+  Object.assign(lay('Dedicated RES projects - BE list 10 Jul 2026<br><span style="font-size:10px">bubble = capacity · hover for status, availability & direct-line distance · locations approximate</span>',{showlegend:true}),
+  {map:{style:'carto-darkmatter',center:{lat:47.862,lon:16.99},zoom:9.4},margin:{l:10,r:10,t:80,b:10}}),CFG);
+}
 function drawAssetCharts(R,col){
- const ops=R.rows.filter(r=>r.y>=FF&&r.y<FF+R.life), yrs=ops.map(r=>r.y), Z=assetRanges();
+ const ops=R.rows.filter(r=>r.y>=R.cod&&r.y<R.cod+R.life), yrs=ops.map(r=>r.y), Z=assetRanges();
  Plotly.react('c_prod',[{x:yrs,y:ops.map(r=>r.prod/1000),name:'Production',type:'scatter',fill:'tozeroy',line:{color:col},hovertemplate:HT('GWh')}],
    lay('Production<br><span style="font-size:10px">declines with degradation</span>',{yaxis:{range:[0,Z.prod],gridcolor:'#28313f',title:{text:'GWh',font:{size:10}}}}),CFG);
  Plotly.react('c_pl',[
@@ -311,7 +344,7 @@ function drawAssetCharts(R,col){
    {x:yrs,y:ops.map(r=>r.ebitda),name:'EBITDA',type:'scatter',line:{color:'#39d98a',width:2.4},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>r.rev>0?r.ebitda/r.rev*100:null),name:'EBITDA margin',type:'scatter',yaxis:'y2',line:{color:'#ffd166',width:1.8,dash:'dot'},hovertemplate:'%{y:.0f}%<extra></extra>'}
  ],lay('Revenue · opex · EBITDA',{barmode:'relative',showlegend:true,yaxis:{range:[-Z.opex,Z.rev],gridcolor:'#28313f',title:{text:'€m',font:{size:10}}},yaxis2:{overlaying:'y',side:'right',range:[0,100],title:{text:'margin %',font:{size:9}},gridcolor:'transparent'}}),CFG);
- const con=R.rows.filter(r=>r.y<FF&&r.capex>0);
+ const con=R.rows.filter(r=>r.y<R.cod&&r.capex>0);
  Plotly.react('c_fin',[
    {x:con.map(r=>r.y),y:con.map(r=>r.capex*M.macro.gearing),name:'Debt',type:'bar',marker:{color:'#3a4761'},text:con.map(r=>'€'+fmt(r.capex*M.macro.gearing,0)+'m'),textposition:'inside',textfont:{size:9,color:'#e6edf6'},hovertemplate:HT('€m')},
    {x:con.map(r=>r.y),y:con.map(r=>r.capex*(1-M.macro.gearing)),name:'Equity',type:'bar',marker:{color:col},text:con.map(r=>'€'+fmt(r.capex*(1-M.macro.gearing),0)+'m'),textposition:'inside',textfont:{size:9,color:'#0b1017'},hovertemplate:HT('€m')}
@@ -321,7 +354,7 @@ function drawAssetCharts(R,col){
    {x:yrs,y:ops.map(r=>r.repay),name:'Principal repaid',type:'bar',marker:{color:'#4aa8ff'},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>r.debt),name:'Debt outstanding',type:'scatter',yaxis:'y2',line:{color:'#8b98a9',dash:'dot'},hovertemplate:HT('€m')}
  ],lay('Debt service',{barmode:'stack',showlegend:true,yaxis:{range:[0,Z.ds],gridcolor:'#28313f',title:{text:'€m',font:{size:10}}},yaxis2:{overlaying:'y',side:'right',range:[0,Z.bal],gridcolor:'transparent',title:{text:'balance €m',font:{size:9}}}}),CFG);
- const cfl=R.rows.filter(r=>r.y<FF+R.life); const sub=[],dts=[],roll=[];
+ const cfl=R.rows.filter(r=>r.y<R.cod+R.life); const sub=[],dts=[],roll=[];
  cfl.forEach(r=>{sub.push(r.fcfe);dts.push(r.y+0.99);const ir=(sub.some(v=>v<0)&&sub.some(v=>v>0))?xirr(sub.slice(),dts.slice()):NaN;roll.push(isNaN(ir)?null:ir*100);});
  const zf=(0-Z.fcfeMin)/(Z.fcfeMax-Z.fcfeMin), iMax=Math.max(30,R.irr*130), iMin=(zf>0&&zf<1)?(-iMax*zf/(1-zf)):0; // align both axes' zero lines
  Plotly.react('c_eq',[
