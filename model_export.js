@@ -65,7 +65,7 @@ function buildFullModel(ExcelJS, S){
  r=inputRow(wi,r,'Capture factor',S.battery.captureFactor,'x volatility uplift','B_CAPF');
  r=inputRow(wi,r,'Opex',S.battery.opexPct,'% of cell capex, CPI-indexed','B_OPEXP');
  r=inputRow(wi,r,'Ancillary revenue',S.battery.ancPerMW,'€k/MW/yr (from merchant year)','B_ANC');
- r=inputRow(wi,r,'DC capacity charge (TW pays)',S.battery.capChargeMWyr,'€k/MW/yr from COD+1 — internal lever','B_CCH');
+ r=inputRow(wi,r,'DC reliability charge (paid by DC)',S.battery.capChargeMWyr,'€k/MW/yr from COD+1','B_CCH');
  r=inputRow(wi,r,'First merchant year (export ban)',S.battery.gridYear,'BE: ban to 2035','B_GY');
  r=inputRow(wi,r,'Revenue compression',S.battery.compression,'per yr on merchant','B_COMP');
  r=inputRow(wi,r,'Degradation',S.battery.degr,'per yr','B_DEGR');
@@ -137,7 +137,7 @@ function buildFullModel(ExcelJS, S){
   ws.getCell(K+2,1).value='MOIC'; ws.getCell(K+2,2).value={formula:`SUMIF(B${R.fcfe}:${lastC}${R.fcfe},">0")/-SUMIF(B${R.fcfe}:${lastC}${R.fcfe},"<0")`}; ws.getCell(K+2,2).numFmt='0.00"x"';
   ws.getCell(K+3,1).value='Total capex (€m)'; ws.getCell(K+3,2).value={formula:`${P}_MW*${P}_CAPEX`}; ws.getCell(K+3,2).numFmt=eurF;
   ws.getCell(K+4,1).value='Equity (€m)'; ws.getCell(K+4,2).value={formula:`(1-GEAR)*${P}_MW*${P}_CAPEX`}; ws.getCell(K+4,2).numFmt=eurF;
-  ws.getCell(K+5,1).value='LCOE (€/MWh)'; ws.getCell(K+5,2).value={formula:`(${P}_MW*${P}_CAPEX*RATE/(1-(1+RATE)^-20)+INDEX(B${R.opex}:${lastC}${R.opex},MATCH(${P}_COD,B2:${lastC}2,0)))*10^6/INDEX(B${R.prod}:${lastC}${R.prod},MATCH(${P}_COD,B2:${lastC}2,0))`}; ws.getCell(K+5,2).numFmt=eurF;
+  ws.getCell(K+5,1).value='LCOE (€/MWh)'; ws.getCell(K+5,2).value={formula:`(${P}_MW*${P}_CAPEX*RATE/(1-(1+RATE)^-${P}_LIFE)+INDEX(B${R.opex}:${lastC}${R.opex},MATCH(${P}_COD,B2:${lastC}2,0)))*10^6/INDEX(B${R.prod}:${lastC}${R.prod},MATCH(${P}_COD,B2:${lastC}2,0))`}; ws.getCell(K+5,2).numFmt=eurF;
   ws.getCell(K+6,1).value='Max |check diff| (€m)'; ws.getCell(K+6,2).value={formula:`MAX(ABS(MIN(B${R.diff}:${lastC}${R.diff})),ABS(MAX(B${R.diff}:${lastC}${R.diff})))`}; ws.getCell(K+6,2).numFmt=numF; ws.getCell(K+6,2).fill=CHK;
   return ws;
  }

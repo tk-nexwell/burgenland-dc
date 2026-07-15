@@ -99,7 +99,7 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
 </header>
 <nav id="nav"></nav>
 <main id="main"></main>
-<footer>Directional negotiation model for discussion · Burgenland DC · Nexwell Power. Data: EPEX Spot AT hourly 2015-2025, renewables.ninja site profiles, Netz Burgenland grid-connection estimate & NE3 tariffs (26 Jun 2026), BE Q&A II (16/19 Jun 2026), BE project list & OPEX/FLH guidance (10-13 Jul 2026), BE Trading grid-fee path & Wallern-Tadten line-loss basis (14-15 Jul 2026). Logos are stylised marks of their respective owners. Not investment advice.</footer>
+<footer>Directional model for discussion · Burgenland DC · Nexwell Power. Data: EPEX Spot AT hourly 2015-2025, renewables.ninja site profiles, Netz Burgenland grid-connection estimate & NE3 tariffs (26 Jun 2026), BE Q&A II (16/19 Jun 2026), BE project list & OPEX/FLH guidance (10-13 Jul 2026), BE Trading grid-fee path & Wallern-Tadten line-loss basis (14-15 Jul 2026). Logos are stylised marks of their respective owners. Not investment advice.</footer>
 <script>
 const PROFILES={
  meta:{wind_cf:0.4519,solar_cf:0.1376},
@@ -144,7 +144,7 @@ const M={
  macro:{infl:0.02,tax:0.23,base:0.025,margin:0.019,gearing:0.70,merchReal:100,tenor:20,allInRate:0.045,ppaTermY:20},
  wind:{on:true,mw:320,capexPerMW:1.30,grossCF:0.290636,loss:0.02,lineLoss:0.045,opexPerMW:0.04,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2029},
  solar:{on:true,mw:357,capexPerMW:0.45,grossCF:0.126169,loss:0.02,lineLoss:0.033,opexPerMW:0.02,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2030},
- battery:{on:true,powerMW:500,durationH:8,capexPerKWh:130,rte:0.87,opexPct:0.02,degr:0.015,socFloor:0.10,gridYear:2035,priceYear:'2025',captureFactor:1.0,cyclesDay:1,ancPerMW:20,capChargeMWyr:40,compression:0.02,gearing:0.60,debtRate:0.05,substation:24.25,interconnect:17,gridCapFee:0,gridEnergyFee:0,lifeY:25}, // 16-Jul defaults: 8h (Adam Excel basis) · behind-the-meter charging → grid fees 0 (sliders remain) · 40k€/MW/yr TW reliability charge → IRR ~5.6%
+ battery:{on:true,powerMW:500,durationH:8,capexPerKWh:130,rte:0.87,opexPct:0.02,degr:0.015,socFloor:0.10,gridYear:2035,priceYear:'2025',captureFactor:1.0,cyclesDay:1,ancPerMW:20,capChargeMWyr:40,compression:0.02,gearing:0.60,debtRate:0.05,substation:24.25,interconnect:17,gridCapFee:0,gridEnergyFee:0,lifeY:25}, // defaults: 8h · behind-the-meter charging via direct line → grid fees 0 (sliders remain) · DC reliability charge 40 k€/MW/yr
  dc:{firmMW:500,puE:1.35,dcPrice:120,srcMode:'fixed',resFix:99,beMargin:0.03,gridEnergyFee:8.4,gridCapFeeKW:42.84,feeEsc:0.04,resMode:'ppa'}, // feeEsc: BE Trading 14-Jul-26 tariff path = ~4%/yr from 2028 (Arbeitspreis 8.4→18.4, Leistungspreis 42.84→93.87 k€/MW by 2048)
  conn:{nebZutritt:24.25,custConn:17.0,netzbereit:6.0,directPer100:7.54} // NEB 20260626: Netzzutritt €24.25m (actual-cost) + customer 3×3.5km 110kV ~€17m + Netzbereitstellung 12€/kW = €6m
 };
@@ -207,7 +207,7 @@ function computeAsset(a){
  const irr=xirr(rows.map(r=>r.fcfe),rows.map(r=>r.y+0.99));
  const divs=rows.filter(r=>r.fcfe>0).reduce((s,r)=>s+r.fcfe,0), inj=-rows.filter(r=>r.fcfe<0).reduce((s,r)=>s+r.fcfe,0);
  const p29=rows.find(r=>r.y===cod);
- const annuity=totalCapex*allIn/(1-Math.pow(1+allIn,-DEPRY));
+ const annuity=totalCapex*allIn/(1-Math.pow(1+allIn,-life)); // capital recovery over useful life (was DEPRY=20 fixed — LCOE didn't respond to the life slider)
  return{rows,totalCapex,equity,debt,irr,moic:divs/inj,prod:p29.prod,rev:p29.rev,ebitda:p29.ebitda,ebitdaMargin:p29.ebitda/p29.rev,lcoe:(annuity+p29.opex)*1e6/p29.prod,netCF,life,cod};
 }
 function computeBattery(b){
@@ -227,7 +227,7 @@ function computeBattery(b){
  const capturedSpread=deliv>0?dayArb/deliv:0;                    // effective €/MWh (declines with duration)
  const avgBuy=nCh>0?sumBuy/nCh:0, avgSell=nCh>0?sumSell/nCh:0;
  const ancRev=b.ancPerMW*b.powerMW/1000;
- const capRev=b.powerMW*(b.capChargeMWyr||0)/1000; // DC reliability/capacity charge paid by TW - internal lever, default 0
+ const capRev=b.powerMW*(b.capChargeMWyr||0)/1000; // DC reliability/capacity charge paid by the DC operator
  const totalRev=arbRev+ancRev+capRev;
  const gridCap=b.powerMW*(b.gridCapFee||0)/1000, thru=nCh*b.powerMW*b.rte*365, gridEng=thru*(b.gridEnergyFee||0)/1e6, gridFee=gridCap+gridEng;
  return{energy,usable,cellCapex,icx,sub,inter,capex,perKW,opex,arbRev,ancRev,capRev,totalRev,gridCap,gridEng,gridFee,thru,energy10,capturedSpread,avgBuy,avgSell,nCh};
@@ -424,14 +424,14 @@ function batteryPage(){
   ${sliderHTML('battery','gridCapFee','Grid fee - capacity (NE3)',0,50,0.5,' €/kW/yr')}
   ${sliderHTML('battery','gridEnergyFee','Grid fee - energy (NE3)',0,20,0.1,' €/MWh')}
   ${sliderHTML('battery','ancPerMW','Ancillary',0,60,5,' €k/MW/yr')}
-  ${sliderHTML('battery','capChargeMWyr','DC capacity charge (TW pays)',0,150,5,' €k/MW/yr')}
+  ${sliderHTML('battery','capChargeMWyr','DC reliability charge (paid by DC)',0,150,5,' €k/MW/yr')}
   ${sliderHTML('battery','gearing','Leverage',0,0.9,0.05,'%',100)}
   ${sliderHTML('battery','debtRate','BESS debt rate',0.02,0.08,0.0025,'%',100)}
   ${sliderHTML('battery','substation','NEB Netzzutritt (UW Zurndorf)',0,120,0.25,' €m')}
   ${sliderHTML('battery','interconnect','DC connection (3×3.5km, customer)',0,120,1,' €m')}
   <div class="inp"><label>First merchant year (export ban to 2035)<b id="lbl_battery_gridYear">${b.gridYear}</b></label><div class="seg">${['2030','2032','2035','2036'].map(y=>`<button class="${b.gridYear==y?'on':''}" onclick="M.battery.gridYear=${y};render()">${y}</button>`).join('')}</div></div>
   ${sliderHTML('battery','compression','Rev compression',0,0.2,0.005,'%/yr',100)}
-  <div class="muted" style="margin-top:8px">Charges the <b>${B.nCh} cheapest hours</b> at avg €${fmt(B.avgBuy,0)} and discharges the <b>${B.nCh} priciest</b> at avg €${fmt(B.avgSell,0)} (${b.priceYear} curve). Why ${B.nCh} and not ${fmt(b.durationH,0)}: <b>${fmt(b.durationH,0)}h × ${fmt((1-(b.socFloor||0))*100,0)}% tradeable</b> after the ${pct(b.socFloor||0,0)} SoC outage floor. Captured spread <b>€${fmt(B.capturedSpread,0)}/MWh</b> after ${fmt(b.captureFactor,1)}x volatility uplift. Cells €${fmt(B.cellCapex,0)}m + €${fmt(B.sub,1)}m NEB Netzzutritt + €${fmt(B.inter,0)}m DC connection · levered ${pct(b.gearing,0)} at ${pct(b.debtRate||M.macro.allInRate,1)}. Grid fees €${fmt(B.gridFee,1)}m/yr from ${b.gridYear} (€${fmt(B.gridCap,1)}m capacity + €${fmt(B.gridEng,1)}m energy on ${fmt(B.thru/1000,0)} GWh).${(b.capChargeMWyr||0)>0?` <b>DC capacity charge €${fmt(B.capRev,1)}m/yr from ${COD+1} (internal lever - not shown to BE).</b>`:''}</div></div>`;
+  <div class="muted" style="margin-top:8px">Charges the <b>${B.nCh} cheapest hours</b> at avg €${fmt(B.avgBuy,0)} and discharges the <b>${B.nCh} priciest</b> at avg €${fmt(B.avgSell,0)} (${b.priceYear} curve). Why ${B.nCh} and not ${fmt(b.durationH,0)}: <b>${fmt(b.durationH,0)}h × ${fmt((1-(b.socFloor||0))*100,0)}% tradeable</b> after the ${pct(b.socFloor||0,0)} SoC outage floor. Captured spread <b>€${fmt(B.capturedSpread,0)}/MWh</b> after ${fmt(b.captureFactor,1)}x volatility uplift. Cells €${fmt(B.cellCapex,0)}m + €${fmt(B.sub,1)}m NEB Netzzutritt + €${fmt(B.inter,0)}m DC connection · levered ${pct(b.gearing,0)} at ${pct(b.debtRate||M.macro.allInRate,1)}. Grid fees €${fmt(B.gridFee,1)}m/yr from ${b.gridYear} (€${fmt(B.gridCap,1)}m capacity + €${fmt(B.gridEng,1)}m energy on ${fmt(B.thru/1000,0)} GWh).${(b.capChargeMWyr||0)>0?` <b>DC capacity charge €${fmt(B.capRev,1)}m/yr from ${COD+1} (reliability fee paid by the DC).</b>`:''}</div></div>`;
  const battCol='var(--batt)', irr=isNaN(F.irr)?'n/m':fmt(F.irr*100,1)+'%';
  const kpis=`<div class="kpis">
   ${kpiM([['Power',fmt(b.powerMW,0),'MW<sub>AC</sub>'],['Energy',fmt(B.energy/1000,1),'GWh'],['Duration',fmt(b.durationH,0),'h']],battCol)}
@@ -521,7 +521,7 @@ function summaryPage(){
  const selfPct=dcLoad>0?resGen/dcLoad*100:0, gridPct=Math.max(0,100-selfPct), resBaseMW=resGen/8760;
  const BF=computeBatteryFin();
  const bb=M.battery, battGen=bb.cyclesDay*365*B.energy*bb.rte, battRev=B.totalRev, battEbitda=B.totalRev-B.opex;
- const crf=M.macro.allInRate/(1-Math.pow(1+M.macro.allInRate,-M.macro.tenor)), battLCOS=battGen>0?(B.capex*crf+B.opex)*1e6/battGen:0;
+ const crf=M.macro.allInRate/(1-Math.pow(1+M.macro.allInRate,-(M.battery.lifeY||25))), battLCOS=battGen>0?(B.capex*crf+B.opex)*1e6/battGen:0; // CRF over battery useful life (was debt tenor)
  const lineEq=line*(1-M.macro.gearing), totEqLCOE=(wOn?W.equity:0)+(sOn?S.equity:0)+(bOn?BF.equity:0)+lineEq, totEqPPA=(bOn?BF.equity:0)+lineEq;
  const battRevG=bOn?battRev:0, battEbitdaG=bOn?battEbitda:0;
  const spvOwned=(M.dc.resMode||'lcoe')==='lcoe';
@@ -529,7 +529,7 @@ function summaryPage(){
  const resUnit=spvOwned?resLCOE:ppaUnit;
  const resCost=resGen*resUnit/1e6, gridSrcCost=gridGen*gridPr/1e6, blendPr=(resCost+gridSrcCost+capFeeM)/(dcLoad/1e6);
  const priceYr1=M.dc.dcPrice*Math.pow(1+infl,FF-2026);
- const internal=M.view==='INT', totCapex=W.totalCapex+S.totalCapex+B.capex+line;
+ const totCapex=W.totalCapex+S.totalCapex+B.capex+line;
  const row=(n,c,cap,eq,dbt,prod,rev,ebd,irr,lc)=>`<tr><td><b style="color:${c}">${n}</b></td><td>${cap}</td><td>${eq}</td><td>${dbt}</td><td>${prod}</td><td>${rev}</td><td>${ebd}</td><td>${irr}</td><td>${lc}</td></tr>`;
  const table=`<div class="panel"><h3>Portfolio</h3><table><thead><tr><th>Asset</th><th>Capex €m</th><th>Equity €m</th><th>Debt €m</th><th>Gen GWh/yr</th><th>Rev €m</th><th>EBITDA €m</th><th>IRR</th><th>LCOE / LCOS</th></tr></thead><tbody>
   ${row('Wind','var(--wind)',fmt(W.totalCapex,0),fmt(W.equity,0),fmt(W.debt,0),fmt(W.prod/1000,0),fmt(W.rev,1),fmt(W.ebitda,1),fmt(W.irr*100,2)+'%',fmt(W.lcoe,0))}
@@ -581,7 +581,7 @@ function summaryPage(){
    ${eqRow('Direct line','#8b98a9',fmt(lineEq,0),fmt(lineEq,0))}
    <tr class="tot"><td>Total SPV equity</td><td>${fmt(totEqLCOE,0)}</td><td>${fmt(totEqPPA,0)}</td></tr>
    </tbody></table><div class="muted" style="margin-top:8px">LCOE case: the SPV owns wind, solar, battery and the line. PPA case: only the battery and line (renewables bought at €${fmt(ppaUnit,0)}), a far smaller equity check. Wind, solar and line levered ${pct(M.macro.gearing,0)}; battery ${pct(M.battery.gearing,0)}.</div>
-   <div class="warn" style="margin-top:10px"><b>Interconnection burden (€${fmt(line+M.battery.substation+M.battery.interconnect,0)}m + €6m Netzbereitstellung):</b> private RES tie-lines €${fmt(line,0)}m (€7.5m per 100 MW × ${fmt(M.wind.mw+M.solar.mw,0)} MW - all new-build, no double count) + NEB Netzzutritt €${fmt(M.battery.substation,1)}m (new 110-kV switching station at UW Zurndorf; NEB estimate 26-Jun-26, <b>billed on actual costs</b>) + customer-side DC connection €${fmt(M.battery.interconnect,0)}m (3×3.5 km 110-kV feeders + bays - explicitly outside NEB scope) + Netzbereitstellungsentgelt €6m (12 €/kW tariff). This, not the €100 PPA, is what TeraWulf has to amortise and what makes the deal hard. The €${fmt(M.battery.interconnect,0)}m usage-side leg belongs naturally with TeraWulf, and BE opened verbally (8 Jul) to sharing the switching station - €20m+ off is the lever that lifts the battery return. Slot reservation: Reugeld = 40% of expected connection costs (~€10m), 12-month use-it-or-lose-it, queue rank = deposit timestamp. <b>Distance-weighted check:</b> BE cluster distances × #7 unit cost (€7.54m/100MW/10km) ⇒ ~€${fmt(dwLine,0)}m for the private ties vs €${fmt(line,0)}m on the slider — far clusters (Frauenkirchen ~19 km, Tadten-Wallern ~27 km) push above the flat €7.5m/100MW unless a shared trunk is used.</div></div>`;
+   <div class="warn" style="margin-top:10px"><b>Interconnection burden (€${fmt(line+M.battery.substation+M.battery.interconnect,0)}m + €6m Netzbereitstellung):</b> private RES tie-lines €${fmt(line,0)}m (€7.5m per 100 MW × ${fmt(M.wind.mw+M.solar.mw,0)} MW - all new-build, no double count) + NEB Netzzutritt €${fmt(M.battery.substation,1)}m (new 110-kV switching station at UW Zurndorf; NEB estimate 26-Jun-26, <b>billed on actual costs</b>) + customer-side DC connection €${fmt(M.battery.interconnect,0)}m (3×3.5 km 110-kV feeders + bays - explicitly outside NEB scope) + Netzbereitstellungsentgelt €6m (12 €/kW tariff). This interconnection layer, not the PPA, is the heaviest single burden in the integration case; cost allocation across the parties is under discussion. Slot reservation: Reugeld = 40% of expected connection costs (~€10m), 12-month use-it-or-lose-it, queue rank = deposit timestamp. <b>Distance-weighted check:</b> BE cluster distances × #7 unit cost (€7.54m/100MW/10km) ⇒ ~€${fmt(dwLine,0)}m for the private ties vs €${fmt(line,0)}m on the slider — far clusters (Frauenkirchen ~19 km, Tadten-Wallern ~27 km) push above the flat €7.5m/100MW unless a shared trunk is used.</div></div>`;
  return `<div class="grid cols">${masters}<div class="grid">${table}${spvBlock}${equityBuild}<div class="chart tall" id="spvEcon"></div><div class="chart tall" id="spvcf"></div><div class="chart" id="sbal"></div></div></div>`;
 }
 function estReserve(R){const first=R.rows.find(r=>r.y===FF);return first?first.debt*(M.macro.base+M.macro.margin):0;}
