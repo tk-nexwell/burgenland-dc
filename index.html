@@ -93,6 +93,7 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
   </div>
   <h1>Project Burgenland <span class="sub">- Live Power SPV Model</span></h1>
   <div class="viewtoggle">
+    <span class="chip" onclick="dlXLSX()" title="Download the complete model as a formula-driven Excel workbook (Inputs, Wind, Solar, Battery, SPV, Output)">⬇ Full Excel model</span>
     <span class="chip reset" onclick="resetAll()">↺ Reset</span>
   </div>
 </header>
@@ -143,7 +144,7 @@ const M={
  macro:{infl:0.02,tax:0.23,base:0.025,margin:0.019,gearing:0.70,merchReal:100,tenor:20,allInRate:0.045,ppaTermY:20},
  wind:{on:true,mw:320,capexPerMW:1.30,grossCF:0.290636,loss:0.02,lineLoss:0.045,opexPerMW:0.04,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2029},
  solar:{on:true,mw:357,capexPerMW:0.45,grossCF:0.126169,loss:0.02,lineLoss:0.033,opexPerMW:0.02,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2030},
- battery:{on:true,powerMW:500,durationH:12,capexPerKWh:130,rte:0.87,opexPct:0.02,degr:0.015,socFloor:0.10,gridYear:2035,priceYear:'2025',captureFactor:1.0,cyclesDay:1,ancPerMW:20,capChargeMWyr:0,compression:0.02,gearing:0.60,debtRate:0.05,substation:24.25,interconnect:17,gridCapFee:42.84,gridEnergyFee:8.4,lifeY:25},
+ battery:{on:true,powerMW:500,durationH:8,capexPerKWh:130,rte:0.87,opexPct:0.02,degr:0.015,socFloor:0.10,gridYear:2035,priceYear:'2025',captureFactor:1.0,cyclesDay:1,ancPerMW:20,capChargeMWyr:40,compression:0.02,gearing:0.60,debtRate:0.05,substation:24.25,interconnect:17,gridCapFee:0,gridEnergyFee:0,lifeY:25}, // 16-Jul defaults: 8h (Adam Excel basis) · behind-the-meter charging → grid fees 0 (sliders remain) · 40k€/MW/yr TW reliability charge → IRR ~5.6%
  dc:{firmMW:500,puE:1.35,dcPrice:120,srcMode:'fixed',resFix:99,beMargin:0.03,gridEnergyFee:8.4,gridCapFeeKW:42.84,feeEsc:0.04,resMode:'ppa'}, // feeEsc: BE Trading 14-Jul-26 tariff path = ~4%/yr from 2028 (Arbeitspreis 8.4→18.4, Leistungspreis 42.84→93.87 k€/MW by 2048)
  conn:{nebZutritt:24.25,custConn:17.0,netzbereit:6.0,directPer100:7.54} // NEB 20260626: Netzzutritt €24.25m (actual-cost) + customer 3×3.5km 110kV ~€17m + Netzbereitstellung 12€/kW = €6m
 };
@@ -155,37 +156,26 @@ function feeF(y){return Math.pow(1+(M.dc.feeEsc!=null?M.dc.feeEsc:0.04),Math.max
 function resPrice(y){const d=M.dc,base=(d.srcMode==='dayahead')?PRICES.per_year['2025'].baseload:(d.resFix||99);return base*Math.pow(1+M.macro.infl,y-2025)*(1+(d.beMargin||0))+(d.gridEnergyFee!=null?d.gridEnergyFee:8.4)*feeF(y);}
 // NE3 Leistungspreis: 42.84 €/kW/yr on booked DC capacity, escalating at feeEsc (BE Trading path: 42.84 → 93.87 k€/MW by 2048) → €m/yr
 function resCapFeeM(y){return M.dc.firmMW*(M.dc.gridCapFeeKW!=null?M.dc.gridCapFeeKW:42.84)/1000*feeF(y==null?FF:y);}
-// ---------- Excel export (SheetJS lazy-loaded from cdnjs on first click) ----------
-function withXLSX(cb){if(window.XLSX)return cb();const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=cb;s.onerror=()=>alert('Could not load the Excel library (offline?)');document.head.appendChild(s);}
-function dlBtn(kind){return `<button class="dl" onclick="dlXLSX('${kind}')" title="Download this model as Excel">⬇ Excel</button>`;}
-function dlXLSX(kind){withXLSX(()=>{
- const wb=XLSX.utils.book_new(), today=new Date().toISOString().slice(0,10);
- const aoa=(name,rows)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),name);
- const mac=M.macro;
- if(kind==='wind'||kind==='solar'){
-  const a=M[kind],R=computeAsset(a);
-  aoa('Assumptions',[["GDC Nickelsdorf — "+kind+" model","exported "+today],[],
-   ["Capacity",a.mw,kind==='wind'?"MW AC":"MWp DC"],["Capex",a.capexPerMW,"€m/MW"],["Gross CF",a.grossCF],["Plant losses",a.loss],["Direct-line losses",a.lineLoss||0,"BE 15-Jul basis: 4.0% @ 12.5 km"],["Delivered CF",effCF(a)],["Degradation /yr",a.degr],["Opex",a.opexPerMW,"€m/MW/yr (excl land rent - TBC)"],["PPA",a.ppa,"€/MWh fixed, term "+(mac.ppaTermY||20)+"y"],["Contracted share",a.contr],["COD",a.codY||FF,"capacity-weighted, BE list 10 Jul"],["Useful life",a.lifeY,"yrs"],["Gearing",mac.gearing],["Debt tenor",mac.tenor,"yrs"],["All-in rate",mac.allInRate],["Tax",mac.tax],["Inflation",mac.infl],["Merchant tail",kind==='wind'?CAP7.wind:CAP7.solar,"€/MWh (7-yr capture avg ex-2022)"],[],
-   ["Equity IRR",R.irr],["MOIC",R.moic],["LCOE",R.lcoe,"€/MWh"],["Total capex",R.totalCapex,"€m"],["Equity",R.equity,"€m"],["Debt",R.debt,"€m"]]);
-  aoa('CashFlow',[["Year","Production MWh","Revenue €m","Opex €m","EBITDA €m","Capex €m","Depreciation €m","Interest €m","Principal €m","Tax €m","Equity CF €m","Debt balance €m"]].concat(
-   R.rows.filter(r=>r.y<(a.codY||FF)+R.life).map(r=>[r.y,r.prod,r.rev,r.opex,r.ebitda,r.capex,r.dep,r.int,r.repay,r.tax,r.fcfe,r.debt])));
- }else if(kind==='battery'){
-  const b=M.battery,B=computeBattery(b),F2=computeBatteryFin();
-  aoa('Assumptions',[["GDC Nickelsdorf — battery model","exported "+today],[],
-   ["Power",b.powerMW,"MW"],["Duration",b.durationH,"h"],["Energy",B.energy,"MWh"],["Capex cells",b.capexPerKWh,"€/kWh"],["NEB Netzzutritt",b.substation,"€m"],["DC connection",b.interconnect,"€m"],["Total capex",B.capex,"€m"],["RTE",b.rte],["SoC floor",b.socFloor||0,"outage reserve"],["Cycles/day",b.cyclesDay],["Capture factor",b.captureFactor],["Price year",b.priceYear],["Captured spread",B.capturedSpread,"€/MWh"],["Ancillary",b.ancPerMW,"€k/MW/yr"],["DC capacity charge",b.capChargeMWyr||0,"€k/MW/yr (TW pays, from "+(COD+1)+")"],["First merchant year",b.gridYear,"export ban to 2035"],["Grid fee capacity",b.gridCapFee,"€/kW/yr (NE3), esc "+(M.dc.feeEsc*100)+"%/yr from 2028"],["Grid fee energy",b.gridEnergyFee,"€/MWh (NE3)"],["Gearing",b.gearing],["Debt rate",b.debtRate],["Useful life",b.lifeY,"yrs"],[],
-   ["Equity IRR",isNaN(F2.irr)?"n/m":F2.irr],["Equity",F2.equity,"€m"],["Debt",F2.debt,"€m"],["Arbitrage rev",B.arbRev,"€m/yr"],["Total rev run-rate",B.totalRev,"€m/yr"]]);
-  aoa('CashFlow',[["Year","Revenue €m","Equity CF €m"]].concat(F2.rows.filter(r=>r.y>=COD-1&&r.y<COD+(b.lifeY||25)).map(r=>[r.y,r.rev,r.fcfe])));
- }else{ // spv
-  const SP=computeSPV(M.dc.dcPrice),W=computeAsset(M.wind),S=computeAsset(M.solar),B=computeBattery(M.battery),BF=computeBatteryFin();
-  aoa('Summary',[["GDC Nickelsdorf — consolidated Power SPV","exported "+today],[],
-   ["DC price",M.dc.dcPrice,"€/MWh (today, CPI-indexed)"],["DC load",M.dc.firmMW,"MW"],["Residual market price",M.dc.resFix,"€/MWh"],["BE Trading margin",M.dc.beMargin],["NE3 energy fee",M.dc.gridEnergyFee,"€/MWh"],["NE3 capacity fee",M.dc.gridCapFeeKW,"€/kW/yr"],["Grid-fee escalation",M.dc.feeEsc,"per yr from 2028 (BE Trading 14-Jul path)"],["RES mode",(M.dc.resMode||'lcoe')==='lcoe'?"owned (LCOE)":"bought (PPA)"],[],
-   ["SPV equity IRR",isNaN(SP.irr)?"n/m (below break-even)":SP.irr],["SPV equity",SP.equity,"€m"],["DC price for 9% IRR",solveDcFor(0.09),"€/MWh"],[],
-   ["Asset","Capex €m","Equity €m","Debt €m","IRR","LCOE/LCOS €/MWh"],
-   ["Wind",W.totalCapex,W.equity,W.debt,W.irr,W.lcoe],["Solar",S.totalCapex,S.equity,S.debt,S.irr,S.lcoe],["Battery",B.capex,BF.equity,BF.debt,isNaN(BF.irr)?"n/m":BF.irr,""]]);
-  aoa('CashFlow',[["Year","DC revenue €m","Battery rev €m","Grid cost €m","RES PPA €m","Opex €m","EBITDA €m","Interest €m","Principal €m","Tax €m","Equity CF €m"]].concat(
-   SP.rows.filter(r=>r.rev>0||r.fcfe!==0).map(r=>[r.y,r.rev,r.bRev,r.gridCost,r.resPPA,r.opex,r.ebitda,r.int,r.repay,r.tax,r.fcfe])));
- }
- XLSX.writeFile(wb,'Burgenland_'+kind+'_model_'+today+'.xlsx');
+// ---------- Full-formula Excel model export (ExcelJS + model_export.js companion file) ----------
+function withXL(cb){
+ const need=[];
+ if(!window.ExcelJS)need.push('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js');
+ if(typeof buildFullModel==='undefined')need.push('model_export.js');
+ if(!need.length)return cb();
+ let left=need.length;
+ need.forEach(src=>{const s=document.createElement('script');s.src=src;s.onload=()=>{if(--left===0)cb();};s.onerror=()=>alert('Could not load '+src);document.head.appendChild(s);});
+}
+function dlXLSX(){withXL(()=>{
+ const W=computeAsset(M.wind),S2=computeAsset(M.solar),BF=computeBatteryFin(),SP=computeSPV(M.dc.dcPrice);
+ const chk=rows=>{const o={};rows.forEach(x=>o[x.y]=x.fcfe);return o;};
+ const S={today:new Date().toISOString().slice(0,10),priceYear:M.battery.priceYear,FF:FF,COD:COD,
+  CAP7w:CAP7.wind,CAP7s:CAP7.solar,linePer100:M.conn.directPer100,spvIRR:isNaN(SP.irr)?0:SP.irr,
+  macro:M.macro,wind:M.wind,solar:M.solar,battery:M.battery,dc:M.dc,
+  ph:(PRICES.per_year[M.battery.priceYear]||PRICES.per_year['2025']).ph,
+  chkWind:chk(W.rows),chkSolar:chk(S2.rows),chkBatt:chk(BF.rows)};
+ const wb=buildFullModel(window.ExcelJS,S);
+ wb.xlsx.writeBuffer().then(buf=>{const b=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Burgenland_Full_Model_'+S.today+'.xlsx';document.body.appendChild(a);a.click();a.remove();});
 });}
 function xirr(cfs,dt){const npv=r=>cfs.reduce((s,c,i)=>s+c/Math.pow(1+r,dt[i]-dt[0]),0);if(npv(0)<=0)return NaN;let a=0,b=0,f=false;for(let r=0.005;r<=10;r+=0.005){if(npv(r)<=0){a=r-0.005;b=r;f=true;break;}}if(!f)return NaN;for(let i=0;i<200;i++){const m=(a+b)/2,v=npv(m);if(Math.abs(v)<1e-7)return m;(v>0)?(a=m):(b=m);}return (a+b)/2;}
 // Net delivered CF = gross × (1 − plant losses) × (1 − direct-line losses). Line-loss basis per BE 15-Jul-26 (Wallern-Tadten operational): 4.0% @ 12.5 km incl LV/MV trafo 0.70% + AC cable 0.72% + MV cable 2.07% + auxiliary 0.50% → ~1.2% fixed + ~0.224%/km. Capacity-weighted route km from BE project list: wind ~14.7 km → ~4.5%, solar ~9.1 km → ~3.3%.
@@ -288,7 +278,7 @@ function kpi(l,v,u){return `<div class="kpi"><div class="l">${l}</div><div class
 function kpiM(pairs,accent){return `<div class="kpi"${accent?` style="border-color:${accent}"`:''}><div class="mlt">`+pairs.map(p=>`<div class="mr"><span class="ml2">${p[0]}</span><span class="mu2">${p[2]||''}</span><span class="mv2"${p[3]?` style="color:${p[3]}"`:''}>${p[1]}</span></div>`).join('')+`</div></div>`;}
 function assetPage(sec){
  const isWind=sec==='wind', a=M[sec], col=isWind?'#4aa8ff':'#ffb23e', R=computeAsset(a);
- const inputsL=`<div class="panel"><h3>${isWind?'Wind':'Solar'} · plant & technical ${dlBtn(sec)}</h3>
+ const inputsL=`<div class="panel"><h3>${isWind?'Wind':'Solar'} · plant & technical</h3>
   ${sliderHTML(sec,'mw','Capacity',50,600,5,isWind?' MW<sub>AC</sub>':' MWp<sub>DC</sub>')}
   ${sliderHTML(sec,'capexPerMW','Capex',0.2,2,0.005,isWind?' €k/MW<sub>AC</sub>':' €k/MWp<sub>DC</sub>',1000)}
   ${basisSeg(sec)}
@@ -418,7 +408,7 @@ function drawSensitivity(R,col){
 }
 function batteryPage(){
  const b=M.battery,B=computeBattery(b),F=computeBatteryFin();
- const inputsL=`<div class="panel"><h3>Battery · plant & dispatch ${dlBtn('battery')}</h3>
+ const inputsL=`<div class="panel"><h3>Battery · plant & dispatch</h3>
   ${sliderHTML('battery','powerMW','Power',50,900,10,' MW<sub>AC</sub>')}
   ${sliderHTML('battery','durationH','Duration',1,12,1,' h')}
   ${sliderHTML('battery','capexPerKWh','Capex',50,400,1,' €/kWh')}
@@ -570,7 +560,7 @@ function summaryPage(){
    <tr class="tot"><td>DC price for a 9% IRR</td><td><b style="color:var(--acc)">€${fmt(price9,1)}/MWh</b></td></tr></tbody></table>
    <div class="info">Self-supply = ${fmt(M.wind.mw,0)} MW<sub>AC</sub> wind × ${pct(effCF(M.wind),1)} + ${fmt(M.solar.mw,0)} MWp<sub>DC</sub> solar × ${pct(effCF(M.solar),1)} = <b>${fmt(resBaseMW,0)} MW</b> baseload-equivalent, over the ${fmt(M.dc.firmMW,0)} MW<sub>AC</sub> load = <b>${fmt(selfPct,1)}%</b>. The grid supplies the other <b>${fmt(gridPct,1)}%</b> (${fmt(gridGen/1e6,2)} TWh). Timing per BE list 10 Jul: wind COD ${M.wind.codY||FF}, solar COD ${M.solar.codY||FF} (capacity-weighted) - yr-${FF} self-supply is wind-only, and 284 MW of the 677 MW portfolio only arrives 2030-32.</div>
    <div class="warn">${spvOwned?`Renewables are <b>owned at ~€${fmt(resLCOE,1)}/MWh</b> (not bought at €100), below the sale price, so they subsidise the pricier ~€${fmt(gridPr,1)}/MWh grid. Blended power cost €${fmt(blendPr,1)}, so selling at €${fmt(price9,1)}/MWh still clears 9%.`:`At the €${fmt(price9,1)}/MWh break-even the per-MWh power margin is thin. The 9% is built from the <b>battery trading</b> (€${fmt(battRev,0)}m/yr) plus the sourcing wedge, <b>levered</b> on a small €${fmt(totEqPPA,0)}m equity check (RES bought, not owned) with depreciation shielding tax. Toggle to LCOE: owning the RES at ~€${fmt(resLCOE,1)}/MWh widens the margin.`}</div></div>`;
- const masters=`<div class="panel"><h3>Master toggles ${dlBtn('spv')}</h3>
+ const masters=`<div class="panel"><h3>Master toggles</h3>
   <div class="inp"><label>Include in SPV (on / off)</label><div class="seg">
    <button class="${M.wind.on!==false?'on':''}" onclick="M.wind.on=(M.wind.on===false);render()">Wind</button>
    <button class="${M.solar.on!==false?'on':''}" onclick="M.solar.on=(M.solar.on===false);render()">Solar</button>
