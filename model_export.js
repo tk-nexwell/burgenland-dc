@@ -211,14 +211,15 @@ function buildFullModel(ExcelJS, S){
    cell(R.wprod,`Wind!${C}4`); cell(R.sprod,`Solar!${C}4`);
    cell(R.resmwh,`${OP}*MAX(0,DC_MW*8760-${C}${R.wprod}-${C}${R.sprod})`);
    cell(R.gridc,`${OP}*(${C}${R.resmwh}*(RES_P*(1+INFL)^(${C}2-2025)*(1+RES_M)+FEE_E*(1+FEESC)^MAX(0,${C}2-2028))/10^6+DC_MW*FEE_C/1000*(1+FEESC)^MAX(0,${C}2-2028))`);
-   cell(R.resppa,`${OP}*(1-RES_OWN)*(W_PPA*${C}${R.wprod}+S_PPA*${C}${R.sprod})/10^6`);
-   cell(R.opex,`${OP}*(RES_OWN*(W_OPEX*W_MW+S_OPEX*S_MW)*(1+INFL)^(${C}2-2023)+B_MW*B_DUR*1000*B_CKWH/10^6*B_OPEXP)`);
+   cell(R.resppa,`${OP}*(1-RES_OWN)*(IF(${C}2<W_COD+MIN(PPAT,W_LIFE),W_PPA,W_TAIL)*${C}${R.wprod}+IF(${C}2<S_COD+MIN(PPAT,S_LIFE),S_PPA,S_TAIL)*${C}${R.sprod})/10^6`);
+   cell(R.opex,`${OP}*(RES_OWN*(W_OPEX*W_MW+S_OPEX*S_MW)*(1+INFL)^(${C}2-2023)+B_MW*B_DUR*1000*B_CKWH/10^6*B_OPEXP*(1+INFL)^(${C}2-2023)+IF(${C}2>=B_GY,(Battery!B$10+Battery!B$12)*(1+FEESC)^MAX(0,${C}2-2028),0))`);
    cell(R.ebitda,`${C}${R.dcrev}+${C}${R.brev}-${C}${R.gridc}-${C}${R.resppa}-${C}${R.opex}`);
    cell(R.capex,`IF(${C}2=SPV_FF-2,0.3*RES_OWN*(W_MW*W_CAPEX+S_MW*S_CAPEX),IF(${C}2=SPV_FF-1,0.7*RES_OWN*(W_MW*W_CAPEX+S_MW*S_CAPEX)+B_CPX+(W_MW+S_MW)*LINE_C/100,0))`);
    cell(R.dep,`IF(AND(${C}2>=SPV_FF,${C}2<SPV_FF+MIN(20,${resLife})),(RES_OWN*(W_MW*W_CAPEX+S_MW*S_CAPEX)+B_CPX+(W_MW+S_MW)*LINE_C/100)/MIN(20,${resLife}),0)`);
    const blendG=`((GEAR*(RES_OWN*(W_MW*W_CAPEX+S_MW*S_CAPEX)+(W_MW+S_MW)*LINE_C/100)+B_GEAR*B_CPX)/(RES_OWN*(W_MW*W_CAPEX+S_MW*S_CAPEX)+B_CPX+(W_MW+S_MW)*LINE_C/100))`;
-   cell(R.bal,`IF(${C}2<SPV_FF,${prevBal}+${C}${R.capex}*${blendG}+IF(${C}${R.capex}>0,(${prevBal}+${C}${R.capex}*${blendG}/2)*RATE,0),MAX(0,${prevBal}-${C}${R.rep}))`);
-   cell(R.intr,`IF(${C}2>=SPV_FF,${prevBal}*RATE,0)`);
+   const xRate=`((GEAR*(RES_OWN*(W_MW*W_CAPEX+S_MW*S_CAPEX)+(W_MW+S_MW)*LINE_C/100)*RATE+B_GEAR*B_CPX*B_RATE)/MAX(0.0001,GEAR*(RES_OWN*(W_MW*W_CAPEX+S_MW*S_CAPEX)+(W_MW+S_MW)*LINE_C/100)+B_GEAR*B_CPX))`;
+   cell(R.bal,`IF(${C}2<SPV_FF,${prevBal}+${C}${R.capex}*${blendG}+IF(${C}${R.capex}>0,(${prevBal}+${C}${R.capex}*${blendG}/2)*${xRate},0),MAX(0,${prevBal}-${C}${R.rep}))`);
+   cell(R.intr,`IF(${C}2>=SPV_FF,${prevBal}*${xRate},0)`);
    cell(R.rep,`IF(AND(${C}2>=SPV_FF,${C}2<SPV_FF+MIN(TENOR,${resLife})),MIN(${prevBal},INDEX($B$${R.bal}:$${ws.getColumn(c0+NY-1).letter}$${R.bal},MATCH(SPV_FF-1,$B$2:$${ws.getColumn(c0+NY-1).letter}$2,0))/MIN(TENOR,${resLife})),0)`);
    cell(R.ebt,`${C}${R.ebitda}-${C}${R.dep}-${C}${R.intr}`);
    cell(R.nol,`IF(${C}2<SPV_FF,0,MIN(0,${prevNol}+${C}${R.ebt}))`);
@@ -235,10 +236,8 @@ function buildFullModel(ExcelJS, S){
  // ---------------- OUTPUT ----------------
  const wo=wb.addWorksheet('Output'); wo.getColumn(1).width=36; wo.getColumn(2).width=16;
  wo.getCell(1,1).value='OUTPUT DASHBOARD'; wo.getCell(1,1).font={bold:true,size:13};
- const out=[["Wind equity IRR","=Wind!B24"],["Wind MOIC","=Wind!B25"],["Solar equity IRR","=Solar!B24"],["Solar MOIC","=Solar!B25"],
-  ["Battery equity IRR","=Battery!B"+(3+13+12+2-13+13)] ,["SPV equity IRR","=SPV!B23"]];
  let ro=3;
- [["Wind equity IRR","Wind!B24",pctF],["Wind MOIC","Wind!B25",'0.00"x"'],["Solar equity IRR","Solar!B24",pctF],["Solar MOIC","Solar!B25",'0.00"x"'],["SPV equity IRR","SPV!B23",pctF]].forEach(o=>{
+ [["Wind equity IRR","Wind!B24",pctF],["Wind MOIC","Wind!B25",'0.00"x"'],["Solar equity IRR","Solar!B24",pctF],["Solar MOIC","Solar!B25",'0.00"x"'],["Battery equity IRR","Battery!B30",pctF],["SPV equity IRR","SPV!B23",pctF]].forEach(o=>{
   wo.getCell(ro,1).value=o[0]; wo.getCell(ro,2).value={formula:o[1]}; wo.getCell(ro,2).numFmt=o[2]; wo.getCell(ro,2).font=bold; ro++;});
  wo.getCell(ro+1,1).value='All inputs on the Inputs sheet (yellow). Change any input → every sheet recalculates.';
  wo.getCell(ro+2,1).value='Check rows (green) hold the dashboard values at export; diff rows should be ≈ 0.';
