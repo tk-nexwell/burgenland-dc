@@ -1,246 +1,456 @@
-// Full-formula Excel model generator — runs identically in Node (test) and browser (ExcelJS).
-// buildFullModel(ExcelJSlib, S) -> workbook. S = state snapshot + check rows from the live dashboard.
+// Full-formula Excel model generator — READABLE/AUDITABLE build.
+// Runs identically in Node (test) and browser (ExcelJS). buildFullModel(ExcelJSlib, S) -> workbook.
+//
+// Design rules (per Thomas's Formula & Layout Standards, Jul 2026):
+//  - NO named ranges. Each calc sheet carries its own LOCAL ASSUMPTIONS block whose cells are
+//    linked (=Inputs!$B$n) and shown in RED, so F2 traces to a nearby labelled cell.
+//  - NO IF(). Conditions are 0/1 flags built by boolean multiplication ((y>=cod)*(y<cod+life));
+//    caps/floors use MIN/MAX. IFERROR is used only to print "n/m" for an undefined battery IRR.
+//  - HELPER ROWS ARE FREE. Every intermediate step is its own labelled row (label in col A,
+//    unit in col C on single-value rows; time series filled across with $-anchored refs).
+//  - ONE FORMULA PER ROW, filled across; business numbers live only in the yellow Inputs cells.
+//  - Tie-out check row + a ✓/⚠ flag (via CHOOSE, not IF) next to each asset's equity IRR.
 function buildFullModel(ExcelJS, S){
  const wb=new ExcelJS.Workbook(); wb.creator='Nexwell Power'; wb.created=new Date();
- const Y0=2026, YN=2060, NY=YN-Y0+1;
- const YEL={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFF2CC'}};   // input yellow
+ const Y0=2026, YN=2060, NY=YN-Y0+1, c0=2;
+ const lastC=colL(c0+NY-1);
+ // styles
+ const YEL={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFF2CC'}};   // input fill
  const HDR={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F3864'}};   // header navy
  const CHK={type:'pattern',pattern:'solid',fgColor:{argb:'FFE2EFDA'}};   // check green
+ const SUBT={type:'pattern',pattern:'solid',fgColor:{argb:'FFF2F2F2'}};  // section band
+ const BLUE={color:{argb:'FF0000FF'}};                 // input font
+ const RED ={color:{argb:'FFC00000'}};                 // linked-from-Inputs font
  const bold={bold:true}, white={color:{argb:'FFFFFFFF'},bold:true};
- const numF='#,##0.00;[Red]-#,##0.00', pctF='0.00%', eurF='#,##0.0';
- function inputRow(ws,r,label,value,unit,name){
-  ws.getCell(r,1).value=label; ws.getCell(r,2).value=value; ws.getCell(r,2).fill=YEL; ws.getCell(r,2).border={outline:{style:'thin'}};
-  ws.getCell(r,3).value=unit||'';
-  if(name) wb.definedNames.add(`Inputs!$B$${r}`,name);
-  return r+1;
- }
- // ---------------- INPUTS ----------------
- const wi=wb.addWorksheet('Inputs'); wi.getColumn(1).width=34; wi.getColumn(2).width=14; wi.getColumn(3).width=40;
- wi.getCell(1,1).value='GDC NICKELSDORF — POWER SPV MODEL'; wi.getCell(1,1).font={bold:true,size:14};
- wi.getCell(2,1).value='Yellow cells = inputs. All calculations are live Excel formulas. Exported from the dashboard '+S.today+'.';
+ const numF='#,##0.00;[Red]-#,##0.00', pctF='0.00%', eurF='#,##0.0', xF='0.00"x"', intF='#,##0';
+ function colL(n){let s='';while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=(n-m-1)/26;}return s;}
+ function sect(ws,r,txt){const c=ws.getCell(r,1);c.value=txt;c.font=bold;c.fill=SUBT;ws.getCell(r,2).fill=SUBT;ws.getCell(r,3).fill=SUBT;return r+1;}
+
+ // ================= INPUTS =================
+ const wi=wb.addWorksheet('Inputs');
+ wi.getColumn(1).width=34; wi.getColumn(2).width=13; wi.getColumn(3).width=46;
+ wi.getCell(1,1).value='GDC NICKELSDORF — POWER SPV MODEL  ·  Inputs'; wi.getCell(1,1).font={bold:true,size:14};
+ wi.getCell(2,1).value='Yellow = editable inputs (blue font). Every calc sheet links these in red. Exported '+S.today+'.';
+ const IN={};                 // name -> Inputs row number
  let r=4;
- wi.getCell(r,1).value='MACRO / FINANCING'; wi.getCell(r,1).font=bold; r++;
- r=inputRow(wi,r,'Inflation (CPI)',S.macro.infl,'per yr','INFL');
- r=inputRow(wi,r,'Tax rate',S.macro.tax,'','TAXR');
- r=inputRow(wi,r,'Gearing (wind/solar/line)',S.macro.gearing,'','GEAR');
- r=inputRow(wi,r,'Debt tenor',S.macro.tenor,'years','TENOR');
- r=inputRow(wi,r,'All-in debt rate',S.macro.allInRate,'','RATE');
- r=inputRow(wi,r,'PPA term',S.macro.ppaTermY,'years','PPAT');
- r=inputRow(wi,r,'Merchant power (uncontracted RES)',S.macro.merchReal,'€/MWh 2023-real, CPI-indexed','MERCH');
- r++; wi.getCell(r,1).value='WIND'; wi.getCell(r,1).font=bold; r++;
- r=inputRow(wi,r,'Capacity',S.wind.mw,'MW AC','W_MW');
- r=inputRow(wi,r,'Capex',S.wind.capexPerMW,'€m per MW','W_CAPEX');
- r=inputRow(wi,r,'Gross capacity factor',S.wind.grossCF,'','W_GCF');
- r=inputRow(wi,r,'Plant losses (wake, electrical)',S.wind.loss,'','W_LOSS');
- r=inputRow(wi,r,'Direct-line losses',S.wind.lineLoss,'BE 15-Jul: 4.0% @ 12.5 km','W_LLOSS');
- r=inputRow(wi,r,'Degradation',S.wind.degr,'per yr','W_DEGR');
- r=inputRow(wi,r,'Opex',S.wind.opexPerMW,'€m/MW/yr, CPI-indexed (excl land rent TBC)','W_OPEX');
- r=inputRow(wi,r,'PPA price',S.wind.ppa,'€/MWh fixed','W_PPA');
- r=inputRow(wi,r,'Contracted share',S.wind.contr,'','W_CONTR');
- r=inputRow(wi,r,'COD (first generation year)',S.wind.codY,'capacity-weighted, BE list','W_COD');
- r=inputRow(wi,r,'Useful life',S.wind.lifeY,'years','W_LIFE');
- r=inputRow(wi,r,'Merchant tail price',S.CAP7w,'€/MWh flat (capture avg ex-2022)','W_TAIL');
- r++; wi.getCell(r,1).value='SOLAR'; wi.getCell(r,1).font=bold; r++;
- r=inputRow(wi,r,'Capacity',S.solar.mw,'MWp DC','S_MW');
- r=inputRow(wi,r,'Capex',S.solar.capexPerMW,'€m per MWp','S_CAPEX');
- r=inputRow(wi,r,'Gross capacity factor',S.solar.grossCF,'','S_GCF');
- r=inputRow(wi,r,'Plant losses (soiling, inverter)',S.solar.loss,'','S_LOSS');
- r=inputRow(wi,r,'Direct-line losses',S.solar.lineLoss,'','S_LLOSS');
- r=inputRow(wi,r,'Degradation',S.solar.degr,'per yr','S_DEGR');
- r=inputRow(wi,r,'Opex',S.solar.opexPerMW,'€m/MWp/yr, CPI-indexed','S_OPEX');
- r=inputRow(wi,r,'PPA price',S.solar.ppa,'€/MWh fixed','S_PPA');
- r=inputRow(wi,r,'Contracted share',S.solar.contr,'','S_CONTR');
- r=inputRow(wi,r,'COD (first generation year)',S.solar.codY,'','S_COD');
- r=inputRow(wi,r,'Useful life',S.solar.lifeY,'years','S_LIFE');
- r=inputRow(wi,r,'Merchant tail price',S.CAP7s,'€/MWh flat','S_TAIL');
- r++; wi.getCell(r,1).value='BATTERY'; wi.getCell(r,1).font=bold; r++;
- r=inputRow(wi,r,'Power',S.battery.powerMW,'MW','B_MW');
- r=inputRow(wi,r,'Duration',S.battery.durationH,'hours','B_DUR');
- r=inputRow(wi,r,'Cell capex',S.battery.capexPerKWh,'€/kWh','B_CKWH');
- r=inputRow(wi,r,'NEB Netzzutritt (switching station)',S.battery.substation,'€m — NEB est., actual-cost','B_SUB');
- r=inputRow(wi,r,'DC connection (customer 3×3.5 km)',S.battery.interconnect,'€m','B_INT');
- r=inputRow(wi,r,'Round-trip efficiency',S.battery.rte,'','B_RTE');
- r=inputRow(wi,r,'SoC floor (outage reserve)',S.battery.socFloor,'not traded','B_SOC');
- r=inputRow(wi,r,'Cycles per day',S.battery.cyclesDay,'','B_CYC');
- r=inputRow(wi,r,'Capture factor',S.battery.captureFactor,'x volatility uplift','B_CAPF');
- r=inputRow(wi,r,'Opex',S.battery.opexPct,'% of cell capex, CPI-indexed','B_OPEXP');
- r=inputRow(wi,r,'Ancillary revenue',S.battery.ancPerMW,'€k/MW/yr (from merchant year)','B_ANC');
- r=inputRow(wi,r,'DC reliability charge (paid by DC)',S.battery.capChargeMWyr,'€k/MW/yr from COD+1','B_CCH');
- r=inputRow(wi,r,'First merchant year (export ban)',S.battery.gridYear,'BE: ban to 2035','B_GY');
- r=inputRow(wi,r,'Revenue compression',S.battery.compression,'per yr on merchant','B_COMP');
- r=inputRow(wi,r,'Degradation',S.battery.degr,'per yr','B_DEGR');
- r=inputRow(wi,r,'Gearing',S.battery.gearing,'','B_GEAR');
- r=inputRow(wi,r,'Debt rate',S.battery.debtRate,'','B_RATE');
- r=inputRow(wi,r,'Grid fee — capacity (NE3)',S.battery.gridCapFee,'€/kW/yr, esc w/ FEESC from 2028','B_GFC');
- r=inputRow(wi,r,'Grid fee — energy (NE3)',S.battery.gridEnergyFee,'€/MWh on grid throughput','B_GFE');
- r=inputRow(wi,r,'Battery COD (capex year)',S.COD,'','B_COD');
- r=inputRow(wi,r,'Useful life',S.battery.lifeY,'years','B_LIFE');
- r++; wi.getCell(r,1).value='DATA CENTER / RESIDUAL (via BE Trading)'; wi.getCell(r,1).font=bold; r++;
- r=inputRow(wi,r,'DC contracted load',S.dc.firmMW,'MW','DC_MW');
- r=inputRow(wi,r,'DC sale price (today)',S.dc.dcPrice,'€/MWh, CPI-indexed','DC_P');
- r=inputRow(wi,r,'Residual market price',S.dc.resFix,'€/MWh 2025-real, CPI-indexed','RES_P');
- r=inputRow(wi,r,'BE Trading margin',S.dc.beMargin,'','RES_M');
- r=inputRow(wi,r,'NE3 energy fee',S.dc.gridEnergyFee,'€/MWh (2028 level)','FEE_E');
- r=inputRow(wi,r,'NE3 capacity fee',S.dc.gridCapFeeKW,'€/kW/yr (2028 level)','FEE_C');
- r=inputRow(wi,r,'Grid-fee escalation',S.dc.feeEsc,'per yr from 2028 (BE Trading path)','FEESC');
- r=inputRow(wi,r,'RES sourcing mode (1=owned, 0=PPA)',(S.dc.resMode||'lcoe')==='lcoe'?1:0,'drives SPV sheet','RES_OWN');
- r=inputRow(wi,r,'Direct line cost',S.linePer100,'€m per 100 MW','LINE_C');
- r=inputRow(wi,r,'SPV first revenue year',S.FF,'','SPV_FF');
- // battery price curve block
- r++; wi.getCell(r,1).value='BATTERY ARBITRAGE CURVE — hourly wholesale, year '+S.priceYear+' (€/MWh)'; wi.getCell(r,1).font=bold; r++;
- const cst=r;
- for(let h=0;h<24;h++){wi.getCell(r,1).value='Hour '+h; wi.getCell(r,2).value=S.ph[h]; wi.getCell(r,2).fill=YEL;
-  wi.getCell(r,3).value={formula:`RANK($B$${r},$B$${cst}:$B$${cst+23},1)`}; r++;}
- wb.definedNames.add(`Inputs!$B$${cst}:$B$${cst+23}`,'B_PH'); wb.definedNames.add(`Inputs!$C$${cst}:$C$${cst+23}`,'B_RANK');
- wi.getCell(cst-1,3).value='rank (1=cheapest)';
-
- // ---------------- ASSET SHEET BUILDER (wind/solar) ----------------
- function assetSheet(name,P,chk){ // P: prefix 'W' or 'S'
-  const ws=wb.addWorksheet(name); ws.getColumn(1).width=30;
-  const c0=2; // first year column
-  ws.getCell(1,1).value=name.toUpperCase()+' — full formula model'; ws.getCell(1,1).font=bold;
-  ws.getCell(2,1).value='Year'; for(let i=0;i<NY;i++){const c=ws.getCell(2,c0+i); c.value=Y0+i; c.font=white; c.fill=HDR;}
-  const R={yr:2,op:3,prod:4,rev:5,opex:6,ebitda:7,capex:8,dep:9,draw:10,idc:11,bal:12,intr:13,rep:14,ebt:15,nol:16,tax:17,fcfe:18,date:19,chk:20,diff:21};
-  const L={op:'Operating flag',prod:'Production (MWh)',rev:'Revenue (€m)',opex:'Opex (€m)',ebitda:'EBITDA (€m)',capex:'Capex (€m)',dep:'Depreciation (€m)',draw:'Debt draw (€m)',idc:'IDC (€m)',bal:'Debt balance EOY (€m)',intr:'Interest (€m)',rep:'Principal repay (€m)',ebt:'EBT (€m)',nol:'NOL balance (€m)',tax:'Tax (€m)',fcfe:'EQUITY CASH FLOW (€m)',date:'Date (XIRR)',chk:'Check: dashboard equity CF',diff:'Check diff (should be ~0)'};
-  Object.keys(L).forEach(k=>{ws.getCell(R[k],1).value=L[k]; if(k==='fcfe')ws.getCell(R[k],1).font=bold;});
-  for(let i=0;i<NY;i++){
-   const C=ws.getColumn(c0+i).letter, y=Y0+i, P_=P+'_';
-   const cell=(row,f)=>{ws.getCell(row,c0+i).value={formula:f}; ws.getCell(row,c0+i).numFmt=numF;};
-   cell(R.op,`IF(AND(${C}2>=${P_}COD,${C}2<${P_}COD+${P_}LIFE),1,0)`);
-   cell(R.prod,`${C}${R.op}*${P_}MW*8760*${P_}GCF*(1-${P_}LOSS)*(1-${P_}LLOSS)*(1-${P_}DEGR)^(${C}2-${P_}COD)`);
-   cell(R.rev,`${C}${R.op}*IF(${C}2<${P_}COD+MIN(PPAT,${P_}LIFE),(${P_}CONTR*${C}${R.prod}*${P_}PPA+(1-${P_}CONTR)*${C}${R.prod}*MERCH*(1+INFL)^(${C}2-2023)),${C}${R.prod}*${P_}TAIL)/10^6`);
-   cell(R.opex,`${C}${R.op}*${P_}OPEX*${P_}MW*(1+INFL)^(${C}2-2023)`);
-   cell(R.ebitda,`${C}${R.rev}-${C}${R.opex}`);
-   cell(R.capex,`IF(${C}2=${P_}COD-2,0.3,IF(${C}2=${P_}COD-1,0.7,0))*${P_}MW*${P_}CAPEX`);
-   cell(R.dep,`IF(AND(${C}2>=${P_}COD,${C}2<${P_}COD+MIN(20,${P_}LIFE)),${P_}MW*${P_}CAPEX/MIN(20,${P_}LIFE),0)`);
-   cell(R.draw,`IF(${C}2<${P_}COD,GEAR*${C}${R.capex},0)`);
-   const prevBal=i===0?'0':ws.getColumn(c0+i-1).letter+R.bal;
-   cell(R.idc,`IF(AND(${C}2<${P_}COD,${C}${R.capex}>0),(${prevBal}+${C}${R.draw}/2)*RATE,0)`);
-   cell(R.bal,`IF(${C}2<${P_}COD,${prevBal}+${C}${R.draw}+${C}${R.idc},MAX(0,${prevBal}-${C}${R.rep}))`);
-   cell(R.intr,`IF(${C}2>=${P_}COD,${prevBal}*RATE,0)`);
-   // ppy = balance at end of COD-1 divided by min(tenor,life)
-   cell(R.rep,`IF(AND(${C}2>=${P_}COD,${C}2<${P_}COD+MIN(TENOR,${P_}LIFE)),MIN(${prevBal},INDEX($B$${R.bal}:$${ws.getColumn(c0+NY-1).letter}$${R.bal},MATCH(${P_}COD-1,$B$2:$${ws.getColumn(c0+NY-1).letter}$2,0))/MIN(TENOR,${P_}LIFE)),0)`);
-   cell(R.ebt,`${C}${R.ebitda}-${C}${R.dep}-${C}${R.intr}`);
-   const prevNol=i===0?'0':ws.getColumn(c0+i-1).letter+R.nol;
-   cell(R.nol,`IF(${C}2<${P_}COD,0,MIN(0,${prevNol}+${C}${R.ebt}))`);
-   cell(R.tax,`IF(${C}2<${P_}COD,0,MAX(0,${C}${R.ebt}+${prevNol})*TAXR)`);
-   cell(R.fcfe,`IF(${C}2<${P_}COD,-${C}${R.capex}+${C}${R.draw},${C}${R.ebitda}-${C}${R.tax}-${C}${R.rep}-${C}${R.intr})`);
-   ws.getCell(R.date,c0+i).value={formula:`DATE(${C}2,12,31)`}; ws.getCell(R.date,c0+i).numFmt='yyyy-mm-dd';
-   ws.getCell(R.chk,c0+i).value=(chk[y]!==undefined?chk[y]:0); ws.getCell(R.chk,c0+i).fill=CHK; ws.getCell(R.chk,c0+i).numFmt=numF;
-   cell(R.diff,`${C}${R.fcfe}-${C}${R.chk}`);
-  }
-  ws.getCell(R.fcfe,1).fill=HDR; ws.getCell(R.fcfe,1).font=white;
-  const lastC=ws.getColumn(c0+NY-1).letter;
-  const K=23;
-  ws.getCell(K,1).value='RESULTS'; ws.getCell(K,1).font=bold;
-  ws.getCell(K+1,1).value='Equity IRR (XIRR)'; ws.getCell(K+1,2).value={formula:`XIRR(B${R.fcfe}:${lastC}${R.fcfe},B${R.date}:${lastC}${R.date})`}; ws.getCell(K+1,2).numFmt=pctF; ws.getCell(K+1,2).font=bold;
-  ws.getCell(K+2,1).value='MOIC'; ws.getCell(K+2,2).value={formula:`SUMIF(B${R.fcfe}:${lastC}${R.fcfe},">0")/-SUMIF(B${R.fcfe}:${lastC}${R.fcfe},"<0")`}; ws.getCell(K+2,2).numFmt='0.00"x"';
-  ws.getCell(K+3,1).value='Total capex (€m)'; ws.getCell(K+3,2).value={formula:`${P}_MW*${P}_CAPEX`}; ws.getCell(K+3,2).numFmt=eurF;
-  ws.getCell(K+4,1).value='Equity (€m)'; ws.getCell(K+4,2).value={formula:`(1-GEAR)*${P}_MW*${P}_CAPEX`}; ws.getCell(K+4,2).numFmt=eurF;
-  ws.getCell(K+5,1).value='LCOE (€/MWh)'; ws.getCell(K+5,2).value={formula:`(${P}_MW*${P}_CAPEX*RATE/(1-(1+RATE)^-${P}_LIFE)+INDEX(B${R.opex}:${lastC}${R.opex},MATCH(${P}_COD,B2:${lastC}2,0)))*10^6/INDEX(B${R.prod}:${lastC}${R.prod},MATCH(${P}_COD,B2:${lastC}2,0))`}; ws.getCell(K+5,2).numFmt=eurF;
-  ws.getCell(K+6,1).value='Max |check diff| (€m)'; ws.getCell(K+6,2).value={formula:`MAX(ABS(MIN(B${R.diff}:${lastC}${R.diff})),ABS(MAX(B${R.diff}:${lastC}${R.diff})))`}; ws.getCell(K+6,2).numFmt=numF; ws.getCell(K+6,2).fill=CHK;
-  return ws;
+ function inp(label,value,unit,key){
+  wi.getCell(r,1).value=label;
+  const c=wi.getCell(r,2); c.value=value; c.fill=YEL; c.font=BLUE; c.border={outline:{style:'thin'}};
+  c.numFmt = (typeof value==='number' && Math.abs(value)<1 && value!==0)?'0.####':(Number.isInteger(value)?'#,##0':'#,##0.####');
+  wi.getCell(r,3).value=unit||'';
+  IN[key]=r; r++;
  }
- assetSheet('Wind','W',S.chkWind);
- assetSheet('Solar','S',S.chkSolar);
+ r=sect(wi,r,'MACRO / FINANCING');
+ inp('Inflation (CPI)',S.macro.infl,'per yr','INFL');
+ inp('Tax rate',S.macro.tax,'','TAXR');
+ inp('Gearing (wind/solar/line)',S.macro.gearing,'debt share','GEAR');
+ inp('Debt tenor',S.macro.tenor,'years','TENOR');
+ inp('All-in debt rate',S.macro.allInRate,'','RATE');
+ inp('PPA term',S.macro.ppaTermY,'years','PPAT');
+ inp('Merchant power (uncontracted RES)',S.macro.merchReal,'€/MWh 2023-real, CPI-indexed','MERCH');
+ r++; r=sect(wi,r,'WIND');
+ inp('Capacity',S.wind.mw,'MW AC','W_MW');
+ inp('Capex',S.wind.capexPerMW,'€m per MW','W_CAPEX');
+ inp('Gross capacity factor',S.wind.grossCF,'','W_GCF');
+ inp('Plant losses (wake, electrical)',S.wind.loss,'','W_LOSS');
+ inp('Direct-line losses',S.wind.lineLoss,'BE 15-Jul: 4.0% @ 12.5 km','W_LLOSS');
+ inp('Degradation',S.wind.degr,'per yr','W_DEGR');
+ inp('Opex',S.wind.opexPerMW,'€m/MW/yr, CPI-indexed','W_OPEX');
+ inp('PPA price',S.wind.ppa,'€/MWh fixed','W_PPA');
+ inp('Contracted share',S.wind.contr,'','W_CONTR');
+ inp('COD (first generation year)',S.wind.codY,'BE list, cap-weighted','W_COD');
+ inp('Useful life',S.wind.lifeY,'years','W_LIFE');
+ inp('Merchant tail price',S.CAP7w,'€/MWh flat (capture avg ex-2022)','W_TAIL');
+ r++; r=sect(wi,r,'SOLAR');
+ inp('Capacity',S.solar.mw,'MWp DC','S_MW');
+ inp('Capex',S.solar.capexPerMW,'€m per MWp','S_CAPEX');
+ inp('Gross capacity factor',S.solar.grossCF,'','S_GCF');
+ inp('Plant losses (soiling, inverter)',S.solar.loss,'','S_LOSS');
+ inp('Direct-line losses',S.solar.lineLoss,'','S_LLOSS');
+ inp('Degradation',S.solar.degr,'per yr','S_DEGR');
+ inp('Opex',S.solar.opexPerMW,'€m/MWp/yr, CPI-indexed','S_OPEX');
+ inp('PPA price',S.solar.ppa,'€/MWh fixed','S_PPA');
+ inp('Contracted share',S.solar.contr,'','S_CONTR');
+ inp('COD (first generation year)',S.solar.codY,'','S_COD');
+ inp('Useful life',S.solar.lifeY,'years','S_LIFE');
+ inp('Merchant tail price',S.CAP7s,'€/MWh flat','S_TAIL');
+ r++; r=sect(wi,r,'BATTERY');
+ inp('Power',S.battery.powerMW,'MW','B_MW');
+ inp('Duration',S.battery.durationH,'hours','B_DUR');
+ inp('Cell capex',S.battery.capexPerKWh,'€/kWh','B_CKWH');
+ inp('NEB Netzzutritt (switching station)',S.battery.substation,'€m — NEB est.','B_SUB');
+ inp('DC connection (customer 3×3.5 km)',S.battery.interconnect,'€m','B_INT');
+ inp('Round-trip efficiency',S.battery.rte,'','B_RTE');
+ inp('SoC floor (outage reserve)',S.battery.socFloor,'not traded','B_SOC');
+ inp('Cycles per day',S.battery.cyclesDay,'','B_CYC');
+ inp('Capture factor',S.battery.captureFactor,'× volatility uplift','B_CAPF');
+ inp('Opex',S.battery.opexPct,'% of cell capex/yr, CPI-indexed','B_OPEXP');
+ inp('Ancillary revenue',S.battery.ancPerMW,'€k/MW/yr (from merchant year)','B_ANC');
+ inp('DC reliability charge (paid by DC)',S.battery.capChargeMWyr,'€k/MW/yr from COD+1','B_CCH');
+ inp('First merchant year (export ban)',S.battery.gridYear,'BE: ban to 2035','B_GY');
+ inp('Revenue compression',S.battery.compression,'per yr on merchant','B_COMP');
+ inp('Degradation',S.battery.degr,'per yr','B_DEGR');
+ inp('Gearing',S.battery.gearing,'','B_GEAR');
+ inp('Debt rate',S.battery.debtRate,'','B_RATE');
+ inp('Grid fee — capacity (NE3)',S.battery.gridCapFee,'€/kW/yr, esc from 2028','B_GFC');
+ inp('Grid fee — energy (NE3)',S.battery.gridEnergyFee,'€/MWh on throughput','B_GFE');
+ inp('Battery COD (capex year)',S.COD,'','B_COD');
+ inp('Useful life',S.battery.lifeY,'years','B_LIFE');
+ r++; r=sect(wi,r,'DATA CENTER / RESIDUAL (via BE Trading)');
+ inp('DC contracted load',S.dc.firmMW,'MW','DC_MW');
+ inp('DC sale price (today)',S.dc.dcPrice,'€/MWh, CPI-indexed','DC_P');
+ inp('Residual market price',S.dc.resFix,'€/MWh 2025-real, CPI-indexed','RES_P');
+ inp('BE Trading margin',S.dc.beMargin,'','RES_M');
+ inp('NE3 energy fee',S.dc.gridEnergyFee,'€/MWh (2028 level)','FEE_E');
+ inp('NE3 capacity fee',S.dc.gridCapFeeKW,'€/kW/yr (2028 level)','FEE_C');
+ inp('Grid-fee escalation',S.dc.feeEsc,'per yr from 2028','FEESC');
+ inp('RES sourcing (1=owned, 0=PPA)',(S.dc.resMode||'lcoe')==='lcoe'?1:0,'drives SPV sheet','RES_OWN');
+ inp('Direct line cost',S.linePer100,'€m per 100 MW','LINE_C');
+ inp('SPV first revenue year',S.FF,'','SPV_FF');
+ r++; r=sect(wi,r,'BATTERY ARBITRAGE CURVE — hourly wholesale €/MWh, year '+S.priceYear);
+ const PH0=r;
+ for(let h=0;h<24;h++){ wi.getCell(r,1).value='Hour '+h; const c=wi.getCell(r,2); c.value=S.ph[h]; c.fill=YEL; c.font=BLUE; c.numFmt='#,##0.0'; wi.getCell(r,3).value=(h===0?'linked into the Battery sheet':''); r++; }
+ IN.PH0=PH0;
 
- // ---------------- BATTERY SHEET ----------------
- (function(){
-  const ws=wb.addWorksheet('Battery'); ws.getColumn(1).width=32; const c0=2;
-  ws.getCell(1,1).value='BATTERY — full formula model'; ws.getCell(1,1).font=bold;
-  // dispatch economics (single block, from inputs + curve)
-  const D=3;
-  ws.getCell(D,1).value='Tradeable hours nCh = ROUND(duration×(1−SoC floor)×cycles)'; ws.getCell(D,2).value={formula:'MIN(12,MAX(0,ROUND(B_DUR*(1-B_SOC)*B_CYC,0)))'};
-  wb.definedNames.add(`Battery!$B$${D}`,'B_NCH');
-  ws.getCell(D+1,1).value='Sum of cheapest nCh prices (€)'; ws.getCell(D+1,2).value={formula:'SUMIF(B_RANK,"<="&B_NCH,B_PH)'};
-  ws.getCell(D+2,1).value='Sum of priciest nCh prices (€)'; ws.getCell(D+2,2).value={formula:'SUMIF(B_RANK,">"&(24-B_NCH),B_PH)'};
-  ws.getCell(D+3,1).value='Day arbitrage (€/day)'; ws.getCell(D+3,2).value={formula:`MAX(0,B_MW*(B_RTE*B$${D+2}-B$${D+1}))*B_CAPF`};
-  ws.getCell(D+4,1).value='Arbitrage revenue (€m/yr, run-rate)'; ws.getCell(D+4,2).value={formula:`B${D+3}*365/10^6`};
-  ws.getCell(D+5,1).value='Ancillary (€m/yr)'; ws.getCell(D+5,2).value={formula:'B_ANC*B_MW/1000'};
-  ws.getCell(D+6,1).value='DC capacity charge (€m/yr)'; ws.getCell(D+6,2).value={formula:'B_CCH*B_MW/1000'};
-  ws.getCell(D+7,1).value='Grid fee capacity (€m/yr, 2028 base)'; ws.getCell(D+7,2).value={formula:'B_MW*B_GFC/1000'};
-  ws.getCell(D+8,1).value='Grid throughput (MWh/yr)'; ws.getCell(D+8,2).value={formula:'B_NCH*B_MW*B_RTE*365'};
-  ws.getCell(D+9,1).value='Grid fee energy (€m/yr, 2028 base)'; ws.getCell(D+9,2).value={formula:`B${D+8}*B_GFE/10^6`};
-  ws.getCell(D+10,1).value='Total capex (€m)'; ws.getCell(D+10,2).value={formula:'B_MW*B_DUR*1000*B_CKWH/10^6+B_SUB+B_INT'};
-  wb.definedNames.add(`Battery!$B$${D+10}`,'B_CPX');
-  for(let i=0;i<=10;i++)ws.getCell(D+i,2).numFmt=numF;
-  // finance rows
-  const F0=D+13;
-  ws.getCell(F0-1,1).value='Year'; for(let i=0;i<NY;i++){const c=ws.getCell(F0-1,c0+i); c.value=Y0+i; c.font=white; c.fill=HDR;}
-  const R={yr:F0-1,rev:F0,opex:F0+1,dep:F0+2,bal:F0+3,intr:F0+4,rep:F0+5,ebt:F0+6,nol:F0+7,tax:F0+8,fcfe:F0+9,date:F0+10,chk:F0+11,diff:F0+12};
-  const L={rev:'Revenue (€m)',opex:'Opex + grid fees (€m)',dep:'Depreciation (€m)',bal:'Debt balance EOY (€m)',intr:'Interest (€m)',rep:'Principal repay (€m)',ebt:'EBT (€m)',nol:'NOL balance',tax:'Tax (€m)',fcfe:'EQUITY CASH FLOW (€m)',date:'Date (XIRR)',chk:'Check: dashboard equity CF',diff:'Check diff'};
-  Object.keys(L).forEach(k=>{ws.getCell(R[k],1).value=L[k]; if(k==='fcfe'){ws.getCell(R[k],1).font=white;ws.getCell(R[k],1).fill=HDR;}});
+ const inCell = key => `Inputs!$B$${IN[key]}`;   // absolute link to an input
+
+ // ---- helper: write a filled-across time-series row -> returns the row number used
+ function tsRow(ws, row, label, Yrow, fmt, fFn, opt){
+  opt=opt||{};
+  const a=ws.getCell(row,1); a.value=label; if(opt.bold){a.font=bold;} if(opt.band){a.fill=SUBT;}
   for(let i=0;i<NY;i++){
-   const C=ws.getColumn(c0+i).letter, cell=(row,f)=>{ws.getCell(row,c0+i).value={formula:f}; ws.getCell(row,c0+i).numFmt=numF;};
-   const prevBal=i===0?'0':ws.getColumn(c0+i-1).letter+R.bal, prevNol=i===0?'0':ws.getColumn(c0+i-1).letter+R.nol;
-   cell(R.rev,`IF(AND(${C}${R.yr}>B_COD,${C}${R.yr}<B_COD+B_LIFE),IF(${C}${R.yr}>=B_GY,(B$${D+4}*(1-B_DEGR)^(${C}${R.yr}-B_GY)+B$${D+5})*(1-B_COMP)^(${C}${R.yr}-B_GY)*(1+INFL)^(${C}${R.yr}-B_GY),0)+B$${D+6}*(1+INFL)^(${C}${R.yr}-(B_COD+1)),0)`);
-   cell(R.opex,`IF(AND(${C}${R.yr}>B_COD,${C}${R.yr}<B_COD+B_LIFE),B_MW*B_DUR*1000*B_CKWH/10^6*B_OPEXP*(1+INFL)^(${C}${R.yr}-2023)+IF(${C}${R.yr}>=B_GY,(B$${D+7}+B$${D+9})*(1+FEESC)^MAX(0,${C}${R.yr}-2028),0),0)`);
-   cell(R.dep,`IF(AND(${C}${R.yr}>B_COD,${C}${R.yr}<=B_COD+MIN(15,B_LIFE-1)),B_CPX/MIN(15,B_LIFE-1),0)`);
-   cell(R.bal,`IF(${C}${R.yr}<B_COD,0,IF(${C}${R.yr}=B_COD,B_GEAR*B_CPX,MAX(0,${prevBal}-${C}${R.rep})))`);
-   cell(R.intr,`IF(${C}${R.yr}>B_COD,${prevBal}*B_RATE,0)`);
-   cell(R.rep,`IF(AND(${C}${R.yr}>B_COD,${C}${R.yr}<=B_COD+MIN(TENOR,B_LIFE-1)),MIN(${prevBal},B_GEAR*B_CPX/MIN(TENOR,B_LIFE-1)),0)`);
-   cell(R.ebt,`${C}${R.rev}-${C}${R.opex}-${C}${R.dep}-${C}${R.intr}`);
-   cell(R.nol,`IF(${C}${R.yr}<=B_COD,0,MIN(0,${prevNol}+${C}${R.ebt}))`);
-   cell(R.tax,`IF(${C}${R.yr}<=B_COD,0,MAX(0,${C}${R.ebt}+${prevNol})*TAXR)`);
-   cell(R.fcfe,`IF(${C}${R.yr}=B_COD,-B_CPX+B_GEAR*B_CPX,IF(AND(${C}${R.yr}>B_COD,${C}${R.yr}<B_COD+B_LIFE),${C}${R.rev}-${C}${R.opex}-${C}${R.tax}-${C}${R.rep}-${C}${R.intr},0))`);
-   ws.getCell(R.date,c0+i).value={formula:`DATE(${C}${R.yr},12,31)`}; ws.getCell(R.date,c0+i).numFmt='yyyy-mm-dd';
-   ws.getCell(R.chk,c0+i).value=(S.chkBatt[Y0+i]!==undefined?S.chkBatt[Y0+i]:0); ws.getCell(R.chk,c0+i).fill=CHK; ws.getCell(R.chk,c0+i).numFmt=numF;
-   cell(R.diff,`${C}${R.fcfe}-${C}${R.chk}`);
+   const X=colL(c0+i), pX=i?colL(c0+i-1):null;
+   const c=ws.getCell(row,c0+i); c.value={formula:fFn(X,pX)}; c.numFmt=fmt;
+   if(opt.bold) c.font=bold;
   }
-  const lastC=ws.getColumn(c0+NY-1).letter, K=R.diff+2;
-  ws.getCell(K,1).value='Equity IRR (XIRR)'; ws.getCell(K,2).value={formula:`IFERROR(XIRR(B${R.fcfe}:${lastC}${R.fcfe},B${R.date}:${lastC}${R.date}),"n/m")`}; ws.getCell(K,2).numFmt=pctF; ws.getCell(K,2).font=bold;
-  ws.getCell(K+1,1).value='Equity (€m)'; ws.getCell(K+1,2).value={formula:'(1-B_GEAR)*B_CPX'}; ws.getCell(K+1,2).numFmt=eurF;
-  ws.getCell(K+2,1).value='Max |check diff| (€m)'; ws.getCell(K+2,2).value={formula:`MAX(ABS(MIN(B${R.diff}:${lastC}${R.diff})),ABS(MAX(B${R.diff}:${lastC}${R.diff})))`}; ws.getCell(K+2,2).fill=CHK; ws.getCell(K+2,2).numFmt=numF;
- })();
+  return row;
+ }
+ // ---- helper: local linked-assumption row (red). Returns row number. Records into map L.
+ function linkRow(ws, row, L, key, label, unit){
+  ws.getCell(row,1).value=label;
+  const c=ws.getCell(row,2); c.value={formula:inCell(key)}; c.font=RED; c.numFmt='General';
+  ws.getCell(row,3).value=unit||''; ws.getCell(row,3).font={italic:true,color:{argb:'FF808080'}};
+  L[key]=row; return row+1;
+ }
+ // ---- helper: local derived single-value row (black). Returns row number. Records into D.
+ function derRow(ws, row, D, key, label, formula, fmt, unit){
+  ws.getCell(row,1).value=label;
+  const c=ws.getCell(row,2); c.value={formula:formula}; c.numFmt=fmt||numF;
+  ws.getCell(row,3).value=unit||'';
+  D[key]=row; return row+1;
+ }
+ function yearHeader(ws,row){ ws.getCell(row,1).value='Year'; ws.getCell(row,1).font=bold;
+  for(let i=0;i<NY;i++){const c=ws.getCell(row,c0+i); c.value=Y0+i; c.font=white; c.fill=HDR;} return row; }
 
- // ---------------- SPV SHEET ----------------
- (function(){
-  const ws=wb.addWorksheet('SPV'); ws.getColumn(1).width=34; const c0=2;
-  ws.getCell(1,1).value='CONSOLIDATED POWER SPV — owns RES (per mode), battery & line; buys residual; sells to DC'; ws.getCell(1,1).font=bold;
-  const R={yr:2,dcrev:3,brev:4,wprod:5,sprod:6,resmwh:7,gridc:8,resppa:9,opex:10,ebitda:11,capex:12,dep:13,bal:14,intr:15,rep:16,ebt:17,nol:18,tax:19,fcfe:20,date:21};
-  const L={dcrev:'DC revenue (€m)',brev:'Battery revenue (€m)',wprod:'Wind → DC (MWh)',sprod:'Solar → DC (MWh)',resmwh:'Residual from grid (MWh)',gridc:'Residual cost incl fees (€m)',resppa:'RES bought at PPA (€m, mode=0)',opex:'Opex (€m)',ebitda:'EBITDA (€m)',capex:'Capex (€m)',dep:'Depreciation (€m)',bal:'Debt balance (€m)',intr:'Interest (€m)',rep:'Principal (€m)',ebt:'EBT (€m)',nol:'NOL',tax:'Tax (€m)',fcfe:'EQUITY CASH FLOW (€m)',date:'Date'};
-  ws.getCell(2,1).value='Year'; for(let i=0;i<NY;i++){const c=ws.getCell(2,c0+i);c.value=Y0+i;c.font=white;c.fill=HDR;}
-  Object.keys(L).forEach(k=>{ws.getCell(R[k],1).value=L[k]; if(k==='fcfe'){ws.getCell(R[k],1).font=white;ws.getCell(R[k],1).fill=HDR;}});
-  const resLife='MAX(W_LIFE,S_LIFE)';
-  for(let i=0;i<NY;i++){
-   const C=ws.getColumn(c0+i).letter, cell=(row,f)=>{ws.getCell(row,c0+i).value={formula:f}; ws.getCell(row,c0+i).numFmt=numF;};
-   const prevBal=i===0?'0':ws.getColumn(c0+i-1).letter+R.bal, prevNol=i===0?'0':ws.getColumn(c0+i-1).letter+R.nol;
-   const OP=`IF(AND(${C}2>=SPV_FF,${C}2<SPV_FF+${resLife}),1,0)`;
-   cell(R.dcrev,`${OP}*DC_MW*8760*DC_P*(1+INFL)^(${C}2-2026)/10^6`);
-   cell(R.brev,`IF(AND(${C}2>=B_GY,${C}2<B_COD+B_LIFE),(Battery!B$7*(1-B_DEGR)^(${C}2-B_GY)+Battery!B$8)*(1-B_COMP)^(${C}2-B_GY)*(1+INFL)^(${C}2-B_GY),0)+IF(AND(${C}2>B_COD,${C}2<B_COD+B_LIFE),Battery!B$9*(1+INFL)^(${C}2-(B_COD+1)),0)`);
-   cell(R.wprod,`Wind!${C}4`); cell(R.sprod,`Solar!${C}4`);
-   cell(R.resmwh,`${OP}*MAX(0,DC_MW*8760-${C}${R.wprod}-${C}${R.sprod})`);
-   cell(R.gridc,`${OP}*(${C}${R.resmwh}*(RES_P*(1+INFL)^(${C}2-2025)*(1+RES_M)+FEE_E*(1+FEESC)^MAX(0,${C}2-2028))/10^6+DC_MW*FEE_C/1000*(1+FEESC)^MAX(0,${C}2-2028))`);
-   cell(R.resppa,`${OP}*(1-RES_OWN)*(IF(${C}2<W_COD+MIN(PPAT,W_LIFE),W_PPA,W_TAIL)*${C}${R.wprod}+IF(${C}2<S_COD+MIN(PPAT,S_LIFE),S_PPA,S_TAIL)*${C}${R.sprod})/10^6`);
-   cell(R.opex,`${OP}*(RES_OWN*(W_OPEX*W_MW+S_OPEX*S_MW)*(1+INFL)^(${C}2-2023)+B_MW*B_DUR*1000*B_CKWH/10^6*B_OPEXP*(1+INFL)^(${C}2-2023)+IF(${C}2>=B_GY,(Battery!B$10+Battery!B$12)*(1+FEESC)^MAX(0,${C}2-2028),0))`);
-   cell(R.ebitda,`${C}${R.dcrev}+${C}${R.brev}-${C}${R.gridc}-${C}${R.resppa}-${C}${R.opex}`);
-   cell(R.capex,`IF(${C}2=SPV_FF-2,0.3*RES_OWN*(W_MW*W_CAPEX+S_MW*S_CAPEX),IF(${C}2=SPV_FF-1,0.7*RES_OWN*(W_MW*W_CAPEX+S_MW*S_CAPEX)+B_CPX+(W_MW+S_MW)*LINE_C/100,0))`);
-   cell(R.dep,`IF(AND(${C}2>=SPV_FF,${C}2<SPV_FF+MIN(20,${resLife})),(RES_OWN*(W_MW*W_CAPEX+S_MW*S_CAPEX)+B_CPX+(W_MW+S_MW)*LINE_C/100)/MIN(20,${resLife}),0)`);
-   const blendG=`((GEAR*(RES_OWN*(W_MW*W_CAPEX+S_MW*S_CAPEX)+(W_MW+S_MW)*LINE_C/100)+B_GEAR*B_CPX)/(RES_OWN*(W_MW*W_CAPEX+S_MW*S_CAPEX)+B_CPX+(W_MW+S_MW)*LINE_C/100))`;
-   const xRate=`((GEAR*(RES_OWN*(W_MW*W_CAPEX+S_MW*S_CAPEX)+(W_MW+S_MW)*LINE_C/100)*RATE+B_GEAR*B_CPX*B_RATE)/MAX(0.0001,GEAR*(RES_OWN*(W_MW*W_CAPEX+S_MW*S_CAPEX)+(W_MW+S_MW)*LINE_C/100)+B_GEAR*B_CPX))`;
-   cell(R.bal,`IF(${C}2<SPV_FF,${prevBal}+${C}${R.capex}*${blendG}+IF(${C}${R.capex}>0,(${prevBal}+${C}${R.capex}*${blendG}/2)*${xRate},0),MAX(0,${prevBal}-${C}${R.rep}))`);
-   cell(R.intr,`IF(${C}2>=SPV_FF,${prevBal}*${xRate},0)`);
-   cell(R.rep,`IF(AND(${C}2>=SPV_FF,${C}2<SPV_FF+MIN(TENOR,${resLife})),MIN(${prevBal},INDEX($B$${R.bal}:$${ws.getColumn(c0+NY-1).letter}$${R.bal},MATCH(SPV_FF-1,$B$2:$${ws.getColumn(c0+NY-1).letter}$2,0))/MIN(TENOR,${resLife})),0)`);
-   cell(R.ebt,`${C}${R.ebitda}-${C}${R.dep}-${C}${R.intr}`);
-   cell(R.nol,`IF(${C}2<SPV_FF,0,MIN(0,${prevNol}+${C}${R.ebt}))`);
-   cell(R.tax,`IF(${C}2<SPV_FF,0,MAX(0,${C}${R.ebt}+${prevNol})*TAXR)`);
-   cell(R.fcfe,`IF(${C}2<SPV_FF,-${C}${R.capex}+${C}${R.capex}*${blendG},${C}${R.ebitda}-${C}${R.tax}-${C}${R.rep}-${C}${R.intr})`);
-   ws.getCell(R.date,c0+i).value={formula:`DATE(${C}2,12,31)`}; ws.getCell(R.date,c0+i).numFmt='yyyy-mm-dd';
+ // ================= WIND / SOLAR builder =================
+ function assetSheet(name,P,chk){
+  const ws=wb.addWorksheet(name); ws.getColumn(1).width=32; ws.getColumn(3).width=30;
+  ws.getCell(1,1).value=name.toUpperCase()+' — full-formula model'; ws.getCell(1,1).font={bold:true,size:12};
+  ws.getCell(2,1).value='Red = linked from Inputs (F2 to trace). Flags are 0/1 (no IF); caps use MIN/MAX. One step per row.';
+  ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
+  const L={}, D={}, R={};
+  let rr=4; rr=sect(ws,rr,'LOCAL ASSUMPTIONS  (linked from Inputs, shown red)');
+  [['INFL','Inflation (CPI)','per yr'],['TAXR','Tax rate',''],['GEAR','Gearing',''],['TENOR','Debt tenor','yrs'],
+   ['RATE','Debt rate',''],['PPAT','PPA term','yrs'],['MERCH','Merchant (uncontracted)','€/MWh 23-real'],
+   [P+'_MW','Capacity','MW'],[P+'_CAPEX','Capex','€m/MW'],[P+'_GCF','Gross capacity factor',''],
+   [P+'_LOSS','Plant losses',''],[P+'_LLOSS','Direct-line losses',''],[P+'_DEGR','Degradation','per yr'],
+   [P+'_OPEX','Opex','€m/MW/yr'],[P+'_PPA','PPA price','€/MWh'],[P+'_CONTR','Contracted share',''],
+   [P+'_COD','COD (first gen year)',''],[P+'_LIFE','Useful life','yrs'],[P+'_TAIL','Merchant tail price','€/MWh']
+  ].forEach(x=>{ rr=linkRow(ws,rr,L,x[0],x[1],x[2]); });
+  const A=k=>`$B$${L[k]}`;                         // local assumption cell (abs)
+
+  rr++; rr=sect(ws,rr,'DERIVED (computed once)');
+  rr=derRow(ws,rr,D,'GROSS',   'Gross generation @100% avail (MWh)', `${A(P+'_MW')}*8760*${A(P+'_GCF')}`, intF,'MW×8760×CF');
+  rr=derRow(ws,rr,D,'NETFAC',  'Net delivery factor', `(1-${A(P+'_LOSS')})*(1-${A(P+'_LLOSS')})`, '0.0000','(1−plant)(1−line)');
+  rr=derRow(ws,rr,D,'TCAPEX',  'Total capex (€m)', `${A(P+'_MW')}*${A(P+'_CAPEX')}`, eurF);
+  rr=derRow(ws,rr,D,'EQUITY',  'Equity (€m)', `(1-${A('GEAR')})*$B$${D.TCAPEX}`, eurF,'(1−gearing)×capex');
+  rr=derRow(ws,rr,D,'DEPY',    'Depreciation period (yrs)', `MIN(20,${A(P+'_LIFE')})`, intF);
+  rr=derRow(ws,rr,D,'ANNDEP',  'Annual depreciation (€m)', `$B$${D.TCAPEX}/$B$${D.DEPY}`, numF,'straight line');
+  rr=derRow(ws,rr,D,'REPY',    'Debt amortisation period (yrs)', `MIN(${A('TENOR')},${A(P+'_LIFE')})`, intF);
+  rr=derRow(ws,rr,D,'ANNF',    'Annuity factor (LCOE)', `${A('RATE')}/(1-(1+${A('RATE')})^-${A(P+'_LIFE')})`, '0.0000','r / (1−(1+r)^−life)');
+  rr=derRow(ws,rr,D,'CAPANN',  'Capex annuity (€m/yr)', `$B$${D.TCAPEX}*$B$${D.ANNF}`, numF);
+  rr=derRow(ws,rr,D,'PPAEND',  'PPA end year', `${A(P+'_COD')}+MIN(${A('PPAT')},${A(P+'_LIFE')})`, intF);
+  rr=derRow(ws,rr,D,'DRAW1',   'Constr. draw @ COD-2 (€m)', `0.3*$B$${D.TCAPEX}*${A('GEAR')}`, numF,'30% of capex × gearing');
+  rr=derRow(ws,rr,D,'IDC1',    'Constr. IDC year 1 (€m)', `$B$${D.DRAW1}/2*${A('RATE')}`, numF);
+  rr=derRow(ws,rr,D,'BAL1',    'Debt after COD-2 (€m)', `$B$${D.DRAW1}+$B$${D.IDC1}`, numF);
+  rr=derRow(ws,rr,D,'DRAW2',   'Constr. draw @ COD-1 (€m)', `0.7*$B$${D.TCAPEX}*${A('GEAR')}`, numF,'70% of capex × gearing');
+  rr=derRow(ws,rr,D,'IDC2',    'Constr. IDC year 2 (€m)', `($B$${D.BAL1}+$B$${D.DRAW2}/2)*${A('RATE')}`, numF);
+  rr=derRow(ws,rr,D,'DEBTCOD', 'Debt drawn by COD (€m)', `$B$${D.BAL1}+$B$${D.DRAW2}+$B$${D.IDC2}`, numF,'construction debt at COD-1');
+  rr=derRow(ws,rr,D,'ANNPRIN', 'Annual principal (€m)', `$B$${D.DEBTCOD}/$B$${D.REPY}`, numF);
+
+  rr++; const Yrow=rr; yearHeader(ws,Yrow);
+  rr++; rr=sect(ws,rr,'PRODUCTION');
+  const yr=X=>`${X}$${Yrow}`;
+  R.op   =tsRow(ws,rr++,'Operating flag (1/0)',Yrow,intF,X=>`(${yr(X)}>=${A(P+'_COD')})*(${yr(X)}<${A(P+'_COD')}+${A(P+'_LIFE')})`);
+  R.ysc  =tsRow(ws,rr++,'Years since COD',Yrow,intF,X=>`${yr(X)}-${A(P+'_COD')}`);
+  R.cpi  =tsRow(ws,rr++,'CPI index vs 2023',Yrow,'0.0000',X=>`(1+${A('INFL')})^(${yr(X)}-2023)`);
+  R.degf =tsRow(ws,rr++,'Degradation factor',Yrow,'0.0000',X=>`(1-${A(P+'_DEGR')})^MAX(0,${X}$${R.ysc})`);
+  R.prod =tsRow(ws,rr++,'Production (MWh)',Yrow,intF,X=>`${X}$${R.op}*$B$${D.GROSS}*$B$${D.NETFAC}*${X}$${R.degf}`);
+  rr=sect(ws,rr,'REVENUE  (split contracted / merchant / tail)');
+  R.ppaf =tsRow(ws,rr++,'In-PPA-period flag',Yrow,intF,X=>`(${yr(X)}<$B$${D.PPAEND})`);
+  R.cmwh =tsRow(ws,rr++,'Contracted MWh',Yrow,intF,X=>`${X}$${R.op}*${X}$${R.ppaf}*${X}$${R.prod}*${A(P+'_CONTR')}`);
+  R.mmwh =tsRow(ws,rr++,'Merchant MWh (in PPA period)',Yrow,intF,X=>`${X}$${R.op}*${X}$${R.ppaf}*${X}$${R.prod}*(1-${A(P+'_CONTR')})`);
+  R.tmwh =tsRow(ws,rr++,'Tail MWh (post-PPA)',Yrow,intF,X=>`${X}$${R.op}*(1-${X}$${R.ppaf})*${X}$${R.prod}`);
+  R.mpr  =tsRow(ws,rr++,'Merchant price (€/MWh)',Yrow,eurF,X=>`${A('MERCH')}*${X}$${R.cpi}`);
+  R.rppa =tsRow(ws,rr++,'Revenue — contracted (€m)',Yrow,numF,X=>`${X}$${R.cmwh}*${A(P+'_PPA')}/10^6`);
+  R.rmer =tsRow(ws,rr++,'Revenue — merchant (€m)',Yrow,numF,X=>`${X}$${R.mmwh}*${X}$${R.mpr}/10^6`);
+  R.rtail=tsRow(ws,rr++,'Revenue — tail (€m)',Yrow,numF,X=>`${X}$${R.tmwh}*${A(P+'_TAIL')}/10^6`);
+  R.rev  =tsRow(ws,rr++,'Revenue — total (€m)',Yrow,numF,X=>`${X}$${R.rppa}+${X}$${R.rmer}+${X}$${R.rtail}`);
+  rr=sect(ws,rr,'COSTS & EBITDA');
+  R.opex =tsRow(ws,rr++,'Opex (€m)',Yrow,numF,X=>`${X}$${R.op}*${A(P+'_OPEX')}*${A(P+'_MW')}*${X}$${R.cpi}`);
+  R.ebit =tsRow(ws,rr++,'EBITDA (€m)',Yrow,numF,X=>`${X}$${R.rev}-${X}$${R.opex}`);
+  rr=sect(ws,rr,'CAPEX & DEBT');
+  R.cshr =tsRow(ws,rr++,'Capex draw share (0/0.3/0.7)',Yrow,'0.00',X=>`0.3*(${yr(X)}=${A(P+'_COD')}-2)+0.7*(${yr(X)}=${A(P+'_COD')}-1)`);
+  R.capex=tsRow(ws,rr++,'Capex (€m)',Yrow,numF,X=>`${X}$${R.cshr}*$B$${D.TCAPEX}`);
+  R.draw =tsRow(ws,rr++,'Debt draw (€m)',Yrow,numF,X=>`${X}$${R.capex}*${A('GEAR')}`);
+  R.cflag=tsRow(ws,rr++,'Construction flag',Yrow,intF,X=>`(${yr(X)}>=${A(P+'_COD')}-2)*(${yr(X)}<${A(P+'_COD')})`);
+  R.idc  =rr++;   // reserve interdependent rows first; fill after all row numbers are known
+  R.intr =rr++;
+  R.prin =rr++;
+  R.bal  =rr++;
+  R.dep  =rr++;
+  R.ebt  =rr++;
+  R.nol  =rr++;
+  R.tax  =rr++;
+  R.fcfe =rr++;
+  R.date =rr++;
+  R.chk  =rr++;
+  R.diff =rr++;
+  // now fill the reserved rows with correct references (bal known)
+  // re-do IDC with proper prevBal ref:
+  tsRow(ws,R.idc,'IDC — interest during constr. (€m)',Yrow,numF,(X,pX)=>`${X}$${R.cflag}*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}/2)*${A('RATE')}`);
+  tsRow(ws,R.intr,'Interest (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A(P+'_COD')})*(${pX?pX+'$'+R.bal:'0'})*${A('RATE')}`);
+  R.rflag=null; // repayment flag folded into principal for brevity
+  tsRow(ws,R.prin,'Principal repay (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A(P+'_COD')})*(${yr(X)}<${A(P+'_COD')}+$B$${D.REPY})*MIN((${pX?pX+'$'+R.bal:'0'}),$B$${D.ANNPRIN})`);
+  tsRow(ws,R.bal,'Debt balance EOY (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}<${A(P+'_COD')})*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}+${X}$${R.idc})+(${yr(X)}>=${A(P+'_COD')})*MAX(0,(${pX?pX+'$'+R.bal:'0'})-${X}$${R.prin})`);
+  tsRow(ws,R.dep,'Depreciation (€m)',Yrow,numF,X=>`(${yr(X)}>=${A(P+'_COD')})*(${yr(X)}<${A(P+'_COD')}+$B$${D.DEPY})*$B$${D.ANNDEP}`);
+  tsRow(ws,R.ebt,'EBT (€m)',Yrow,numF,X=>`${X}$${R.ebit}-${X}$${R.dep}-${X}$${R.intr}`);
+  tsRow(ws,R.nol,'NOL balance (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A(P+'_COD')})*MIN(0,(${pX?pX+'$'+R.nol:'0'})+${X}$${R.ebt})`);
+  tsRow(ws,R.tax,'Tax (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A(P+'_COD')})*MAX(0,${X}$${R.ebt}+(${pX?pX+'$'+R.nol:'0'}))*${A('TAXR')}`);
+  tsRow(ws,R.fcfe,'EQUITY CASH FLOW (€m)',Yrow,numF,X=>`(${yr(X)}<${A(P+'_COD')})*(-${X}$${R.capex}+${X}$${R.draw})+(${yr(X)}>=${A(P+'_COD')})*(${X}$${R.ebit}-${X}$${R.tax}-${X}$${R.prin}-${X}$${R.intr})`,{bold:true});
+  for(let i=0;i<NY;i++){const c=ws.getCell(R.date,c0+i);c.value={formula:`DATE(${colL(c0+i)}$${Yrow},12,31)`};c.numFmt='yyyy-mm-dd';}
+  ws.getCell(R.date,1).value='Date (XIRR)';
+  ws.getCell(R.chk,1).value='Check: dashboard equity CF';
+  for(let i=0;i<NY;i++){const y=Y0+i;const c=ws.getCell(R.chk,c0+i);c.value=(chk&&chk[y]!==undefined?chk[y]:0);c.fill=CHK;c.numFmt=numF;}
+  tsRow(ws,R.diff,'Check diff (≈0)',Yrow,numF,X=>`${X}$${R.fcfe}-${X}$${R.chk}`);
+  ws.getCell(R.fcfe,1).fill=HDR; ws.getCell(R.fcfe,1).font=white;
+
+  // ---- RESULTS
+  let k=rr+1; k=sect(ws,k,'RESULTS');
+  const put=(row,label,formula,fmt,fill)=>{ws.getCell(row,1).value=label;const c=ws.getCell(row,2);c.value={formula:formula};c.numFmt=fmt;if(fill)c.fill=fill;return row;};
+  const IRR=k; put(k++,'Equity IRR (XIRR)',`XIRR(B${R.fcfe}:${lastC}${R.fcfe},B${R.date}:${lastC}${R.date})`,pctF); ws.getCell(IRR,2).font=bold;
+  const MOIC=k; put(k++,'MOIC',`SUMIF(B${R.fcfe}:${lastC}${R.fcfe},">0")/-SUMIF(B${R.fcfe}:${lastC}${R.fcfe},"<0")`,xF);
+  put(k++,'Total capex (€m)',`$B$${D.TCAPEX}`,eurF);
+  put(k++,'Equity (€m)',`$B$${D.EQUITY}`,eurF);
+  const FP=k; put(k++,'First-year production (MWh)',`SUMIF(B${Yrow}:${lastC}${Yrow},${A(P+'_COD')},B${R.prod}:${lastC}${R.prod})`,intF);
+  const FO=k; put(k++,'First-year opex (€m)',`SUMIF(B${Yrow}:${lastC}${Yrow},${A(P+'_COD')},B${R.opex}:${lastC}${R.opex})`,numF);
+  const LC=k; put(k++,'LCOE (€/MWh)',`($B$${D.CAPANN}+$B$${FO})*10^6/$B$${FP}`,eurF);
+  const MX=k; put(k++,'Max |check diff| (€m)',`MAX(ABS(MIN(B${R.diff}:${lastC}${R.diff})),ABS(MAX(B${R.diff}:${lastC}${R.diff})))`,numF,CHK);
+  put(k++,'Tie-out',`CHOOSE(1+($B$${MX}>0.001),"✓ ties to dashboard","⚠ check diff")`,'General');
+  return {irr:`${name}!B${IRR}`, moic:`${name}!B${MOIC}`, lcoe:`${name}!B${LC}`, prodRow:R.prod};
+ }
+ const windRef =assetSheet('Wind','W',S.chkWind);
+ const solarRef=assetSheet('Solar','S',S.chkSolar);
+
+ // ================= BATTERY =================
+ function batterySheet(){
+  const ws=wb.addWorksheet('Battery'); ws.getColumn(1).width=34; ws.getColumn(3).width=26; ws.getColumn(4).width=8;
+  ws.getCell(1,1).value='BATTERY — full-formula model'; ws.getCell(1,1).font={bold:true,size:12};
+  ws.getCell(2,1).value='Red = linked from Inputs. 24h curve replicated locally for the arbitrage stack; flags 0/1, no IF.';
+  ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
+  const L={}, D={}, R={};
+  let rr=4; rr=sect(ws,rr,'LOCAL ASSUMPTIONS (linked from Inputs, red)');
+  [['INFL','Inflation','per yr'],['TAXR','Tax rate',''],['TENOR','Debt tenor','yrs'],['FEESC','Grid-fee escalation','per yr'],
+   ['B_MW','Power','MW'],['B_DUR','Duration','h'],['B_CKWH','Cell capex','€/kWh'],['B_SUB','Netzzutritt','€m'],['B_INT','DC connection','€m'],
+   ['B_RTE','Round-trip eff.',''],['B_SOC','SoC floor',''],['B_CYC','Cycles/day',''],['B_CAPF','Capture factor',''],
+   ['B_OPEXP','Opex %/yr',''],['B_ANC','Ancillary','€k/MW/yr'],['B_CCH','DC reliability charge','€k/MW/yr'],
+   ['B_GY','First merchant year',''],['B_COMP','Compression','per yr'],['B_DEGR','Degradation','per yr'],
+   ['B_GEAR','Gearing',''],['B_RATE','Debt rate',''],['B_GFC','Grid fee capacity','€/kW/yr'],['B_GFE','Grid fee energy','€/MWh'],
+   ['B_COD','COD (capex year)',''],['B_LIFE','Useful life','yrs']
+  ].forEach(x=>{ rr=linkRow(ws,rr,L,x[0],x[1],x[2]); });
+  const A=k=>`$B$${L[k]}`;
+
+  rr++; rr=sect(ws,rr,'24h ARBITRAGE CURVE (price linked red · rank local)');
+  const CST=rr;
+  for(let h=0;h<24;h++){
+   ws.getCell(rr,1).value='Hour '+h;
+   const p=ws.getCell(rr,2); p.value={formula:`Inputs!$B$${IN.PH0+h}`}; p.font=RED; p.numFmt='#,##0.0';
+   rr++;
   }
-  const lastC=ws.getColumn(c0+NY-1).letter, K=R.date+2;
-  ws.getCell(K,1).value='SPV equity IRR (XIRR)'; ws.getCell(K,2).value={formula:`IFERROR(XIRR(B${R.fcfe}:${lastC}${R.fcfe},B${R.date}:${lastC}${R.date}),"n/m")`}; ws.getCell(K,2).numFmt=pctF; ws.getCell(K,2).font=bold;
-  ws.getCell(K+1,1).value='Dashboard SPV IRR at export'; ws.getCell(K+1,2).value=S.spvIRR; ws.getCell(K+1,2).numFmt=pctF; ws.getCell(K+1,2).fill=CHK;
-  ws.getCell(K+2,1).value='Note'; ws.getCell(K+2,2).value='Small diffs vs dashboard are timing conventions; use Goal Seek on Inputs!DC_P for target IRR.';
- })();
+  const CEN=rr-1;
+  for(let h=0;h<24;h++){ const rk=ws.getCell(CST+h,3); rk.value={formula:`RANK($B$${CST+h},$B$${CST}:$B$${CEN},1)`}; rk.numFmt=intF; }
+  ws.getCell(CST-1,3).value='rank (1=cheapest)';
+  const PB=`$B$${CST}:$B$${CEN}`, RB=`$C$${CST}:$C$${CEN}`;
 
- // ---------------- OUTPUT ----------------
- const wo=wb.addWorksheet('Output'); wo.getColumn(1).width=36; wo.getColumn(2).width=16;
+  rr++; rr=sect(ws,rr,'DERIVED DISPATCH & CAPEX (once)');
+  rr=derRow(ws,rr,D,'NCH',   'Tradeable hours nCh', `MIN(12,MAX(0,ROUND(${A('B_DUR')}*(1-${A('B_SOC')})*${A('B_CYC')},0)))`, intF,'= round(dur×(1−SoC)×cycles)');
+  rr=derRow(ws,rr,D,'SCHEAP','Σ cheapest nCh prices (€/MWh)', `SUMIF(${RB},"<="&$B$${D.NCH},${PB})`, numF);
+  rr=derRow(ws,rr,D,'SPRICE','Σ priciest nCh prices (€/MWh)', `SUMIF(${RB},">"&(24-$B$${D.NCH}),${PB})`, numF);
+  rr=derRow(ws,rr,D,'DAYARB','Day arbitrage (€/day)', `MAX(0,${A('B_MW')}*(${A('B_RTE')}*$B$${D.SPRICE}-$B$${D.SCHEAP}))*${A('B_CAPF')}`, numF);
+  rr=derRow(ws,rr,D,'ARBRR', 'Arbitrage revenue run-rate (€m/yr)', `$B$${D.DAYARB}*365/10^6`, numF);
+  rr=derRow(ws,rr,D,'ANC',   'Ancillary (€m/yr)', `${A('B_ANC')}*${A('B_MW')}/1000`, numF);
+  rr=derRow(ws,rr,D,'DCCH',  'DC reliability charge (€m/yr)', `${A('B_CCH')}*${A('B_MW')}/1000`, numF);
+  rr=derRow(ws,rr,D,'GFCAP', 'Grid fee capacity (€m/yr, 2028)', `${A('B_MW')}*${A('B_GFC')}/1000`, numF);
+  rr=derRow(ws,rr,D,'THRU',  'Grid throughput (MWh/yr)', `$B$${D.NCH}*${A('B_MW')}*${A('B_RTE')}*365`, intF);
+  rr=derRow(ws,rr,D,'GFENE', 'Grid fee energy (€m/yr, 2028)', `$B$${D.THRU}*${A('B_GFE')}/10^6`, numF);
+  rr=derRow(ws,rr,D,'CELLCX','Cell capex (€m)', `${A('B_MW')}*${A('B_DUR')}*1000*${A('B_CKWH')}/10^6`, eurF);
+  rr=derRow(ws,rr,D,'TCAPEX','Total capex (€m)', `$B$${D.CELLCX}+${A('B_SUB')}+${A('B_INT')}`, eurF);
+  rr=derRow(ws,rr,D,'EQUITY','Equity (€m)', `(1-${A('B_GEAR')})*$B$${D.TCAPEX}`, eurF);
+  rr=derRow(ws,rr,D,'DEPY',  'Depreciation period (yrs)', `MIN(15,${A('B_LIFE')}-1)`, intF);
+  rr=derRow(ws,rr,D,'ANNDEP','Annual depreciation (€m)', `$B$${D.TCAPEX}/$B$${D.DEPY}`, numF);
+  rr=derRow(ws,rr,D,'REPY',  'Debt amortisation period (yrs)', `MIN(${A('TENOR')},${A('B_LIFE')}-1)`, intF);
+  rr=derRow(ws,rr,D,'ANNPRIN','Annual principal (€m)', `${A('B_GEAR')}*$B$${D.TCAPEX}/$B$${D.REPY}`, numF);
+
+  rr++; const Yrow=rr; yearHeader(ws,Yrow); const yr=X=>`${X}$${Yrow}`;
+  rr++; rr=sect(ws,rr,'YEARLY MODEL');
+  R.mflag=tsRow(ws,rr++,'Merchant flag (y≥ban)',Yrow,intF,X=>`(${yr(X)}>=${A('B_GY')})`);
+  R.olf  =tsRow(ws,rr++,'Operating flag (COD<y<COD+life)',Yrow,intF,X=>`(${yr(X)}>${A('B_COD')})*(${yr(X)}<${A('B_COD')}+${A('B_LIFE')})`);
+  R.cpi  =tsRow(ws,rr++,'CPI index vs 2023',Yrow,'0.0000',X=>`(1+${A('INFL')})^(${yr(X)}-2023)`);
+  R.merch=tsRow(ws,rr++,'Merchant revenue (€m)',Yrow,numF,X=>`${X}$${R.olf}*${X}$${R.mflag}*($B$${D.ARBRR}*(1-${A('B_DEGR')})^MAX(0,${yr(X)}-${A('B_GY')})+$B$${D.ANC})*(1-${A('B_COMP')})^MAX(0,${yr(X)}-${A('B_GY')})*(1+${A('INFL')})^MAX(0,${yr(X)}-${A('B_GY')})`);
+  R.cap  =tsRow(ws,rr++,'DC reliability charge (€m)',Yrow,numF,X=>`${X}$${R.olf}*$B$${D.DCCH}*(1+${A('INFL')})^MAX(0,${yr(X)}-(${A('B_COD')}+1))`);
+  R.rev  =tsRow(ws,rr++,'Revenue — total (€m)',Yrow,numF,X=>`${X}$${R.merch}+${X}$${R.cap}`);
+  R.opxc =tsRow(ws,rr++,'Opex — cell O&M (€m)',Yrow,numF,X=>`${X}$${R.olf}*$B$${D.CELLCX}*${A('B_OPEXP')}*${X}$${R.cpi}`);
+  R.gfee =tsRow(ws,rr++,'Grid fees (€m, from ban)',Yrow,numF,X=>`${X}$${R.olf}*${X}$${R.mflag}*($B$${D.GFCAP}+$B$${D.GFENE})*(1+${A('FEESC')})^MAX(0,${yr(X)}-2028)`);
+  R.opex =tsRow(ws,rr++,'Opex — total (€m)',Yrow,numF,X=>`${X}$${R.opxc}+${X}$${R.gfee}`);
+  R.codf =tsRow(ws,rr++,'COD flag (y=COD)',Yrow,intF,X=>`(${yr(X)}=${A('B_COD')})`);
+  R.intr =rr++; R.prin=rr++; R.bal=rr++; R.dep=rr++; R.ebt=rr++; R.nol=rr++; R.tax=rr++; R.fcfe=rr++; R.date=rr++; R.chk=rr++; R.diff=rr++;
+  tsRow(ws,R.intr,'Interest (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>${A('B_COD')})*(${pX?pX+'$'+R.bal:'0'})*${A('B_RATE')}`);
+  tsRow(ws,R.prin,'Principal repay (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>${A('B_COD')})*(${yr(X)}<=${A('B_COD')}+$B$${D.REPY})*MIN((${pX?pX+'$'+R.bal:'0'}),$B$${D.ANNPRIN})`);
+  tsRow(ws,R.bal,'Debt balance EOY (€m)',Yrow,numF,(X,pX)=>`${X}$${R.codf}*${A('B_GEAR')}*$B$${D.TCAPEX}+(${yr(X)}>${A('B_COD')})*MAX(0,(${pX?pX+'$'+R.bal:'0'})-${X}$${R.prin})`);
+  tsRow(ws,R.dep,'Depreciation (€m)',Yrow,numF,X=>`(${yr(X)}>${A('B_COD')})*(${yr(X)}<=${A('B_COD')}+$B$${D.DEPY})*$B$${D.ANNDEP}`);
+  tsRow(ws,R.ebt,'EBT (€m)',Yrow,numF,X=>`${X}$${R.rev}-${X}$${R.opex}-${X}$${R.dep}-${X}$${R.intr}`);
+  tsRow(ws,R.nol,'NOL balance (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>${A('B_COD')})*MIN(0,(${pX?pX+'$'+R.nol:'0'})+${X}$${R.ebt})`);
+  tsRow(ws,R.tax,'Tax (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>${A('B_COD')})*MAX(0,${X}$${R.ebt}+(${pX?pX+'$'+R.nol:'0'}))*${A('TAXR')}`);
+  tsRow(ws,R.fcfe,'EQUITY CASH FLOW (€m)',Yrow,numF,X=>`${X}$${R.codf}*(-(1-${A('B_GEAR')})*$B$${D.TCAPEX})+${X}$${R.olf}*(${X}$${R.rev}-${X}$${R.opex}-${X}$${R.tax}-${X}$${R.prin}-${X}$${R.intr})`,{bold:true});
+  for(let i=0;i<NY;i++){const c=ws.getCell(R.date,c0+i);c.value={formula:`DATE(${colL(c0+i)}$${Yrow},12,31)`};c.numFmt='yyyy-mm-dd';}
+  ws.getCell(R.date,1).value='Date (XIRR)';
+  ws.getCell(R.chk,1).value='Check: dashboard equity CF';
+  for(let i=0;i<NY;i++){const y=Y0+i;const c=ws.getCell(R.chk,c0+i);c.value=(S.chkBatt&&S.chkBatt[y]!==undefined?S.chkBatt[y]:0);c.fill=CHK;c.numFmt=numF;}
+  tsRow(ws,R.diff,'Check diff (≈0)',Yrow,numF,X=>`${X}$${R.fcfe}-${X}$${R.chk}`);
+  ws.getCell(R.fcfe,1).fill=HDR; ws.getCell(R.fcfe,1).font=white;
+
+  let k=rr+1; k=sect(ws,k,'RESULTS');
+  const IRR=k; ws.getCell(k,1).value='Equity IRR (XIRR)'; ws.getCell(k,2).value={formula:`IFERROR(XIRR(B${R.fcfe}:${lastC}${R.fcfe},B${R.date}:${lastC}${R.date}),"n/m")`}; ws.getCell(k,2).numFmt=pctF; ws.getCell(k,2).font=bold; k++;
+  ws.getCell(k,1).value='Equity (€m)'; ws.getCell(k,2).value={formula:`$B$${D.EQUITY}`}; ws.getCell(k,2).numFmt=eurF; k++;
+  ws.getCell(k,1).value='Total capex (€m)'; ws.getCell(k,2).value={formula:`$B$${D.TCAPEX}`}; ws.getCell(k,2).numFmt=eurF; k++;
+  const MX=k; ws.getCell(k,1).value='Max |check diff| (€m)'; ws.getCell(k,2).value={formula:`MAX(ABS(MIN(B${R.diff}:${lastC}${R.diff})),ABS(MAX(B${R.diff}:${lastC}${R.diff})))`}; ws.getCell(k,2).numFmt=numF; ws.getCell(k,2).fill=CHK; k++;
+  ws.getCell(k,1).value='Tie-out'; ws.getCell(k,2).value={formula:`CHOOSE(1+($B$${MX}>0.001),"✓ ties to dashboard","⚠ check diff")`}; k++;
+  // expose derived cells for the SPV sheet
+  return {irr:`Battery!B${IRR}`, cells:{ARBRR:D.ARBRR,ANC:D.ANC,DCCH:D.DCCH,GFCAP:D.GFCAP,GFENE:D.GFENE,CELLCX:D.CELLCX,TCAPEX:D.TCAPEX,OPEXP:L.B_OPEXP,DEGR:L.B_DEGR,COMP:L.B_COMP,GY:L.B_GY,COD:L.B_COD,LIFE:L.B_LIFE}};
+ }
+ const batteryRef=batterySheet();
+ const BX=k=>`Battery!$B$${batteryRef.cells[k]}`;   // link a Battery derived/assumption cell
+
+ // ================= SPV =================
+ function spvSheet(){
+  const ws=wb.addWorksheet('SPV'); ws.getColumn(1).width=36; ws.getColumn(3).width=24;
+  ws.getCell(1,1).value='CONSOLIDATED POWER SPV — owns RES (per mode), battery & line; buys residual; sells to DC'; ws.getCell(1,1).font={bold:true,size:12};
+  ws.getCell(2,1).value='Red = linked (Inputs, or Wind/Solar/Battery sheets). Blended gearing/rate computed once below. Flags 0/1.';
+  ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
+  const L={}, D={}, R={};
+  let rr=4; rr=sect(ws,rr,'LOCAL ASSUMPTIONS (linked from Inputs, red)');
+  [['INFL','Inflation','per yr'],['TAXR','Tax rate',''],['GEAR','RES/line gearing',''],['TENOR','Debt tenor','yrs'],['RATE','RES/line debt rate',''],['PPAT','PPA term','yrs'],
+   ['W_MW','Wind MW',''],['W_CAPEX','Wind capex','€m/MW'],['W_COD','Wind COD',''],['W_LIFE','Wind life','yrs'],['W_OPEX','Wind opex','€m/MW'],['W_PPA','Wind PPA','€/MWh'],['W_TAIL','Wind tail','€/MWh'],
+   ['S_MW','Solar MW',''],['S_CAPEX','Solar capex','€m/MW'],['S_COD','Solar COD',''],['S_LIFE','Solar life','yrs'],['S_OPEX','Solar opex','€m/MW'],['S_PPA','Solar PPA','€/MWh'],['S_TAIL','Solar tail','€/MWh'],
+   ['B_GEAR','Battery gearing',''],['B_RATE','Battery debt rate',''],['B_GY','Battery merchant year',''],['B_COD','Battery COD',''],['B_LIFE','Battery life','yrs'],['B_DEGR','Battery degradation',''],['B_COMP','Battery compression',''],['B_OPEXP','Battery opex %',''],
+   ['DC_MW','DC load','MW'],['DC_P','DC price','€/MWh'],['RES_P','Residual price','€/MWh'],['RES_M','BE margin',''],['FEE_E','NE3 energy fee','€/MWh'],['FEE_C','NE3 capacity fee','€/kW/yr'],['FEESC','Grid-fee esc.','per yr'],['RES_OWN','RES owned (1/0)',''],['LINE_C','Direct line','€m/100MW'],['SPV_FF','SPV first year','']
+  ].forEach(x=>{ rr=linkRow(ws,rr,L,x[0],x[1],x[2]); });
+  const A=k=>`$B$${L[k]}`;
+
+  rr++; rr=sect(ws,rr,'LINKED FROM BATTERY SHEET (red)');
+  const bl=(key,label,unit)=>{ ws.getCell(rr,1).value=label; const c=ws.getCell(rr,2); c.value={formula:BX(key)}; c.font=RED; c.numFmt=numF; ws.getCell(rr,3).value=unit||''; L['BX_'+key]=rr; rr++; };
+  bl('ARBRR','Battery arbitrage run-rate','€m/yr'); bl('ANC','Battery ancillary','€m/yr'); bl('DCCH','Battery DC charge','€m/yr');
+  bl('GFCAP','Battery grid fee cap.','€m/yr'); bl('GFENE','Battery grid fee ene.','€m/yr'); bl('CELLCX','Battery cell capex','€m'); bl('TCAPEX','Battery total capex','€m');
+  const BXL=k=>`$B$${L['BX_'+k]}`;
+
+  rr++; rr=sect(ws,rr,'DERIVED (computed once)');
+  rr=derRow(ws,rr,D,'RESCX', 'RES capex owned (€m)', `${A('RES_OWN')}*(${A('W_MW')}*${A('W_CAPEX')}+${A('S_MW')}*${A('S_CAPEX')})`, eurF);
+  rr=derRow(ws,rr,D,'LINECX','Line capex (€m)', `(${A('W_MW')}+${A('S_MW')})*${A('LINE_C')}/100`, eurF);
+  rr=derRow(ws,rr,D,'SPVCX', 'SPV total capex (€m)', `$B$${D.RESCX}+${BXL('TCAPEX')}+$B$${D.LINECX}`, eurF);
+  rr=derRow(ws,rr,D,'SENDBT','Senior (RES+line) debt base (€m)', `${A('GEAR')}*($B$${D.RESCX}+$B$${D.LINECX})`, eurF);
+  rr=derRow(ws,rr,D,'BATDBT','Battery debt base (€m)', `${A('B_GEAR')}*${BXL('TCAPEX')}`, eurF);
+  rr=derRow(ws,rr,D,'BGEAR', 'Blended gearing', `($B$${D.SENDBT}+$B$${D.BATDBT})/$B$${D.SPVCX}`, '0.0000');
+  rr=derRow(ws,rr,D,'BRATE', 'Blended debt rate', `(${A('GEAR')}*($B$${D.RESCX}+$B$${D.LINECX})*${A('RATE')}+${A('B_GEAR')}*${BXL('TCAPEX')}*${A('B_RATE')})/MAX(0.0001,$B$${D.SENDBT}+$B$${D.BATDBT})`, '0.0000');
+  rr=derRow(ws,rr,D,'RESLIFE','RES life (yrs)', `MAX(${A('W_LIFE')},${A('S_LIFE')})`, intF);
+  rr=derRow(ws,rr,D,'DEPY',  'Depreciation period (yrs)', `MIN(20,$B$${D.RESLIFE})`, intF);
+  rr=derRow(ws,rr,D,'ANNDEP','Annual depreciation (€m)', `$B$${D.SPVCX}/$B$${D.DEPY}`, numF);
+  rr=derRow(ws,rr,D,'REPY',  'Debt amortisation period (yrs)', `MIN(${A('TENOR')},$B$${D.RESLIFE})`, intF);
+  rr=derRow(ws,rr,D,'DRAW1', 'Constr. draw @ FF-2 (€m)', `0.3*$B$${D.RESCX}*$B$${D.BGEAR}`, numF);
+  rr=derRow(ws,rr,D,'IDC1',  'Constr. IDC year 1 (€m)', `$B$${D.DRAW1}/2*$B$${D.BRATE}`, numF);
+  rr=derRow(ws,rr,D,'BAL1',  'Debt after FF-2 (€m)', `$B$${D.DRAW1}+$B$${D.IDC1}`, numF);
+  rr=derRow(ws,rr,D,'CAPFF1','Capex @ FF-1 (€m)', `0.7*$B$${D.RESCX}+${BXL('TCAPEX')}+$B$${D.LINECX}`, numF);
+  rr=derRow(ws,rr,D,'DRAW2', 'Constr. draw @ FF-1 (€m)', `$B$${D.CAPFF1}*$B$${D.BGEAR}`, numF);
+  rr=derRow(ws,rr,D,'IDC2',  'Constr. IDC year 2 (€m)', `($B$${D.BAL1}+$B$${D.DRAW2}/2)*$B$${D.BRATE}`, numF);
+  rr=derRow(ws,rr,D,'DEBTFF','Debt drawn by SPV_FF (€m)', `$B$${D.BAL1}+$B$${D.DRAW2}+$B$${D.IDC2}`, numF);
+  rr=derRow(ws,rr,D,'ANNPRIN','Annual principal (€m)', `$B$${D.DEBTFF}/$B$${D.REPY}`, numF);
+
+  rr++; const Yrow=rr; yearHeader(ws,Yrow); const yr=X=>`${X}$${Yrow}`;
+  rr++; rr=sect(ws,rr,'YEARLY MODEL');
+  R.op   =tsRow(ws,rr++,'Operating flag (FF≤y<FF+RESlife)',Yrow,intF,X=>`(${yr(X)}>=${A('SPV_FF')})*(${yr(X)}<${A('SPV_FF')}+$B$${D.RESLIFE})`);
+  R.dcrev=tsRow(ws,rr++,'DC revenue (€m)',Yrow,numF,X=>`${X}$${R.op}*${A('DC_MW')}*8760*${A('DC_P')}*(1+${A('INFL')})^(${yr(X)}-2026)/10^6`);
+  // battery revenue (mirror Battery sheet, referenced via battery links)
+  R.bmf  =tsRow(ws,rr++,'Battery merchant flag',Yrow,intF,X=>`(${yr(X)}>=${A('B_GY')})*(${yr(X)}<${A('B_COD')}+${A('B_LIFE')})`);
+  R.bcf  =tsRow(ws,rr++,'Battery op flag (y>COD)',Yrow,intF,X=>`(${yr(X)}>${A('B_COD')})*(${yr(X)}<${A('B_COD')}+${A('B_LIFE')})`);
+  R.bmer =tsRow(ws,rr++,'Battery merchant rev (€m)',Yrow,numF,X=>`${X}$${R.bmf}*(${BXL('ARBRR')}*(1-${A('B_DEGR')})^MAX(0,${yr(X)}-${A('B_GY')})+${BXL('ANC')})*(1-${A('B_COMP')})^MAX(0,${yr(X)}-${A('B_GY')})*(1+${A('INFL')})^MAX(0,${yr(X)}-${A('B_GY')})`);
+  R.bcap =tsRow(ws,rr++,'Battery DC charge (€m)',Yrow,numF,X=>`${X}$${R.bcf}*${BXL('DCCH')}*(1+${A('INFL')})^MAX(0,${yr(X)}-(${A('B_COD')}+1))`);
+  R.brev =tsRow(ws,rr++,'Battery revenue (€m)',Yrow,numF,X=>`${X}$${R.bmer}+${X}$${R.bcap}`);
+  R.wprod=tsRow(ws,rr++,'Wind → DC (MWh)',Yrow,intF,X=>`Wind!${X}$${windRef.prodRow}`);
+  R.sprod=tsRow(ws,rr++,'Solar → DC (MWh)',Yrow,intF,X=>`Solar!${X}$${solarRef.prodRow}`);
+  R.resm =tsRow(ws,rr++,'Residual from grid (MWh)',Yrow,intF,X=>`${X}$${R.op}*MAX(0,${A('DC_MW')}*8760-${X}$${R.wprod}-${X}$${R.sprod})`);
+  R.resp =tsRow(ws,rr++,'Residual energy price (€/MWh)',Yrow,eurF,X=>`${A('RES_P')}*(1+${A('INFL')})^(${yr(X)}-2025)*(1+${A('RES_M')})+${A('FEE_E')}*(1+${A('FEESC')})^MAX(0,${yr(X)}-2028)`);
+  R.resec=tsRow(ws,rr++,'Residual energy cost (€m)',Yrow,numF,X=>`${X}$${R.op}*${X}$${R.resm}*${X}$${R.resp}/10^6`);
+  R.rescc=tsRow(ws,rr++,'Residual capacity fee (€m)',Yrow,numF,X=>`${X}$${R.op}*${A('DC_MW')}*${A('FEE_C')}/1000*(1+${A('FEESC')})^MAX(0,${yr(X)}-2028)`);
+  R.resc =tsRow(ws,rr++,'Residual cost — total (€m)',Yrow,numF,X=>`${X}$${R.resec}+${X}$${R.rescc}`);
+  R.wpf  =tsRow(ws,rr++,'Wind in-PPA flag',Yrow,intF,X=>`(${yr(X)}<${A('W_COD')}+MIN(${A('PPAT')},${A('W_LIFE')}))`);
+  R.spf  =tsRow(ws,rr++,'Solar in-PPA flag',Yrow,intF,X=>`(${yr(X)}<${A('S_COD')}+MIN(${A('PPAT')},${A('S_LIFE')}))`);
+  R.wpr  =tsRow(ws,rr++,'Wind price to SPV (€/MWh)',Yrow,eurF,X=>`${X}$${R.wpf}*${A('W_PPA')}+(1-${X}$${R.wpf})*${A('W_TAIL')}`);
+  R.spr  =tsRow(ws,rr++,'Solar price to SPV (€/MWh)',Yrow,eurF,X=>`${X}$${R.spf}*${A('S_PPA')}+(1-${X}$${R.spf})*${A('S_TAIL')}`);
+  R.resppa=tsRow(ws,rr++,'RES bought at PPA (€m, mode=0)',Yrow,numF,X=>`${X}$${R.op}*(1-${A('RES_OWN')})*(${X}$${R.wpr}*${X}$${R.wprod}+${X}$${R.spr}*${X}$${R.sprod})/10^6`);
+  R.cpi  =tsRow(ws,rr++,'CPI index vs 2023',Yrow,'0.0000',X=>`(1+${A('INFL')})^(${yr(X)}-2023)`);
+  R.resox=tsRow(ws,rr++,'RES opex owned (€m)',Yrow,numF,X=>`${X}$${R.op}*${A('RES_OWN')}*(${A('W_OPEX')}*${A('W_MW')}+${A('S_OPEX')}*${A('S_MW')})*${X}$${R.cpi}`);
+  R.batox=tsRow(ws,rr++,'Battery cell opex (€m)',Yrow,numF,X=>`${X}$${R.op}*${BXL('CELLCX')}*${A('B_OPEXP')}*${X}$${R.cpi}`);
+  R.batgf=tsRow(ws,rr++,'Battery grid fees (€m)',Yrow,numF,X=>`${X}$${R.op}*(${yr(X)}>=${A('B_GY')})*(${BXL('GFCAP')}+${BXL('GFENE')})*(1+${A('FEESC')})^MAX(0,${yr(X)}-2028)`);
+  R.opex =tsRow(ws,rr++,'Opex — total (€m)',Yrow,numF,X=>`${X}$${R.resox}+${X}$${R.batox}+${X}$${R.batgf}`);
+  R.ebit =tsRow(ws,rr++,'EBITDA (€m)',Yrow,numF,X=>`${X}$${R.dcrev}+${X}$${R.brev}-${X}$${R.resc}-${X}$${R.resppa}-${X}$${R.opex}`);
+  R.cshr =tsRow(ws,rr++,'RES capex draw share',Yrow,'0.00',X=>`0.3*(${yr(X)}=${A('SPV_FF')}-2)+0.7*(${yr(X)}=${A('SPV_FF')}-1)`);
+  R.capex=tsRow(ws,rr++,'Capex (€m)',Yrow,numF,X=>`${X}$${R.cshr}*$B$${D.RESCX}+(${yr(X)}=${A('SPV_FF')}-1)*(${BXL('TCAPEX')}+$B$${D.LINECX})`);
+  R.draw =tsRow(ws,rr++,'Debt draw (€m)',Yrow,numF,X=>`${X}$${R.capex}*$B$${D.BGEAR}`);
+  R.cflag=tsRow(ws,rr++,'Construction flag',Yrow,intF,X=>`(${yr(X)}>=${A('SPV_FF')}-2)*(${yr(X)}<${A('SPV_FF')})`);
+  R.idc=rr++; R.intr=rr++; R.prin=rr++; R.bal=rr++; R.dep=rr++; R.ebt=rr++; R.nol=rr++; R.tax=rr++; R.fcfe=rr++; R.date=rr++;
+  tsRow(ws,R.idc,'IDC — constr. interest (€m)',Yrow,numF,(X,pX)=>`${X}$${R.cflag}*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}/2)*$B$${D.BRATE}`);
+  tsRow(ws,R.intr,'Interest (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A('SPV_FF')})*(${pX?pX+'$'+R.bal:'0'})*$B$${D.BRATE}`);
+  tsRow(ws,R.prin,'Principal repay (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A('SPV_FF')})*(${yr(X)}<${A('SPV_FF')}+$B$${D.REPY})*MIN((${pX?pX+'$'+R.bal:'0'}),$B$${D.ANNPRIN})`);
+  tsRow(ws,R.bal,'Debt balance EOY (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}<${A('SPV_FF')})*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}+${X}$${R.idc})+(${yr(X)}>=${A('SPV_FF')})*MAX(0,(${pX?pX+'$'+R.bal:'0'})-${X}$${R.prin})`);
+  tsRow(ws,R.dep,'Depreciation (€m)',Yrow,numF,X=>`(${yr(X)}>=${A('SPV_FF')})*(${yr(X)}<${A('SPV_FF')}+$B$${D.DEPY})*$B$${D.ANNDEP}`);
+  tsRow(ws,R.ebt,'EBT (€m)',Yrow,numF,X=>`${X}$${R.ebit}-${X}$${R.dep}-${X}$${R.intr}`);
+  tsRow(ws,R.nol,'NOL balance (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A('SPV_FF')})*MIN(0,(${pX?pX+'$'+R.nol:'0'})+${X}$${R.ebt})`);
+  tsRow(ws,R.tax,'Tax (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A('SPV_FF')})*MAX(0,${X}$${R.ebt}+(${pX?pX+'$'+R.nol:'0'}))*${A('TAXR')}`);
+  tsRow(ws,R.fcfe,'EQUITY CASH FLOW (€m)',Yrow,numF,X=>`(${yr(X)}<${A('SPV_FF')})*(-${X}$${R.capex}+${X}$${R.draw})+(${yr(X)}>=${A('SPV_FF')})*(${X}$${R.ebit}-${X}$${R.tax}-${X}$${R.prin}-${X}$${R.intr})`,{bold:true});
+  for(let i=0;i<NY;i++){const c=ws.getCell(R.date,c0+i);c.value={formula:`DATE(${colL(c0+i)}$${Yrow},12,31)`};c.numFmt='yyyy-mm-dd';}
+  ws.getCell(R.date,1).value='Date (XIRR)';
+  ws.getCell(R.fcfe,1).fill=HDR; ws.getCell(R.fcfe,1).font=white;
+
+  let k=rr+1; k=sect(ws,k,'RESULTS');
+  const IRR=k; ws.getCell(k,1).value='SPV equity IRR (XIRR)'; ws.getCell(k,2).value={formula:`IFERROR(XIRR(B${R.fcfe}:${lastC}${R.fcfe},B${R.date}:${lastC}${R.date}),"n/m")`}; ws.getCell(k,2).numFmt=pctF; ws.getCell(k,2).font=bold; k++;
+  ws.getCell(k,1).value='Dashboard SPV IRR at export'; ws.getCell(k,2).value=S.spvIRR; ws.getCell(k,2).numFmt=pctF; ws.getCell(k,2).fill=CHK; k++;
+  ws.getCell(k,1).value='SPV total capex (€m)'; ws.getCell(k,2).value={formula:`$B$${D.SPVCX}`}; ws.getCell(k,2).numFmt=eurF; k++;
+  ws.getCell(k,1).value='Note'; ws.getCell(k,2).value='Small diffs vs dashboard are timing conventions; Goal-Seek Inputs DC price for a target IRR.';
+  return {irr:`SPV!B${IRR}`};
+ }
+ // asset builders must expose their production row for the SPV pull — patch refs:
+ // (windRef/solarRef were created above; attach prodRow by re-reading — simpler: store during build)
+ const spvRef=spvSheet();
+
+ // ================= OUTPUT =================
+ const wo=wb.addWorksheet('Output'); wo.getColumn(1).width=30; wo.getColumn(2).width=16;
  wo.getCell(1,1).value='OUTPUT DASHBOARD'; wo.getCell(1,1).font={bold:true,size:13};
  let ro=3;
- [["Wind equity IRR","Wind!B24",pctF],["Wind MOIC","Wind!B25",'0.00"x"'],["Solar equity IRR","Solar!B24",pctF],["Solar MOIC","Solar!B25",'0.00"x"'],["Battery equity IRR","Battery!B30",pctF],["SPV equity IRR","SPV!B23",pctF]].forEach(o=>{
-  wo.getCell(ro,1).value=o[0]; wo.getCell(ro,2).value={formula:o[1]}; wo.getCell(ro,2).numFmt=o[2]; wo.getCell(ro,2).font=bold; ro++;});
- wo.getCell(ro+1,1).value='All inputs on the Inputs sheet (yellow). Change any input → every sheet recalculates.';
- wo.getCell(ro+2,1).value='Check rows (green) hold the dashboard values at export; diff rows should be ≈ 0.';
+ [['Wind equity IRR',windRef.irr,pctF],['Wind MOIC',windRef.moic,xF],['Wind LCOE (€/MWh)',windRef.lcoe,eurF],
+  ['Solar equity IRR',solarRef.irr,pctF],['Solar MOIC',solarRef.moic,xF],['Solar LCOE (€/MWh)',solarRef.lcoe,eurF],
+  ['Battery equity IRR',batteryRef.irr,pctF],['SPV equity IRR',spvRef.irr,pctF]
+ ].forEach(o=>{ wo.getCell(ro,1).value=o[0]; wo.getCell(ro,2).value={formula:o[1]}; wo.getCell(ro,2).numFmt=o[2]; wo.getCell(ro,2).font=bold; ro++; });
+ wo.getCell(ro+1,1).value='All inputs live on the Inputs sheet (yellow). Change one → every sheet recalculates.';
+ wo.getCell(ro+2,1).value='Each calc sheet: red rows = linked inputs (F2 to trace); helper rows show every step; no IF, no named ranges.';
  return wb;
 }
 if(typeof module!=='undefined')module.exports={buildFullModel};
