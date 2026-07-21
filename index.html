@@ -6,10 +6,10 @@
 <title>Project Burgenland - Live Power SPV Model</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/3.1.1/plotly.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.plot.ly/plotly-2.35.2.min.js';document.head.appendChild(s);"></script>
 <style>
-:root{--bg:#0e1117;--panel:#161b25;--panel2:#1d2431;--line:#28313f;--txt:#e6edf3;--mut:#8b98a9;--acc:#39d3bb;--wind:#4aa8ff;--solar:#ffb23e;--batt:#b98cff;--red:#ff6b6b;--grn:#39d98a}
+:root{--bg:#10161d;--panel:#18202b;--panel2:#1f2733;--line:#2b3644;--txt:#e8eef3;--mut:#94a2b1;--acc:#45b85d;--wind:#4aa8ff;--solar:#ffb23e;--batt:#b98cff;--red:#ff6b6b;--grn:#43c079}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 'Segoe UI',system-ui,sans-serif}
-header{padding:12px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(180deg,#131924,#0e1117)}
+header{padding:12px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(180deg,#16241d,#10161d)}
 header h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px}
 header .sub{color:var(--mut);font-size:12px}
 .brand{display:flex;align-items:center;gap:10px}
@@ -18,7 +18,7 @@ header .sub{color:var(--mut);font-size:12px}
 .viewtoggle{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .chip{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:5px 12px;cursor:pointer;color:var(--mut);font-size:12px}
 .chip.on{color:#04120f;background:var(--acc);border-color:var(--acc);font-weight:600}
-.chip.reset{border-color:#3a4761}
+.chip.reset{border-color:#39465a}
 nav{display:flex;gap:4px;padding:10px 18px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:5}
 nav button{background:none;border:none;color:var(--mut);padding:9px 16px;cursor:pointer;font-size:13.5px;border-bottom:2px solid transparent;border-radius:6px 6px 0 0}
 nav button.on{color:var(--txt);border-bottom-color:var(--acc);background:var(--panel)}
@@ -66,21 +66,12 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
 .seg button.on{background:var(--acc);color:#04120f;font-weight:600}
 .dl{float:right;background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--acc);font-size:11px;padding:3px 9px;cursor:pointer;font-weight:600}
 .dl:hover{background:var(--acc);color:#04120f}
-</style>
+.brand .nx{height:40px;width:auto;display:block}.brand .wm{display:flex;flex-direction:column;line-height:1;margin-left:1px}.brand .wm b{font-size:28px;font-weight:800;letter-spacing:-1.2px;color:var(--txt)}.brand .wm i{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:5px;color:var(--acc);margin-top:3px}.panel h3::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--acc);margin-right:8px;vertical-align:baseline;opacity:.95}.kpi{border-left:2px solid rgba(69,184,93,.45)}header{background:linear-gradient(180deg,#17271e,#10161d)}nav button.on{color:var(--acc)}</style>
 </head>
 <body>
 <header>
   <div class="brand" title="Nexwell Power">
-    <svg class="logo" style="height:46px;width:auto" viewBox="0 0 220 60" xmlns="http://www.w3.org/2000/svg" aria-label="Nexwell Power">
-      <g fill="none" stroke="#3DAE3A" stroke-width="4.6" stroke-linejoin="round">
-        <rect x="6" y="6" width="48" height="48" rx="17"/>
-        <rect x="14.5" y="14.5" width="31" height="31" rx="11"/>
-        <rect x="22.8" y="22.8" width="14.4" height="14.4" rx="4.5"/>
-      </g>
-      <path d="M30 24 L36 30 L30 36 L24 30 Z" fill="#3DAE3A"/>
-      <text x="66" y="38" font-family="Segoe UI,Arial,sans-serif" font-size="31" font-weight="800" fill="#3DAE3A" letter-spacing="-1">nexwell</text>
-      <text x="68" y="53" font-family="Segoe UI,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#3DAE3A" letter-spacing="6.5">POWER</text>
-    </svg>
+    <img class="logo nx" src="data:image/png;base64,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" alt="Nexwell"/><span class="wm"><b>nexwell</b></span>
     <span class="bx">×</span>
     <svg class="logo" style="height:34px;width:auto" viewBox="0 0 196 32" xmlns="http://www.w3.org/2000/svg" aria-label="Burgenland Energie">
       <defs><linearGradient id="beMark" x1="0" y1="0" x2="1" y2="1">
@@ -88,7 +79,7 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
       </linearGradient></defs>
       <rect x="1" y="5" width="22" height="22" rx="6" fill="url(#beMark)"/>
       <text x="12" y="22.5" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="17" font-weight="800" fill="#08121a">e</text>
-      <text x="31" y="21" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#e6edf3">Burgenland <tspan fill="#2dd4bf">Energie</tspan></text>
+      <text x="31" y="21" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#e8eef3">Burgenland <tspan fill="#2dd4bf">Energie</tspan></text>
     </svg>
   </div>
   <h1>Project Burgenland <span class="sub">- Live Power SPV Model</span></h1>
@@ -134,7 +125,7 @@ const PROFILES={
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAYS=[31,28,31,30,31,30,31,31,30,31,30,31];
 const CFMAX=0.66;
-const GREEN=[[0,'#ffffff'],[0.35,'#c3ecc8'],[0.7,'#4CAE3B'],[1,'#0b5d34']];
+const GREEN=[[0,'#ffffff'],[0.35,'#c3ecc8'],[0.7,'#46b45a'],[1,'#0c6b3c']];
 const PRICES={"per_year":{"2015":{"baseload":31.7,"wind":31.5,"solar":32.6,"ph":[25.4,23.5,22.2,21.6,22.0,24.1,30.3,37.0,39.0,37.1,35.0,34.3,31.6,30.2,29.5,30.6,32.2,37.7,41.5,42.4,38.7,34.9,33.3,27.5],"pm":[29.9,36.7,31.3,29.7,25.4,30.1,35.0,31.6,31.9,39.4,32.4,27.8]},"2016":{"baseload":29.0,"wind":28.9,"solar":28.7,"ph":[24.0,22.3,21.3,20.6,21.0,22.4,27.0,33.0,35.0,34.1,32.3,31.8,29.5,28.0,27.2,28.2,29.8,34.5,36.8,37.2,34.0,30.9,29.4,25.7],"pm":[29.0,22.0,24.3,24.2,22.5,27.7,27.2,27.2,30.5,37.1,38.2,37.5]},"2017":{"baseload":34.2,"wind":34.8,"solar":33.7,"ph":[27.4,25.5,24.0,23.7,24.2,26.2,32.3,39.3,41.5,40.1,38.4,37.6,34.8,32.9,32.1,33.4,35.9,41.3,44.4,44.5,40.6,36.8,34.7,29.2],"pm":[52.4,39.7,31.7,28.9,30.5,30.0,33.0,30.8,34.3,28.3,40.4,30.8]},"2018":{"baseload":40.9,"wind":40.2,"solar":41.2,"ph":[36.6,35.1,34.1,33.5,33.6,35.4,40.1,44.4,46.0,45.0,43.3,42.5,41.1,40.0,39.6,40.4,41.7,44.9,47.7,48.1,45.7,42.8,41.4,38.3],"pm":[29.5,40.1,37.3,33.7,34.5,38.9,42.5,45.8,45.1,48.6,48.6,45.9]},"2019":{"baseload":40.1,"wind":40.6,"solar":39.7,"ph":[34.3,32.3,31.0,29.9,30.2,32.8,39.4,45.4,47.2,45.6,43.6,42.6,40.8,39.1,38.2,38.8,40.5,44.6,48.0,49.8,47.5,43.2,41.1,36.6],"pm":[56.7,46.4,33.1,38.2,38.3,33.9,39.8,37.4,37.8,39.2,42.7,38.1]},"2020":{"baseload":33.1,"wind":32.9,"solar":31.2,"ph":[28.1,25.9,24.7,23.4,23.8,26.2,32.0,37.2,39.4,37.7,35.7,35.0,33.5,31.6,30.5,31.3,33.3,37.9,41.5,43.8,40.7,36.5,34.6,30.6],"pm":[40.5,29.3,24.9,18.9,17.9,26.2,32.3,35.3,45.2,35.6,40.6,50.3]},"2021":{"baseload":107.9,"wind":108.2,"solar":96.5,"ph":[91.8,86.2,82.8,80.0,81.0,88.1,106.3,121.4,126.8,122.6,117.3,114.8,111.9,106.5,104.0,106.2,111.0,122.3,130.6,133.3,126.1,114.4,108.1,96.7],"pm":[57.7,50.7,53.3,60.9,55.5,74.3,83.7,82.5,135.1,171.9,206.4,259.2]},"2022":{"baseload":263.3,"wind":248.9,"solar":271.9,"ph":[236.5,218.9,212.9,205.7,208.0,226.5,265.6,295.8,299.0,283.3,268.6,263.8,256.4,249.8,248.4,254.2,266.6,290.4,312.6,327.3,314.2,289.2,275.9,249.3],"pm":[190.7,167.9,286.8,190.6,184.9,227.2,361.5,487.9,397.2,176.7,211.5,266.4]},"2023":{"baseload":102.1,"wind":104.4,"solar":89.9,"ph":[93.0,86.6,83.1,80.6,82.1,90.6,107.5,120.9,120.0,109.8,99.2,92.9,87.2,83.0,83.3,90.8,100.2,114.8,128.3,136.6,131.1,118.9,110.7,98.8],"pm":[143.4,144.9,113.4,105.9,81.8,93.7,84.4,92.6,101.4,99.4,93.4,74.3]},"2024":{"baseload":81.3,"wind":82.7,"solar":58.2,"ph":[76.4,70.5,67.7,65.8,67.0,73.9,88.6,101.9,97.4,82.8,70.1,62.1,56.3,54.0,56.7,68.2,82.9,99.7,111.2,116.7,109.5,98.6,91.0,81.2],"pm":[80.5,65.4,62.9,58.8,64.1,68.3,63.6,84.5,82.6,85.2,130.2,127.9]},"2025":{"baseload":99.1,"wind":103.1,"solar":65.5,"ph":[97.9,92.6,89.9,88.4,90.4,98.3,113.3,123.9,115.9,96.4,79.1,68.4,60.5,57.7,63.0,78.0,96.0,116.3,132.8,144.2,137.7,123.4,112.8,101.6],"pm":[134.1,140.8,103.6,81.3,71.0,66.6,88.0,74.8,92.6,108.3,116.5,114.2]}},"windHr":[0.501,0.486,0.475,0.464,0.452,0.437,0.405,0.378,0.370,0.378,0.398,0.413,0.425,0.433,0.439,0.446,0.458,0.469,0.478,0.487,0.505,0.517,0.518,0.512],"solarHr":[0,0,0,0,0,0.001,0.014,0.076,0.190,0.309,0.398,0.448,0.460,0.433,0.370,0.279,0.182,0.101,0.039,0.007,0,0,0,0],"windMo":[0.557,0.549,0.517,0.519,0.525,0.354,0.333,0.287,0.370,0.402,0.482,0.536],"solarMo":[0.068,0.123,0.147,0.175,0.157,0.203,0.192,0.165,0.167,0.133,0.059,0.064]};
 const EMBER={years:['2015','2016','2017','2018','2019','2020','2021','2022','2023','2024','2025'],solar:[0.95,1.09,1.30,1.44,1.56,1.86,2.42,3.34,5.20,7.64,9.79],wind:[4.92,5.33,6.73,6.41,7.98,7.24,6.96,7.18,8.27,9.37,8.54]};
 // 7-yr ex-2022 average capture price by asset - used as the merchant price for any life beyond the PPA term.
@@ -239,7 +230,7 @@ function batteryDay(){
  let soc=energyMWh*0.5; const res=[],act=[],socP=[],col=[],txt=[];
  for(let h=0;h<24;h++){
    const gen=M.wind.mw*wc[h]+M.solar.mw*sc[h]; res.push(gen); const net=gen-load; let a=0;
-   if(net>0){const room=(energyMWh-soc)/rt; a=Math.min(net,powMW,room); soc+=a*rt; act.push(a); col.push('#39d98a'); txt.push('Charging');}
+   if(net>0){const room=(energyMWh-soc)/rt; a=Math.min(net,powMW,room); soc+=a*rt; act.push(a); col.push('#43c079'); txt.push('Charging');}
    else{const avail=soc*rt; const d=Math.min(-net,powMW,avail); soc-=d/rt; a=-d; act.push(a); col.push('#ff6b6b'); txt.push('Discharging');}
    socP.push(energyMWh>0?soc/energyMWh*100:0);
  }
@@ -251,12 +242,12 @@ function pct(x,d=1){return (x*100).toFixed(d)+'%';}
 function avg(a){return a.reduce((x,y)=>x+y,0)/a.length;}
 const CFG={displayModeBar:false,responsive:true};
 function lay(title,opts){return Object.assign({
-  title:{text:title,font:{size:12.5,color:'#8b98a9'},x:0.5,xanchor:'center',xref:'paper'},
-  paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{color:'#e6edf3',size:11},
+  title:{text:title,font:{size:12.5,color:'#94a2b1'},x:0.5,xanchor:'center',xref:'paper'},
+  paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{color:'#e8eef3',size:11},
   margin:{l:54,r:50,t:64,b:62},
-  xaxis:{gridcolor:'#28313f',zeroline:false},yaxis:{gridcolor:'#28313f',zeroline:false},
+  xaxis:{gridcolor:'#2b3644',zeroline:false},yaxis:{gridcolor:'#2b3644',zeroline:false},
   hovermode:'x unified',
-  hoverlabel:{bgcolor:'#11161f',bordercolor:'#39d3bb',font:{color:'#e6edf3',size:12}},
+  hoverlabel:{bgcolor:'#121922',bordercolor:'#45b85d',font:{color:'#e8eef3',size:12}},
   legend:{orientation:'h',y:-0.22,yanchor:'top',x:0.5,xanchor:'center',font:{size:10.5}},showlegend:false
 },opts||{});}
 function HT(unit,dec){return '%{y:,.'+(dec==null?1:dec)+'f} '+unit+'<extra></extra>';}
@@ -355,7 +346,7 @@ function drawMap(){
    marker:{size:mk(t).map(p=>Math.max(10,Math.sqrt(p.mw)*3.2)),color:c,opacity:0.85},
    text:mk(t).map(p=>`<b>${p.n}</b><br>${p.mw} MW${t==='solar'?'p':''} ${t}<br>Status: ${p.s}<br>Available: ${p.av}<br>Direct line to UW Zurndorf: ${p.d} km`),hovertemplate:'%{text}<extra></extra>'});
  const st={type:'scattermap',lat:SITES.map(s=>s.lat),lon:SITES.map(s=>s.lon),name:'Substations / GDC',mode:'markers+text',
-   marker:{size:14,color:'#e6edf3'},text:SITES.map(s=>s.n.split(' (')[0]),textposition:'top right',textfont:{size:10,color:'#e6edf3'},
+   marker:{size:14,color:'#e8eef3'},text:SITES.map(s=>s.n.split(' (')[0]),textposition:'top right',textfont:{size:10,color:'#e8eef3'},
    customdata:SITES.map(s=>s.n),hovertemplate:'%{customdata}<extra></extra>'};
  Plotly.react('c_map',[tr('wind','#4aa8ff','Wind projects'),tr('solar','#ffb23e','Solar projects'),st],
   Object.assign(lay('Dedicated RES projects - BE list 10 Jul 2026<br><span style="font-size:10px">bubble = capacity · hover for status, availability & direct-line distance · locations approximate</span>',{showlegend:true}),
@@ -364,30 +355,30 @@ function drawMap(){
 function drawAssetCharts(R,col){
  const ops=R.rows.filter(r=>r.y>=R.cod&&r.y<R.cod+R.life), yrs=ops.map(r=>r.y), Z=assetRanges();
  Plotly.react('c_prod',[{x:yrs,y:ops.map(r=>r.prod/1000),name:'Production',type:'scatter',fill:'tozeroy',line:{color:col},hovertemplate:HT('GWh')}],
-   lay('Production<br><span style="font-size:10px">declines with degradation</span>',{yaxis:{range:[0,Z.prod],gridcolor:'#28313f',title:{text:'GWh',font:{size:10}}}}),CFG);
+   lay('Production<br><span style="font-size:10px">declines with degradation</span>',{yaxis:{range:[0,Z.prod],gridcolor:'#2b3644',title:{text:'GWh',font:{size:10}}}}),CFG);
  Plotly.react('c_pl',[
    {x:yrs,y:ops.map(r=>r.rev),name:'Revenue',type:'bar',marker:{color:col},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>-r.opex),name:'Opex',type:'bar',marker:{color:'#ff6b6b'},hovertemplate:HT('€m')},
-   {x:yrs,y:ops.map(r=>r.ebitda),name:'EBITDA',type:'scatter',line:{color:'#39d98a',width:2.4},hovertemplate:HT('€m')},
+   {x:yrs,y:ops.map(r=>r.ebitda),name:'EBITDA',type:'scatter',line:{color:'#43c079',width:2.4},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>r.rev>0?r.ebitda/r.rev*100:null),name:'EBITDA margin',type:'scatter',yaxis:'y2',line:{color:'#ffd166',width:1.8,dash:'dot'},hovertemplate:'%{y:.0f}%<extra></extra>'}
- ],lay('Revenue · opex · EBITDA',{barmode:'relative',showlegend:true,yaxis:{range:[-Z.opex,Z.rev],gridcolor:'#28313f',title:{text:'€m',font:{size:10}}},yaxis2:{overlaying:'y',side:'right',range:[0,100],title:{text:'margin %',font:{size:9}},gridcolor:'transparent'}}),CFG);
+ ],lay('Revenue · opex · EBITDA',{barmode:'relative',showlegend:true,yaxis:{range:[-Z.opex,Z.rev],gridcolor:'#2b3644',title:{text:'€m',font:{size:10}}},yaxis2:{overlaying:'y',side:'right',range:[0,100],title:{text:'margin %',font:{size:9}},gridcolor:'transparent'}}),CFG);
  const con=R.rows.filter(r=>r.y<R.cod&&r.capex>0);
  Plotly.react('c_fin',[
-   {x:con.map(r=>r.y),y:con.map(r=>r.capex*M.macro.gearing),name:'Debt',type:'bar',marker:{color:'#3a4761'},text:con.map(r=>'€'+fmt(r.capex*M.macro.gearing,0)+'m'),textposition:'inside',textfont:{size:9,color:'#e6edf6'},hovertemplate:HT('€m')},
-   {x:con.map(r=>r.y),y:con.map(r=>r.capex*(1-M.macro.gearing)),name:'Equity',type:'bar',marker:{color:col},text:con.map(r=>'€'+fmt(r.capex*(1-M.macro.gearing),0)+'m'),textposition:'inside',textfont:{size:9,color:'#0b1017'},hovertemplate:HT('€m')}
- ],lay('Capex financing',{barmode:'stack',showlegend:true,yaxis:{range:[0,Z.capex],gridcolor:'#28313f',title:{text:'€m',font:{size:10}}}}),CFG);
+   {x:con.map(r=>r.y),y:con.map(r=>r.capex*M.macro.gearing),name:'Debt',type:'bar',marker:{color:'#39465a'},text:con.map(r=>'€'+fmt(r.capex*M.macro.gearing,0)+'m'),textposition:'inside',textfont:{size:9,color:'#e8eff6'},hovertemplate:HT('€m')},
+   {x:con.map(r=>r.y),y:con.map(r=>r.capex*(1-M.macro.gearing)),name:'Equity',type:'bar',marker:{color:col},text:con.map(r=>'€'+fmt(r.capex*(1-M.macro.gearing),0)+'m'),textposition:'inside',textfont:{size:9,color:'#0c141b'},hovertemplate:HT('€m')}
+ ],lay('Capex financing',{barmode:'stack',showlegend:true,yaxis:{range:[0,Z.capex],gridcolor:'#2b3644',title:{text:'€m',font:{size:10}}}}),CFG);
  Plotly.react('c_debt',[
    {x:yrs,y:ops.map(r=>r.int),name:'Interest',type:'bar',marker:{color:'#ffb23e'},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>r.repay),name:'Principal repaid',type:'bar',marker:{color:'#4aa8ff'},hovertemplate:HT('€m')},
-   {x:yrs,y:ops.map(r=>r.debt),name:'Debt outstanding',type:'scatter',yaxis:'y2',line:{color:'#8b98a9',dash:'dot'},hovertemplate:HT('€m')}
- ],lay('Debt service',{barmode:'stack',showlegend:true,yaxis:{range:[0,Z.ds],gridcolor:'#28313f',title:{text:'€m',font:{size:10}}},yaxis2:{overlaying:'y',side:'right',range:[0,Z.bal],gridcolor:'transparent',title:{text:'balance €m',font:{size:9}}}}),CFG);
+   {x:yrs,y:ops.map(r=>r.debt),name:'Debt outstanding',type:'scatter',yaxis:'y2',line:{color:'#94a2b1',dash:'dot'},hovertemplate:HT('€m')}
+ ],lay('Debt service',{barmode:'stack',showlegend:true,yaxis:{range:[0,Z.ds],gridcolor:'#2b3644',title:{text:'€m',font:{size:10}}},yaxis2:{overlaying:'y',side:'right',range:[0,Z.bal],gridcolor:'transparent',title:{text:'balance €m',font:{size:9}}}}),CFG);
  const cfl=R.rows.filter(r=>r.y<R.cod+R.life); const sub=[],dts=[],roll=[];
  cfl.forEach(r=>{sub.push(r.fcfe);dts.push(r.y+0.99);const ir=(sub.some(v=>v<0)&&sub.some(v=>v>0))?xirr(sub.slice(),dts.slice()):NaN;roll.push(isNaN(ir)?null:ir*100);});
  const zf=(0-Z.fcfeMin)/(Z.fcfeMax-Z.fcfeMin), iMax=Math.max(30,R.irr*130), iMin=(zf>0&&zf<1)?(-iMax*zf/(1-zf)):0; // align both axes' zero lines
  Plotly.react('c_eq',[
-   {x:cfl.map(r=>r.y),y:cfl.map(r=>r.fcfe),name:'Equity CF',type:'bar',marker:{color:cfl.map(r=>r.fcfe>=0?'#39d98a':'#ff6b6b')},hovertemplate:HT('€m')},
-   {x:cfl.map(r=>r.y),y:roll,name:'Cumulative IRR',type:'scatter',yaxis:'y2',line:{color:'#39d3bb',width:2},hovertemplate:'%{y:.1f}%<extra></extra>'}
- ],lay('Equity cash flow<br><span style="font-size:10px">IRR '+fmt(R.irr*100,2)+'% · MOIC '+fmt(R.moic,2)+'x</span>',{showlegend:true,yaxis:{range:[Z.fcfeMin,Z.fcfeMax],gridcolor:'#28313f',title:{text:'€m',font:{size:10}}},yaxis2:{overlaying:'y',side:'right',range:[iMin,iMax],gridcolor:'transparent',title:{text:'cumulative IRR %',font:{size:9}}}}),CFG);
+   {x:cfl.map(r=>r.y),y:cfl.map(r=>r.fcfe),name:'Equity CF',type:'bar',marker:{color:cfl.map(r=>r.fcfe>=0?'#43c079':'#ff6b6b')},hovertemplate:HT('€m')},
+   {x:cfl.map(r=>r.y),y:roll,name:'Cumulative IRR',type:'scatter',yaxis:'y2',line:{color:'#45b85d',width:2},hovertemplate:'%{y:.1f}%<extra></extra>'}
+ ],lay('Equity cash flow<br><span style="font-size:10px">IRR '+fmt(R.irr*100,2)+'% · MOIC '+fmt(R.moic,2)+'x</span>',{showlegend:true,yaxis:{range:[Z.fcfeMin,Z.fcfeMax],gridcolor:'#2b3644',title:{text:'€m',font:{size:10}}},yaxis2:{overlaying:'y',side:'right',range:[iMin,iMax],gridcolor:'transparent',title:{text:'cumulative IRR %',font:{size:9}}}}),CFG);
  drawSensitivity(R,col);
 }
 function drawSensitivity(R,col){
@@ -402,9 +393,9 @@ function drawSensitivity(R,col){
  ];
  items.sort((x,y)=>Math.max(Math.abs(y[1]),Math.abs(y[2]))-Math.max(Math.abs(x[1]),Math.abs(x[2])));
  Plotly.react('c_sens',[
-  {y:items.map(i=>i[0]),x:items.map(i=>i[1]),name:'Upside',type:'bar',orientation:'h',marker:{color:'#39d98a'},text:items.map(i=>(i[1]>=0?'+':'')+fmt(i[1],1)+'pp'),textposition:'outside',textfont:{size:9},hovertemplate:'%{x:+.2f}pp<extra></extra>'},
+  {y:items.map(i=>i[0]),x:items.map(i=>i[1]),name:'Upside',type:'bar',orientation:'h',marker:{color:'#43c079'},text:items.map(i=>(i[1]>=0?'+':'')+fmt(i[1],1)+'pp'),textposition:'outside',textfont:{size:9},hovertemplate:'%{x:+.2f}pp<extra></extra>'},
   {y:items.map(i=>i[0]),x:items.map(i=>i[2]),name:'Downside',type:'bar',orientation:'h',marker:{color:'#ff6b6b'},text:items.map(i=>(i[2]>=0?'+':'')+fmt(i[2],1)+'pp'),textposition:'outside',textfont:{size:9},hovertemplate:'%{x:+.2f}pp<extra></extra>'}
- ],lay('IRR sensitivity<br><span style="font-size:10px">equity IRR impact in percentage points vs base '+fmt(base,1)+'%</span>',{barmode:'overlay',showlegend:false,xaxis:{title:'Δ IRR (pp)',range:[-Math.max(...items.map(i=>Math.max(Math.abs(i[1]),Math.abs(i[2]))))*1.5,Math.max(...items.map(i=>Math.max(Math.abs(i[1]),Math.abs(i[2]))))*1.5],gridcolor:'#1b2330',zeroline:true,zerolinecolor:'#3a4761'},yaxis:{gridcolor:'transparent',automargin:true},margin:{l:84,r:44,t:80,b:40}}),CFG);
+ ],lay('IRR sensitivity<br><span style="font-size:10px">equity IRR impact in percentage points vs base '+fmt(base,1)+'%</span>',{barmode:'overlay',showlegend:false,xaxis:{title:'Δ IRR (pp)',range:[-Math.max(...items.map(i=>Math.max(Math.abs(i[1]),Math.abs(i[2]))))*1.5,Math.max(...items.map(i=>Math.max(Math.abs(i[1]),Math.abs(i[2]))))*1.5],gridcolor:'#1c2531',zeroline:true,zerolinecolor:'#39465a'},yaxis:{gridcolor:'transparent',automargin:true},margin:{l:84,r:44,t:80,b:40}}),CFG);
 }
 function batteryPage(){
  const b=M.battery,B=computeBattery(b),F=computeBatteryFin();
@@ -479,9 +470,9 @@ function drawBatteryCharts(){
  const chg=new Set(order.slice(0,nCh)), dis=new Set(order.slice(24-nCh));
  let soc=reserve,drawn=0,deliv=0; const act=[],socP=[],col=[],txt=[];
  for(let h=0;h<24;h++){let a=0;
-   if(chg.has(h)&&soc<energyMWh-1e-6){a=Math.min(powMW,energyMWh-soc);soc+=a;drawn+=a;col.push('#39d98a');txt.push('Charge @ €'+fmt(price[h],0));}
+   if(chg.has(h)&&soc<energyMWh-1e-6){a=Math.min(powMW,energyMWh-soc);soc+=a;drawn+=a;col.push('#43c079');txt.push('Charge @ €'+fmt(price[h],0));}
    else if(dis.has(h)&&soc>reserve+1e-6){const out=Math.min(powMW,(soc-reserve)*rte);soc-=out/rte;a=-out;deliv+=out;col.push('#ff6b6b');txt.push('Discharge @ €'+fmt(price[h],0));}
-   else{col.push('#3a4761');txt.push('Idle @ €'+fmt(price[h],0));}
+   else{col.push('#39465a');txt.push('Idle @ €'+fmt(price[h],0));}
    act.push(a);socP.push(energyMWh>0?soc/energyMWh*100:0);}
  const lossPct=drawn>0?(1-deliv/drawn)*100:0, maxP=Math.max(...price)*1.05;
  Plotly.react('bch_disp',[
@@ -489,12 +480,12 @@ function drawBatteryCharts(){
    {x:hrs,y:price,name:'Wholesale price',type:'scatter',yaxis:'y2',line:{color:'#ffb23e',dash:'dot',width:2},hovertemplate:'€%{y:,.0f}/MWh<extra></extra>'},
    {x:hrs,y:socP.map(s=>s/100*maxP),name:'State of charge',type:'scatter',yaxis:'y2',line:{color:'#b98cff',width:2.4},customdata:socP,hovertemplate:'SoC %{customdata:,.0f}%<extra></extra>'}
  ],lay('Dispatch on the '+b.priceYear+' curve<br><span style="font-size:10px">'+nCh+'h charge + '+nCh+'h discharge · spread €'+fmt(B.capturedSpread,0)+'/MWh · −'+fmt((1-b.rte)*100,0)+'% RTE · '+fmt((b.socFloor||0)*100,0)+'% SoC floor</span>',
-   {showlegend:true,xaxis:{title:'hour of day',dtick:2,gridcolor:'#28313f'},yaxis:{title:{text:'MW',font:{size:10}}},
+   {showlegend:true,xaxis:{title:'hour of day',dtick:2,gridcolor:'#2b3644'},yaxis:{title:{text:'MW',font:{size:10}}},
     yaxis2:{overlaying:'y',side:'right',range:[0,maxP],title:{text:'€/MWh (SoC scaled)',font:{size:9}},gridcolor:'transparent'}}),CFG);
  const F=computeBatteryFin(), fr=F.rows.filter(r=>r.y>=COD&&r.y<COD+(M.battery.lifeY||25)), fyrs=fr.map(r=>r.y), Zb=assetRanges();
  Plotly.react('bch_econ',[
-   {x:fyrs,y:fr.map(r=>r.fcfe),name:'Equity cash flow',type:'bar',marker:{color:fr.map(r=>r.fcfe>=0?'#39d98a':'#ff6b6b')},hovertemplate:HT('€m')}
- ],lay('Battery equity cash flow<br><span style="font-size:10px">capex '+COD+' · costs from '+(COD+1)+' · merchant from '+b.gridYear+' · IRR '+(isNaN(F.irr)?'n/m':fmt(F.irr*100,2)+'%')+' on €'+fmt(F.equity,0)+'m equity</span>',{barmode:'relative',showlegend:true,yaxis:{range:[Zb.fcfeMin,Zb.fcfeMax],title:{text:'€m',font:{size:10}},gridcolor:'#28313f'}}),CFG);
+   {x:fyrs,y:fr.map(r=>r.fcfe),name:'Equity cash flow',type:'bar',marker:{color:fr.map(r=>r.fcfe>=0?'#43c079':'#ff6b6b')},hovertemplate:HT('€m')}
+ ],lay('Battery equity cash flow<br><span style="font-size:10px">capex '+COD+' · costs from '+(COD+1)+' · merchant from '+b.gridYear+' · IRR '+(isNaN(F.irr)?'n/m':fmt(F.irr*100,2)+'%')+' on €'+fmt(F.equity,0)+'m equity</span>',{barmode:'relative',showlegend:true,yaxis:{range:[Zb.fcfeMin,Zb.fcfeMax],title:{text:'€m',font:{size:10}},gridcolor:'#2b3644'}}),CFG);
 }
 function summaryPage(){
  const W=computeAsset(M.wind),S=computeAsset(M.solar),B=computeBattery(M.battery);
@@ -576,7 +567,7 @@ function summaryPage(){
    ${eqRow('Wind','var(--wind)',wOn?fmt(W.equity,0):'off','-')}
    ${eqRow('Solar','var(--solar)',sOn?fmt(S.equity,0):'off','-')}
    ${eqRow('Battery','var(--batt)',bOn?fmt(BF.equity,0):'off',bOn?fmt(BF.equity,0):'off')}
-   ${eqRow('Direct line','#8b98a9',fmt(lineEq,0),fmt(lineEq,0))}
+   ${eqRow('Direct line','#94a2b1',fmt(lineEq,0),fmt(lineEq,0))}
    <tr class="tot"><td>Total SPV equity</td><td>${fmt(totEqLCOE,0)}</td><td>${fmt(totEqPPA,0)}</td></tr>
    </tbody></table><div class="muted" style="margin-top:8px">LCOE case: the SPV owns wind, solar, battery and the line. PPA case: only the battery and line (renewables bought at €${fmt(ppaUnit,0)}), a far smaller equity check. Wind, solar and line levered ${pct(M.macro.gearing,0)}; battery ${pct(M.battery.gearing,0)}.</div>
    <div class="warn" style="margin-top:10px"><b>Interconnection burden (€${fmt(line+M.battery.substation+M.battery.interconnect,0)}m + €6m Netzbereitstellung):</b> private RES tie-lines €${fmt(line,0)}m (€7.5m per 100 MW × ${fmt(M.wind.mw+M.solar.mw,0)} MW - all new-build, no double count) + NEB Netzzutritt €${fmt(M.battery.substation,1)}m (new 110-kV switching station at UW Zurndorf; NEB estimate 26-Jun-26, <b>billed on actual costs</b>) + customer-side DC connection €${fmt(M.battery.interconnect,0)}m (3×3.5 km 110-kV feeders + bays - explicitly outside NEB scope) + Netzbereitstellungsentgelt €6m (12 €/kW tariff). This interconnection layer, not the PPA, is the heaviest single burden in the integration case; cost allocation across the parties is under discussion. Slot reservation: Reugeld = 40% of expected connection costs (~€10m), 12-month use-it-or-lose-it, queue rank = deposit timestamp. <b>Distance-weighted check:</b> BE cluster distances × #7 unit cost (€7.54m/100MW/10km) ⇒ ~€${fmt(dwLine,0)}m for the private ties vs €${fmt(line,0)}m on the slider — far clusters (Frauenkirchen ~19 km, Tadten-Wallern ~27 km) push above the flat €7.5m/100MW unless a shared trunk is used.</div></div>`;
@@ -588,10 +579,10 @@ function drawSummaryBalance(){
  const res=ops.map(r=>{const s=S.rows.find(x=>x.y===r.y);return (r.prod+s.prod)/1e6;});
  const grid=res.map(v=>Math.max(0,dcLoad-v));
  Plotly.react('sbal',[
-  {x:yrs,y:res,name:'RES → DC',type:'bar',marker:{color:'#3DAE3A'},text:res.map(v=>fmt(v,1)),textposition:'inside',textfont:{size:9,color:'#04120f'},hovertemplate:HT('TWh',2)},
-  {x:yrs,y:grid,name:'Grid → DC',type:'bar',marker:{color:'#3a4761'},text:grid.map(v=>fmt(v,1)),textposition:'inside',textfont:{size:9,color:'#c9d4e3'},hovertemplate:HT('TWh',2)},
-  {x:yrs,y:yrs.map(()=>dcLoad),name:'DC load',type:'scatter',line:{color:'#8b98a9',dash:'dot'},hovertemplate:HT('TWh',2)}
- ],lay('Energy balance<br><span style="font-size:10px">RES vs grid supply to DC (TWh/yr)</span>',{barmode:'stack',showlegend:true,yaxis:{title:{text:'TWh',font:{size:10}},gridcolor:'#1b2330'},xaxis:{gridcolor:'#1b2330'}}),CFG);
+  {x:yrs,y:res,name:'RES → DC',type:'bar',marker:{color:'#46b45a'},text:res.map(v=>fmt(v,1)),textposition:'inside',textfont:{size:9,color:'#04120f'},hovertemplate:HT('TWh',2)},
+  {x:yrs,y:grid,name:'Grid → DC',type:'bar',marker:{color:'#39465a'},text:grid.map(v=>fmt(v,1)),textposition:'inside',textfont:{size:9,color:'#cdd8e6'},hovertemplate:HT('TWh',2)},
+  {x:yrs,y:yrs.map(()=>dcLoad),name:'DC load',type:'scatter',line:{color:'#94a2b1',dash:'dot'},hovertemplate:HT('TWh',2)}
+ ],lay('Energy balance<br><span style="font-size:10px">RES vs grid supply to DC (TWh/yr)</span>',{barmode:'stack',showlegend:true,yaxis:{title:{text:'TWh',font:{size:10}},gridcolor:'#1c2531'},xaxis:{gridcolor:'#1c2531'}}),CFG);
 }
 function drawSpvEcon(){
  const W=computeAsset(M.wind),S=computeAsset(M.solar),B=computeBattery(M.battery);
@@ -608,8 +599,8 @@ function drawSpvEcon(){
    x:['DC revenue',owned?'− RES (owned, LCOE)':'− RES (PPA, fixed)','− Grid ride-through','+ Battery (yr 1)','= Margin on power'],
    y:[dcRev,-resCost,-gridCost,batt,margin],
    text:[dcRev,-resCost,-gridCost,batt,margin].map(v=>'€'+Math.round(v)+'m'),textposition:'outside',
-   increasing:{marker:{color:'#39d98a'}},decreasing:{marker:{color:'#ff6b6b'}},totals:{marker:{color:'#39d3bb'}},
-   connector:{line:{color:'#3a4761'}},hovertemplate:'%{x}: €%{y:,.0f}m<extra></extra>'
+   increasing:{marker:{color:'#43c079'}},decreasing:{marker:{color:'#ff6b6b'}},totals:{marker:{color:'#45b85d'}},
+   connector:{line:{color:'#39465a'}},hovertemplate:'%{x}: €%{y:,.0f}m<extra></extra>'
  }],lay('Margin over the data-center power purchase (yr1, €m) - buy RES + grid, trade battery, sell to DC',{showlegend:false,margin:{l:54,r:20,t:64,b:66}}),CFG);
 }
 // Consolidated SPV: owns RES+battery+line, buys grid ride-through, sells to DC. Levered equity IRR.
@@ -654,12 +645,12 @@ function solveDcFor(target){let a=40,b=220;for(let i=0;i<48;i++){const m=(a+b)/2
 function drawSpvCashflow(){
  const SP=computeSPV(M.dc.dcPrice), ops=SP.rows.filter(r=>r.y>=FF&&r.rev>0), yrs=ops.map(r=>r.y);
  Plotly.react('spvcf',[
-   {x:yrs,y:ops.map(r=>r.rev+r.bRev),name:'Revenue',type:'bar',marker:{color:'#39d3bb'},hovertemplate:HT('€m')},
+   {x:yrs,y:ops.map(r=>r.rev+r.bRev),name:'Revenue',type:'bar',marker:{color:'#45b85d'},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>-(r.gridCost+r.opex)),name:'Grid + opex',type:'bar',marker:{color:'#ff6b6b'},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>-(r.int+r.repay)),name:'Financing',type:'bar',marker:{color:'#5a6b8c'},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>-r.tax),name:'Tax',type:'bar',marker:{color:'#ffb23e'},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>r.fcfe),name:'Dividends (equity CF)',type:'scatter',line:{color:'#b98cff',width:3},hovertemplate:HT('€m')}
- ],lay('SPV cash-flow build<br><span style="font-size:10px">equity IRR '+(isNaN(SP.irr)?'n/m':fmt(SP.irr*100,2)+'%')+' on €'+fmt(SP.equity,0)+'m equity · Rev − grid/opex − financing − tax = dividends</span>',{barmode:'relative',showlegend:true,yaxis:{title:{text:'€m',font:{size:10}},gridcolor:'#28313f'}}),CFG);
+ ],lay('SPV cash-flow build<br><span style="font-size:10px">equity IRR '+(isNaN(SP.irr)?'n/m':fmt(SP.irr*100,2)+'%')+' on €'+fmt(SP.equity,0)+'m equity · Rev − grid/opex − financing − tax = dividends</span>',{barmode:'relative',showlegend:true,yaxis:{title:{text:'€m',font:{size:10}},gridcolor:'#2b3644'}}),CFG);
 }
 let profView='heat', profAsset='wind';
 function profilesPage(){
@@ -695,16 +686,16 @@ function drawProfiles(){
   sf('pmain','wind');setTimeout(()=>{sf('ph2','solar');sf('ph3','combined');},0);
  }else if(profView==='shape'){
   Plotly.react(el,[
-    {x:MONTHS,y:PROFILES.windMonthlyCF,name:'Wind profile',type:'bar',marker:{color:'#4aa8ff'},text:PROFILES.windMonthlyCF.map(v=>fmt(v*100,0)+'%'),textposition:'outside',textfont:{size:9,color:'#8b98a9'},hovertemplate:'Wind %{y:.1%}<extra></extra>'},
-    {x:MONTHS,y:PROFILES.solarMonthlyCF,name:'Solar profile',type:'bar',marker:{color:'#ffb23e'},text:PROFILES.solarMonthlyCF.map(v=>fmt(v*100,0)+'%'),textposition:'outside',textfont:{size:9,color:'#8b98a9'},hovertemplate:'Solar %{y:.1%}<extra></extra>'}
-  ],lay('Yearly shape<br><span style="font-size:10px">monthly profile - winter wind vs summer solar</span>',{barmode:'group',showlegend:true,xaxis:{gridcolor:'#1b2330'},yaxis:{range:[0,CFMAX],tickformat:'.0%',gridcolor:'#1b2330'}}),CFG);
+    {x:MONTHS,y:PROFILES.windMonthlyCF,name:'Wind profile',type:'bar',marker:{color:'#4aa8ff'},text:PROFILES.windMonthlyCF.map(v=>fmt(v*100,0)+'%'),textposition:'outside',textfont:{size:9,color:'#94a2b1'},hovertemplate:'Wind %{y:.1%}<extra></extra>'},
+    {x:MONTHS,y:PROFILES.solarMonthlyCF,name:'Solar profile',type:'bar',marker:{color:'#ffb23e'},text:PROFILES.solarMonthlyCF.map(v=>fmt(v*100,0)+'%'),textposition:'outside',textfont:{size:9,color:'#94a2b1'},hovertemplate:'Solar %{y:.1%}<extra></extra>'}
+  ],lay('Yearly shape<br><span style="font-size:10px">monthly profile - winter wind vs summer solar</span>',{barmode:'group',showlegend:true,xaxis:{gridcolor:'#1c2531'},yaxis:{range:[0,CFMAX],tickformat:'.0%',gridcolor:'#1c2531'}}),CFG);
   const w=[...Array(24).keys()].map(h=>avg(PROFILES.windMonthHour.map(r=>r[h])));
   const s=[...Array(24).keys()].map(h=>avg(PROFILES.solarMonthHour.map(r=>r[h])));
   document.getElementById('pstats').innerHTML=`<div class="chart tall" id="pdaily" style="margin-top:14px"></div><div class="info" style="margin-top:12px"><b>Complementarity:</b> wind peaks in winter (Jan 55.6%) when solar bottoms (Jan 6.8%); solar peaks midday in summer. Stacking the two smooths the shape delivered to the DC.</div>`;
   setTimeout(()=>Plotly.react('pdaily',[
    {x:[...Array(24).keys()],y:w,name:'Wind profile',mode:'lines',fill:'tozeroy',line:{color:'#4aa8ff',width:2},fillcolor:'rgba(74,168,255,0.14)',hovertemplate:'Wind %{y:.2f}<extra></extra>'},
    {x:[...Array(24).keys()],y:s,name:'Solar profile',mode:'lines',fill:'tozeroy',line:{color:'#ffb23e',width:2},fillcolor:'rgba(255,178,62,0.18)',hovertemplate:'Solar %{y:.2f}<extra></extra>'}
-  ],lay('Daily shape<br><span style="font-size:10px">average profile by hour of day</span>',{showlegend:true,yaxis:{range:[0,CFMAX],gridcolor:'#1b2330'},xaxis:{title:'hour of day',dtick:2,gridcolor:'#1b2330'}}),CFG),0);
+  ],lay('Daily shape<br><span style="font-size:10px">average profile by hour of day</span>',{showlegend:true,yaxis:{range:[0,CFMAX],gridcolor:'#1c2531'},xaxis:{title:'hour of day',dtick:2,gridcolor:'#1c2531'}}),CFG),0);
  }else if(profView==='mix'){
   Plotly.react('pmain',[
     {x:EMBER.years,y:EMBER.solar,name:'Solar generation',type:'bar',marker:{color:'#ffb23e'},hovertemplate:'%{y} TWh<extra></extra>'},
@@ -728,11 +719,11 @@ function drawRisk(){
    const g=T.w[idx]*wS*M.wind.mw+T.s[idx]*sS*M.solar.mw,served=Math.min(g,load),def=Math.max(0,load-g);
    if(g<load)deficitHours++;gridE+=def;resServed+=served;dDef+=def;
    mR[m]+=served;mG[m]+=def;mL[m]+=load;hR[h]+=served;hG[h]+=def;hL[h]+=load;idx++;}if(dDef>0)daysNeed++;}}
- const totLoad=load*8760, NXG='#3DAE3A', FAINT='#1b2330';
+ const totLoad=load*8760, NXG='#46b45a', FAINT='#1c2531';
  const rM=mR.map((r,i)=>r/mL[i]*100),gM=mG.map((g,i)=>g/mL[i]*100),rH=hR.map((r,i)=>r/hL[i]*100),gH=hG.map((g,i)=>g/hL[i]*100);
  Plotly.react('pmain',[
    {x:MONTHS,y:rM,name:'Renewables',type:'bar',marker:{color:NXG},text:rM.map(v=>fmt(v,0)+'%'),textposition:'inside',textfont:{size:9.5,color:'#04120f'},hovertemplate:'RES %{y:.0f}% of load<extra></extra>'},
-   {x:MONTHS,y:gM,name:'Grid',type:'bar',marker:{color:'#3a4761'},text:gM.map(v=>fmt(v,0)+'%'),textposition:'inside',textfont:{size:9.5,color:'#c9d4e3'},hovertemplate:'Grid %{y:.0f}% of load<extra></extra>'}
+   {x:MONTHS,y:gM,name:'Grid',type:'bar',marker:{color:'#39465a'},text:gM.map(v=>fmt(v,0)+'%'),textposition:'inside',textfont:{size:9.5,color:'#cdd8e6'},hovertemplate:'Grid %{y:.0f}% of load<extra></extra>'}
  ],lay('Annual view<br><span style="font-size:10px">supply mix by month (% of DC load)</span>',{barmode:'stack',showlegend:true,xaxis:{gridcolor:FAINT},yaxis:{range:[0,100],ticksuffix:'%',gridcolor:FAINT}}),CFG);
  document.getElementById('pstats').innerHTML=`<div class="kpis" style="margin-top:14px">
    ${kpi('Days needing grid',fmt(daysNeed/365*100,0),'% of days')}
@@ -746,10 +737,10 @@ function drawRisk(){
  setTimeout(()=>{
   Plotly.react('pmain2',[
     {x:[...Array(24).keys()],y:rH,name:'Renewables',type:'bar',marker:{color:NXG},text:rH.map(v=>fmt(v,0)),textposition:'inside',textfont:{size:8.5,color:'#04120f'},hovertemplate:'RES %{y:.0f}% of load<extra></extra>'},
-    {x:[...Array(24).keys()],y:gH,name:'Grid',type:'bar',marker:{color:'#3a4761'},text:gH.map(v=>fmt(v,0)),textposition:'inside',textfont:{size:8.5,color:'#c9d4e3'},hovertemplate:'Grid %{y:.0f}% of load<extra></extra>'}
+    {x:[...Array(24).keys()],y:gH,name:'Grid',type:'bar',marker:{color:'#39465a'},text:gH.map(v=>fmt(v,0)),textposition:'inside',textfont:{size:8.5,color:'#cdd8e6'},hovertemplate:'Grid %{y:.0f}% of load<extra></extra>'}
   ],lay('Daily view<br><span style="font-size:10px">supply mix by hour of day (% of DC load)</span>',{barmode:'stack',showlegend:true,xaxis:{title:'hour of day',dtick:2,gridcolor:FAINT},yaxis:{range:[0,100],ticksuffix:'%',gridcolor:FAINT}}),CFG);
   Plotly.react('pmain3',[
-   {x:xpct,y:cover,name:'Renewables',stackgroup:'one',mode:'lines',fillcolor:'rgba(61,174,58,0.45)',line:{color:NXG,width:1},hovertemplate:'RES covers %{y:.0f}% of load<extra></extra>'},
+   {x:xpct,y:cover,name:'Renewables',stackgroup:'one',mode:'lines',fillcolor:'rgba(70,180,90,0.45)',line:{color:NXG,width:1},hovertemplate:'RES covers %{y:.0f}% of load<extra></extra>'},
    {x:xpct,y:gridSh,name:'Grid ride-through',stackgroup:'one',mode:'lines',fillcolor:'rgba(90,107,140,0.7)',line:{color:'#5a6b8c',width:1},hovertemplate:'Grid covers %{y:.0f}% of load<extra></extra>'}
   ],lay('Load coverage duration<br><span style="font-size:10px">% of DC load met by RES vs grid, hours sorted worst→best</span>',{showlegend:true,xaxis:{title:'percentile of hours',ticksuffix:'%',gridcolor:FAINT},yaxis:{range:[0,100],ticksuffix:'%',title:'% of load',gridcolor:FAINT}}),CFG);
  },0);
@@ -783,25 +774,25 @@ function pricesPage(){
 function drawPrices(){
  const yrs=Object.keys(PRICES.per_year).filter(y=>+y>=2015&&+y<=2025);
  if(priceView==='chart'&&document.getElementById('pr_trend'))Plotly.react('pr_trend',[
-   {x:yrs,y:yrs.map(y=>PRICES.per_year[y].baseload),name:'Baseload',type:'scatter',line:{color:'#8b98a9',width:2.5},hovertemplate:HT('€/MWh')},
+   {x:yrs,y:yrs.map(y=>PRICES.per_year[y].baseload),name:'Baseload',type:'scatter',line:{color:'#94a2b1',width:2.5},hovertemplate:HT('€/MWh')},
    {x:yrs,y:yrs.map(y=>PRICES.per_year[y].wind),name:'Wind capture',type:'scatter',line:{color:'#4aa8ff',width:2.5},hovertemplate:HT('€/MWh')},
    {x:yrs,y:yrs.map(y=>PRICES.per_year[y].solar),name:'Solar capture',type:'scatter',line:{color:'#ffb23e',width:2.5},hovertemplate:HT('€/MWh')}
- ],lay('Austrian wholesale 2015-2025<br><span style="font-size:10px">baseload vs wind & solar capture</span>',{showlegend:true,yaxis:{title:{text:'€/MWh',font:{size:10}},gridcolor:'#1b2330'},xaxis:{gridcolor:'#1b2330'}}),CFG);
+ ],lay('Austrian wholesale 2015-2025<br><span style="font-size:10px">baseload vs wind & solar capture</span>',{showlegend:true,yaxis:{title:{text:'€/MWh',font:{size:10}},gridcolor:'#1c2531'},xaxis:{gridcolor:'#1c2531'}}),CFG);
  if(priceView==='chart'&&document.getElementById('pr_ratio'))Plotly.react('pr_ratio',[
    {x:yrs,y:yrs.map(y=>PRICES.per_year[y].wind/PRICES.per_year[y].baseload*100),name:'Wind capture ratio',type:'scatter',mode:'lines',line:{color:'#4aa8ff',width:2.4},hovertemplate:'%{y:.0f}% of baseload<extra></extra>'},
    {x:yrs,y:yrs.map(y=>PRICES.per_year[y].solar/PRICES.per_year[y].baseload*100),name:'Solar capture ratio',type:'scatter',mode:'lines',fill:'tozeroy',fillcolor:'rgba(255,178,62,0.10)',line:{color:'#ffb23e',width:2.4},hovertemplate:'%{y:.0f}% of baseload<extra></extra>'}
- ],lay('Capture ratio - the decoupling<br><span style="font-size:10px">capture price as % of baseload; solar decouples from ~2023</span>',{showlegend:true,yaxis:{range:[0,115],ticksuffix:'%',title:{text:'% of baseload',font:{size:10}},gridcolor:'#1b2330'},xaxis:{gridcolor:'#1b2330'}}),CFG);
+ ],lay('Capture ratio - the decoupling<br><span style="font-size:10px">capture price as % of baseload; solar decouples from ~2023</span>',{showlegend:true,yaxis:{range:[0,115],ticksuffix:'%',title:{text:'% of baseload',font:{size:10}},gridcolor:'#1c2531'},xaxis:{gridcolor:'#1c2531'}}),CFG);
  const py=PRICES.per_year[priceYear], H=[...Array(24).keys()];
  if(document.getElementById('pr_daily'))Plotly.react('pr_daily',[
    {x:H,y:py.ph,name:'Price '+priceYear,type:'scatter',line:{color:'#ff6b6b',width:2.6},hovertemplate:HT('€/MWh')},
    {x:H,y:PRICES.solarHr,name:'Solar profile',type:'scatter',yaxis:'y2',mode:'lines',fill:'tozeroy',line:{color:'#ffb23e',width:2},fillcolor:'rgba(255,178,62,0.18)',hovertemplate:'solar %{y:.2f}<extra></extra>'},
    {x:H,y:PRICES.windHr,name:'Wind profile',type:'scatter',yaxis:'y2',mode:'lines',fill:'tozeroy',line:{color:'#4aa8ff',width:2},fillcolor:'rgba(74,168,255,0.14)',hovertemplate:'wind %{y:.2f}<extra></extra>'}
- ],lay('Daily shape ('+priceYear+')<br><span style="font-size:10px">hourly price vs wind & solar profiles</span>',{showlegend:true,xaxis:{title:'hour of day',dtick:2,gridcolor:'#1b2330',zeroline:false},yaxis:{title:{text:'€/MWh',font:{size:10}},gridcolor:'#1b2330',zeroline:false},yaxis2:{overlaying:'y',side:'right',range:[0,0.7],title:{text:'profile',font:{size:9}},gridcolor:'transparent'}}),CFG);
+ ],lay('Daily shape ('+priceYear+')<br><span style="font-size:10px">hourly price vs wind & solar profiles</span>',{showlegend:true,xaxis:{title:'hour of day',dtick:2,gridcolor:'#1c2531',zeroline:false},yaxis:{title:{text:'€/MWh',font:{size:10}},gridcolor:'#1c2531',zeroline:false},yaxis2:{overlaying:'y',side:'right',range:[0,0.7],title:{text:'profile',font:{size:9}},gridcolor:'transparent'}}),CFG);
  if(document.getElementById('pr_season'))Plotly.react('pr_season',[
    {x:MONTHS,y:py.pm,name:'Price '+priceYear,type:'scatter',mode:'lines',line:{color:'#ff6b6b',width:2.6},hovertemplate:HT('€/MWh')},
    {x:MONTHS,y:PRICES.solarMo,name:'Solar profile',type:'scatter',yaxis:'y2',mode:'lines',fill:'tozeroy',line:{color:'#ffb23e',width:2},fillcolor:'rgba(255,178,62,0.18)',hovertemplate:'solar %{y:.2f}<extra></extra>'},
    {x:MONTHS,y:PRICES.windMo,name:'Wind profile',type:'scatter',yaxis:'y2',mode:'lines',fill:'tozeroy',line:{color:'#4aa8ff',width:2},fillcolor:'rgba(74,168,255,0.14)',hovertemplate:'wind %{y:.2f}<extra></extra>'}
- ],lay('Seasonal shape ('+priceYear+')<br><span style="font-size:10px">monthly price vs wind & solar profiles</span>',{showlegend:true,yaxis:{title:{text:'€/MWh',font:{size:10}},gridcolor:'#1b2330',zeroline:false},xaxis:{gridcolor:'#1b2330'},yaxis2:{overlaying:'y',side:'right',range:[0,0.6],title:{text:'profile',font:{size:9}},gridcolor:'transparent'}}),CFG);
+ ],lay('Seasonal shape ('+priceYear+')<br><span style="font-size:10px">monthly price vs wind & solar profiles</span>',{showlegend:true,yaxis:{title:{text:'€/MWh',font:{size:10}},gridcolor:'#1c2531',zeroline:false},xaxis:{gridcolor:'#1c2531'},yaxis2:{overlaying:'y',side:'right',range:[0,0.6],title:{text:'profile',font:{size:9}},gridcolor:'transparent'}}),CFG);
 }
 function render(){
  const m=document.getElementById('main');
