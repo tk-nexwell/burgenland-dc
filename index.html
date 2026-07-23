@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Project Burgenland - Live Power SPV Model</title>
+<title>GDC Nickelsdorf</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/3.1.1/plotly.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.plot.ly/plotly-2.35.2.min.js';document.head.appendChild(s);"></script>
 <style>
 :root{--bg:#10161d;--panel:#18202b;--panel2:#1f2733;--line:#2b3644;--txt:#e8eef3;--mut:#94a2b1;--acc:#45b85d;--wind:#4aa8ff;--solar:#ffb23e;--batt:#b98cff;--red:#ff6b6b;--grn:#43c079}
@@ -82,7 +82,7 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
       <text x="31" y="21" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#e8eef3">Burgenland <tspan fill="#2dd4bf">Energie</tspan></text>
     </svg>
   </div>
-  <h1>Project Burgenland <span class="sub">- Live Power SPV Model</span></h1>
+  <h1>GDC NICKELSDORF</h1>
   <div class="viewtoggle">
     <span class="chip" onclick="dlXLSX()" title="Download the complete model as a formula-driven Excel workbook (Inputs, Wind, Solar, Battery, SPV, Output)">⬇ Full Excel model</span>
     <span class="chip reset" onclick="resetAll()">↺ Reset</span>
@@ -90,7 +90,7 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
 </header>
 <nav id="nav"></nav>
 <main id="main"></main>
-<footer>Directional model for discussion · Burgenland DC · Nexwell Power. Data: EPEX Spot AT hourly 2015-2025, renewables.ninja site profiles, Netz Burgenland grid-connection estimate & NE3 tariffs (26 Jun 2026), BE Q&A II (16/19 Jun 2026), BE project list & OPEX/FLH guidance (10-13 Jul 2026), BE Trading grid-fee path & Wallern-Tadten line-loss basis (14-15 Jul 2026). Logos are stylised marks of their respective owners. Not investment advice.</footer>
+<footer>Directional model for discussion · Burgenland DC · Nexwell Power. Data: EPEX Spot AT hourly 2015-2025, Netz Burgenland grid-connection estimate & NE3 tariffs (26 Jun 2026), BE Q&A II (16/19 Jun 2026), BE project list & OPEX/FLH guidance (10-13 Jul 2026), BE Trading grid-fee path & Wallern-Tadten line-loss basis (14-15 Jul 2026). Not investment advice.</footer>
 <script>
 const PROFILES={
  meta:{wind_cf:0.4519,solar_cf:0.1376},
@@ -277,8 +277,7 @@ function assetPage(sec){
   ${sliderHTML(sec,'lineLoss','Direct-line losses (BE 4%@12.5km)',0,0.08,0.001,'%',100)}
   ${sliderHTML(sec,'degr','Degradation',0,0.02,0.0005,'%/yr',100)}
   ${sliderHTML(sec,'opexPerMW','Opex (excl land rent - TBC)',0,0.12,0.001,' €k/MW',1000)}
-  ${sliderHTML(sec,'lifeY','Useful life',10,40,1,' yr')}
-  <div class="info" style="margin-top:8px">${isWind?'<b>AC:</b> the geared turbine generator produces alternating current, feeding the on-site AC bus directly (no inversion). Proxy machine: 6 MW / 120 m hub (BE call 8 Jul). Capex €1.30m/MW is the <b>German-price proxy</b> (~20% premium market); Austria could come in below - awaiting BE confirmation.':'<b>DC to AC:</b> panels are rated in <b>MWp</b> (peak DC); an inverter steps to AC (DC/AC ~1.2-1.3). Production modelled on the AC (net) side. Capex €450/kWp per Qualitas 2026 fixed-bifacial reference; land rent not yet split out (awaiting BE).'}</div></div>`;
+  ${sliderHTML(sec,'lifeY','Useful life',10,40,1,' yr')}</div>`;
  const inputsR=`<div class="panel"><h3>Commercial & financing</h3>
   ${sliderHTML(sec,'ppa','PPA price',0,150,1,' €/MWh')}
   ${sliderHTML(sec,'contr','Contracted',0,1,0.05,'%',100)}
@@ -286,14 +285,13 @@ function assetPage(sec){
   ${sliderHTML('macro','gearing','Gearing',0,0.9,0.05,'%',100)}
   ${sliderHTML('macro','tenor','Debt tenor',5,25,1,' yrs')}
   ${sliderHTML('macro','allInRate','All-in rate',0.02,0.08,0.0025,'%',100)}
-  ${sliderHTML('macro','infl','Inflation',0,0.05,0.0025,'%',100)}
-  <div class="muted" style="margin-top:8px"><b>Yield bridge:</b> gross ${pct(a.grossCF,1)} × (1 − ${pct(a.loss,1)} plant) × (1 − ${pct(a.lineLoss||0,1)} line) = <b>${pct(effCF(a),1)} delivered</b>. Line losses per BE 15-Jul (Wallern-Tadten): trafo 0.70 + AC 0.72 + MV cable 2.07 + aux 0.50 = 4.0% @ 12.5 km → capacity-weighted ${isWind?'~14.7':'~9.1'} km for ${isWind?'wind':'solar'} clusters. Delivered yield = ${fmt(a.mw,0)} ${isWind?'MW<sub>AC</sub>':'MWp<sub>DC</sub>'} × 8,760 h × ${pct(effCF(a),1)} = <b>${fmt(a.mw*8760*effCF(a)/1000,0)} GWh/yr</b>.<br>${pct(M.macro.allInRate,1)} all-in debt · ${fmt(M.macro.tenor,0)}y amortization · tax ${pct(M.macro.tax,0)}<br><b>RTB ${(a.codY||FF)-2}</b> · <b>COD ${a.codY||FF}</b> (capacity-weighted from BE project list 10 Jul 26; NEB: 36-month grid build from network-access-agreement signing) · <b>useful life ${fmt(a.lifeY,0)} yr</b> (to ${(a.codY||FF)+a.lifeY-1}). PPA fixed <b>${fmt(M.macro.ppaTermY,0)} yr</b> at €${fmt(a.ppa,0)} (to ${(a.codY||FF)+Math.min(M.macro.ppaTermY,a.lifeY)-1}); ${a.lifeY>M.macro.ppaTermY?`then ${a.lifeY-M.macro.ppaTermY} yr merchant at ~€${fmt(a===M.solar?CAP7.solar:CAP7.wind,0)} capture`:`PPA capped at plant life (plant retires first)`}.</div></div>`;
+  ${sliderHTML('macro','infl','Inflation',0,0.05,0.0025,'%',100)}</div>`;
  const unit=isWind?'MW<sub>AC</sub>':'MWp<sub>DC</sub>';
  const kpis=`<div class="kpis">
-  ${kpiM([['Installed',fmt(a.mw,0),unit],['Production yr1',fmt(R.prod/1000,1),'GWh']],col)}
+  ${kpiM([['Installed',fmt(a.mw,0),unit],['Production yr1',fmt(R.prod/1000,0),'GWh']],col)}
   ${kpiM([['Total capex','€'+fmt(R.totalCapex,0),'m'],['Equity','€'+fmt(R.equity,0),'m'],['Debt','€'+fmt(R.debt,0),'m ('+pct(M.macro.gearing,0)+')']])}
   ${kpiM([['Yield',fmt(R.prod/a.mw,0),isWind?'MWh/MW<sub>AC</sub>':'MWh/MWp'],['Capacity factor',pct(effCF(a),1),'net']])}
-  ${kpiM([['Equity IRR',fmt(R.irr*100,2),'%'],['MOIC',fmt(R.moic,2),'x'],['LCOE',fmt(R.lcoe,0),'€/MWh']],col)}</div>`;
+  ${kpiM([['Equity IRR',fmt(R.irr*100,1),'%'],['MOIC',fmt(R.moic,1),'x'],['LCOE',fmt(R.lcoe,0),'€/MWh']],col)}</div>`;
  setTimeout(()=>{drawAssetCharts(R,col);drawMap();},0);
  return kpis+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr 1fr">
    <div class="chart" id="c_prod"></div><div class="chart" id="c_pl"></div>
@@ -354,8 +352,12 @@ function drawMap(){
 }
 function drawAssetCharts(R,col){
  const ops=R.rows.filter(r=>r.y>=R.cod&&r.y<R.cod+R.life), yrs=ops.map(r=>r.y), Z=assetRanges();
- Plotly.react('c_prod',[{x:yrs,y:ops.map(r=>r.prod/1000),name:'Production',type:'scatter',fill:'tozeroy',line:{color:col},hovertemplate:HT('GWh')}],
-   lay('Production<br><span style="font-size:10px">declines with degradation</span>',{yaxis:{range:[0,Z.prod],gridcolor:'#2b3644',title:{text:'GWh',font:{size:10}}}}),CFG);
+ const pa=(col==='#4aa8ff')?M.wind:M.solar, ptail=(col==='#4aa8ff')?CAP7.wind:CAP7.solar;
+   const ppaEnd=R.cod+Math.min(M.macro.ppaTermY||20,R.life), price=yrs.map(y=>y<ppaEnd?pa.ppa:ptail);
+   Plotly.react('c_prod',[
+     {x:yrs,y:ops.map(r=>r.prod/1000),name:'Production',type:'scatter',fill:'tozeroy',line:{color:col},hovertemplate:HT('GWh')},
+     {x:yrs,y:price,name:'Price €/MWh',type:'scatter',yaxis:'y2',mode:'lines',line:{color:'#45b85d',width:1.6,dash:'dot'},hovertemplate:'€%{y:.0f}/MWh<extra></extra>'}
+   ],lay('Production & price<br><span style="font-size:10px">PPA €'+fmt(pa.ppa,0)+' for '+fmt(M.macro.ppaTermY,0)+' yr, then merchant ~€'+fmt(ptail,0)+'</span>',{showlegend:true,legend:{orientation:'h',y:-0.18},yaxis:{range:[0,Z.prod],gridcolor:'#2b3644',title:{text:'GWh',font:{size:10}}},yaxis2:{overlaying:'y',side:'right',range:[0,Math.max(120,pa.ppa*1.25)],title:{text:'€/MWh',font:{size:9}},gridcolor:'transparent'}}),CFG);
  Plotly.react('c_pl',[
    {x:yrs,y:ops.map(r=>r.rev),name:'Revenue',type:'bar',marker:{color:col},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>-r.opex),name:'Opex',type:'bar',marker:{color:'#ff6b6b'},hovertemplate:HT('€m')},
@@ -378,7 +380,7 @@ function drawAssetCharts(R,col){
  Plotly.react('c_eq',[
    {x:cfl.map(r=>r.y),y:cfl.map(r=>r.fcfe),name:'Equity CF',type:'bar',marker:{color:cfl.map(r=>r.fcfe>=0?'#43c079':'#ff6b6b')},hovertemplate:HT('€m')},
    {x:cfl.map(r=>r.y),y:roll,name:'Cumulative IRR',type:'scatter',yaxis:'y2',line:{color:'#45b85d',width:2},hovertemplate:'%{y:.1f}%<extra></extra>'}
- ],lay('Equity cash flow<br><span style="font-size:10px">IRR '+fmt(R.irr*100,2)+'% · MOIC '+fmt(R.moic,2)+'x</span>',{showlegend:true,yaxis:{range:[Z.fcfeMin,Z.fcfeMax],gridcolor:'#2b3644',title:{text:'€m',font:{size:10}}},yaxis2:{overlaying:'y',side:'right',range:[iMin,iMax],gridcolor:'transparent',title:{text:'cumulative IRR %',font:{size:9}}}}),CFG);
+ ],lay('Equity cash flow<br><span style="font-size:10px">IRR '+fmt(R.irr*100,1)+'% · MOIC '+fmt(R.moic,1)+'x</span>',{showlegend:true,yaxis:{range:[Z.fcfeMin,Z.fcfeMax],gridcolor:'#2b3644',title:{text:'€m',font:{size:10}}},yaxis2:{overlaying:'y',side:'right',range:[iMin,iMax],gridcolor:'transparent',title:{text:'cumulative IRR %',font:{size:9}}}}),CFG);
  drawSensitivity(R,col);
 }
 function drawSensitivity(R,col){
@@ -421,8 +423,7 @@ function batteryPage(){
   ${sliderHTML('battery','substation','NEB Netzzutritt (UW Zurndorf)',0,120,0.25,' €m')}
   ${sliderHTML('battery','interconnect','DC connection (3×3.5km, customer)',0,120,1,' €m')}
   <div class="inp"><label>First merchant year (export ban to 2035)<b id="lbl_battery_gridYear">${b.gridYear}</b></label><div class="seg">${['2030','2032','2035','2036'].map(y=>`<button class="${b.gridYear==y?'on':''}" onclick="M.battery.gridYear=${y};render()">${y}</button>`).join('')}</div></div>
-  ${sliderHTML('battery','compression','Rev compression',0,0.2,0.005,'%/yr',100)}
-  <div class="muted" style="margin-top:8px">Charges the <b>${B.nCh} cheapest hours</b> at avg €${fmt(B.avgBuy,0)} and discharges the <b>${B.nCh} priciest</b> at avg €${fmt(B.avgSell,0)} (${b.priceYear} curve). Why ${B.nCh} and not ${fmt(b.durationH,0)}: <b>${fmt(b.durationH,0)}h × ${fmt((1-(b.socFloor||0))*100,0)}% tradeable</b> after the ${pct(b.socFloor||0,0)} SoC outage floor. Captured spread <b>€${fmt(B.capturedSpread,0)}/MWh</b> after ${fmt(b.captureFactor,1)}x volatility uplift. Cells €${fmt(B.cellCapex,0)}m + €${fmt(B.sub,1)}m NEB Netzzutritt + €${fmt(B.inter,0)}m DC connection · levered ${pct(b.gearing,0)} at ${pct(b.debtRate||M.macro.allInRate,1)}. Grid fees €${fmt(B.gridFee,1)}m/yr from ${b.gridYear} (€${fmt(B.gridCap,1)}m capacity + €${fmt(B.gridEng,1)}m energy on ${fmt(B.thru/1000,0)} GWh).${(b.capChargeMWyr||0)>0?` <b>DC capacity charge €${fmt(B.capRev,1)}m/yr from ${COD+1} (reliability fee paid by the DC).</b>`:''}</div></div>`;
+  ${sliderHTML('battery','compression','Rev compression',0,0.2,0.005,'%/yr',100)}</div>`;
  const battCol='var(--batt)', irr=isNaN(F.irr)?'n/m':fmt(F.irr*100,1)+'%';
  const kpis=`<div class="kpis">
   ${kpiM([['Power',fmt(b.powerMW,0),'MW<sub>AC</sub>'],['Energy',fmt(B.energy/1000,1),'GWh'],['Duration',fmt(b.durationH,0),'h']],battCol)}
@@ -430,7 +431,7 @@ function batteryPage(){
   ${kpiM([['Arbitrage','€'+fmt(B.arbRev,1),'m/yr'],['Total rev','€'+fmt(B.totalRev,1),'m/yr']])}
   ${kpiM([['Equity IRR',irr,'levered '+pct(b.gearing,0),battCol],['Captured spread','€'+fmt(B.capturedSpread,0),'/MWh']],battCol)}</div>`;
  setTimeout(drawBatteryCharts,0);
- const expl=`<div class="info"><b>Why longer duration lowers the return:</b> arbitrage is now priced off the <b>real ${b.priceYear} wholesale curve</b>. The battery buys in its <b>${B.nCh} cheapest hours</b> (avg €${fmt(B.avgBuy,0)}) and sells in its <b>${B.nCh} priciest</b> (avg €${fmt(B.avgSell,0)}). A short battery grabs only the biggest peak-to-trough gap; add hours and you reach into flatter hours, so the <b>captured spread falls to €${fmt(B.capturedSpread,0)}/MWh</b> while capex keeps climbing. The full round-trip loss (≈${fmt((1-b.rte)*100,0)}%) is taken on discharge, so red bars fall short of green. Capture factor ${fmt(b.captureFactor,1)}x lifts the average-day spread toward realised intraday volatility.</div>`;
+ const expl='';
  const note=`<div class="warn">⚠️ Grid market participation only from ~${b.gridYear} (BE stated the export ban runs to 2035) - the figures shown are the post-${b.gridYear} run-rate. Austria's aFRR market is only ±225 MW deep, so treat ancillary (€${fmt(b.ancPerMW,0)}k/MW/yr) as indicative of a captured slice, not the whole market.</div>
  <div class="info"><b>Reliability, not tiers:</b> the ${pct(b.socFloor||0,0)} SoC floor (${fmt((b.socFloor||0)*B.energy,0)} MWh) is held as outage ride-through ≈ <b>${fmt((b.socFloor||0)*B.energy/M.dc.firmMW*60,0)} min at the full ${fmt(M.dc.firmMW,0)} MW load</b> vs unplanned SAIDI of ~23 min/yr Austria / <b>~14 min/yr Netz Burgenland area</b> (2024, per BE VDR #208; 35-40 min/yr on wider bases incl. planned). That is effective N+1 on electrons. The grid tie itself is <b>N</b>: Andau feeds through Zurndorf (shared busbar), so it adds capacity, not independent redundancy. No Uptime tier is claimed.</div>`;
  return kpis+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr">
@@ -485,7 +486,7 @@ function drawBatteryCharts(){
  const F=computeBatteryFin(), fr=F.rows.filter(r=>r.y>=COD&&r.y<COD+(M.battery.lifeY||25)), fyrs=fr.map(r=>r.y), Zb=assetRanges();
  Plotly.react('bch_econ',[
    {x:fyrs,y:fr.map(r=>r.fcfe),name:'Equity cash flow',type:'bar',marker:{color:fr.map(r=>r.fcfe>=0?'#43c079':'#ff6b6b')},hovertemplate:HT('€m')}
- ],lay('Battery equity cash flow<br><span style="font-size:10px">capex '+COD+' · costs from '+(COD+1)+' · merchant from '+b.gridYear+' · IRR '+(isNaN(F.irr)?'n/m':fmt(F.irr*100,2)+'%')+' on €'+fmt(F.equity,0)+'m equity</span>',{barmode:'relative',showlegend:true,yaxis:{range:[Zb.fcfeMin,Zb.fcfeMax],title:{text:'€m',font:{size:10}},gridcolor:'#2b3644'}}),CFG);
+ ],lay('Battery equity cash flow<br><span style="font-size:10px">capex '+COD+' · costs from '+(COD+1)+' · merchant from '+b.gridYear+' · IRR '+(isNaN(F.irr)?'n/m':fmt(F.irr*100,1)+'%')+' on €'+fmt(F.equity,0)+'m equity</span>',{barmode:'relative',showlegend:true,yaxis:{range:[Zb.fcfeMin,Zb.fcfeMax],title:{text:'€m',font:{size:10}},gridcolor:'#2b3644'}}),CFG);
 }
 function summaryPage(){
  const W=computeAsset(M.wind),S=computeAsset(M.solar),B=computeBattery(M.battery);
@@ -521,10 +522,10 @@ function summaryPage(){
  const totCapex=W.totalCapex+S.totalCapex+B.capex+line;
  const row=(n,c,cap,eq,dbt,prod,rev,ebd,irr,lc)=>`<tr><td><b style="color:${c}">${n}</b></td><td>${cap}</td><td>${eq}</td><td>${dbt}</td><td>${prod}</td><td>${rev}</td><td>${ebd}</td><td>${irr}</td><td>${lc}</td></tr>`;
  const table=`<div class="panel"><h3>Portfolio</h3><table><thead><tr><th>Asset</th><th>Capex €m</th><th>Equity €m</th><th>Debt €m</th><th>Gen GWh/yr</th><th>Rev €m</th><th>EBITDA €m</th><th>IRR</th><th>LCOE / LCOS</th></tr></thead><tbody>
-  ${row('Wind','var(--wind)',fmt(W.totalCapex,0),fmt(W.equity,0),fmt(W.debt,0),fmt(W.prod/1000,0),fmt(W.rev,1),fmt(W.ebitda,1),fmt(W.irr*100,2)+'%',fmt(W.lcoe,0))}
-  ${row('Solar','var(--solar)',fmt(S.totalCapex,0),fmt(S.equity,0),fmt(S.debt,0),fmt(S.prod/1000,0),fmt(S.rev,1),fmt(S.ebitda,1),fmt(S.irr*100,2)+'%',fmt(S.lcoe,0))}
-  ${row('Battery','var(--batt)',fmt(B.capex,0),fmt(BF.equity,0),fmt(BF.debt,0),fmt(battGen/1000,0),fmt(battRev,1),fmt(battEbitda,1),(isNaN(BF.irr)?'n/m':fmt(BF.irr*100,2)+'%'),fmt(battLCOS,0))}
-  <tr class="tot"><td>Total (incl line €${fmt(line,0)}m)</td><td>${fmt((wOn?W.totalCapex:0)+(sOn?S.totalCapex:0)+(bOn?B.capex:0)+line,0)}</td><td>${fmt(totEqLCOE,0)}</td><td>${fmt((wOn?W.debt:0)+(sOn?S.debt:0)+(bOn?BF.debt:0)+line*M.macro.gearing,0)}</td><td>${fmt(((wOn?W.prod:0)+(sOn?S.prod:0))/1000,0)}</td><td>${fmt((wOn?W.rev:0)+(sOn?S.rev:0)+battRevG,1)}</td><td>${fmt((wOn?W.ebitda:0)+(sOn?S.ebitda:0)+battEbitdaG,1)}</td><td><b style="color:var(--acc)">${isNaN(spvIRR)?'n/m':fmt(spvIRR*100,2)+'%'}</b></td><td>-</td></tr>
+  ${row('Wind','var(--wind)',fmt(W.totalCapex,0),fmt(W.equity,0),fmt(W.debt,0),fmt(W.prod/1000,0),fmt(W.rev,1),fmt(W.ebitda,1),fmt(W.irr*100,1)+'%',fmt(W.lcoe,0))}
+  ${row('Solar','var(--solar)',fmt(S.totalCapex,0),fmt(S.equity,0),fmt(S.debt,0),fmt(S.prod/1000,0),fmt(S.rev,1),fmt(S.ebitda,1),fmt(S.irr*100,1)+'%',fmt(S.lcoe,0))}
+  ${row('Battery','var(--batt)',fmt(B.capex,0),fmt(BF.equity,0),fmt(BF.debt,0),fmt(battGen/1000,0),fmt(battRev,1),fmt(battEbitda,1),(isNaN(BF.irr)?'n/m':fmt(BF.irr*100,1)+'%'),fmt(battLCOS,0))}
+  <tr class="tot"><td>Total (incl line €${fmt(line,0)}m)</td><td>${fmt((wOn?W.totalCapex:0)+(sOn?S.totalCapex:0)+(bOn?B.capex:0)+line,0)}</td><td>${fmt(totEqLCOE,0)}</td><td>${fmt((wOn?W.debt:0)+(sOn?S.debt:0)+(bOn?BF.debt:0)+line*M.macro.gearing,0)}</td><td>${fmt(((wOn?W.prod:0)+(sOn?S.prod:0))/1000,0)}</td><td>${fmt((wOn?W.rev:0)+(sOn?S.rev:0)+battRevG,1)}</td><td>${fmt((wOn?W.ebitda:0)+(sOn?S.ebitda:0)+battEbitdaG,1)}</td><td><b style="color:var(--acc)">${isNaN(spvIRR)?'n/m':fmt(spvIRR*100,1)+'%'}</b></td><td>-</td></tr>
   </tbody></table><div class="muted" style="margin-top:8px">Battery is storage (${fmt(B.energy/1000,1)} GWh, ${fmt(M.battery.durationH,1)}h): "Gen" is its annual discharge / export to the DC (${fmt(battGen/1e6,2)} TWh throughput), and its last-column figure is <b>LCOS</b> (levelized cost of storage), not LCOE. Battery Rev/EBITDA are the post-${M.battery.gridYear} merchant run-rate plus the reliability fee; before ${M.battery.gridYear} only the fee applies. Gen total shows renewables only.</div></div>`;
  const spvBlock=`<div class="panel"><h3>Supply to the data center - economics</h3>
    <div class="seg"><button class="${spvOwned?'on':''}" onclick="M.dc.resMode='lcoe';render()">RES owned · LCOE</button><button class="${spvOwned?'':'on'}" onclick="M.dc.resMode='ppa';render()">RES bought · PPA €${fmt(ppaUnit,0)}</button></div>
@@ -545,7 +546,7 @@ function summaryPage(){
    <tr><td>Blended power sourcing cost (incl grid fees)</td><td>€${fmt(blendPr,1)}/MWh</td></tr>
    <tr class="tot"><td>= Yr-1 margin (sold − sourced + battery)</td><td>€${fmt(s29.dcRev-resCost-gridSrcCost-capFeeM+battRevFF,0)}m</td></tr>
    <tr><td>SPV equity: ${spvOwned?`W €${fmt(W.equity,0)} + S €${fmt(S.equity,0)} + B €${fmt(BF.equity,0)} + line €${fmt(lineEq,0)}`:`battery €${fmt(BF.equity,0)} + line €${fmt(lineEq,0)}`}</td><td><b>€${fmt(spvOwned?totEqLCOE:totEqPPA,0)}m</b></td></tr>
-   <tr><td>Consolidated equity IRR @ €${fmt(M.dc.dcPrice,0)}</td><td>${isNaN(spvIRR)?'n/m (below break-even)':fmt(spvIRR*100,2)+'%'}</td></tr>
+   <tr><td>Consolidated equity IRR @ €${fmt(M.dc.dcPrice,0)}</td><td>${isNaN(spvIRR)?'n/m (below break-even)':fmt(spvIRR*100,1)+'%'}</td></tr>
    <tr class="tot"><td>DC price for a 9% IRR</td><td><b style="color:var(--acc)">€${fmt(price9,1)}/MWh</b></td></tr></tbody></table>
    <div class="info">Self-supply = ${fmt(M.wind.mw,0)} MW<sub>AC</sub> wind × ${pct(effCF(M.wind),1)} + ${fmt(M.solar.mw,0)} MWp<sub>DC</sub> solar × ${pct(effCF(M.solar),1)} = <b>${fmt(resBaseMW,0)} MW</b> baseload-equivalent, over the ${fmt(M.dc.firmMW,0)} MW<sub>AC</sub> load = <b>${fmt(selfPct,1)}%</b>. The grid supplies the other <b>${fmt(gridPct,1)}%</b> (${fmt(gridGen/1e6,2)} TWh). Timing per BE list 10 Jul: wind COD ${M.wind.codY||FF}, solar COD ${M.solar.codY||FF} (capacity-weighted) - yr-${FF} self-supply is wind-only, and 284 MW of the 677 MW portfolio only arrives 2030-32.</div>
    <div class="warn">${spvOwned?`Renewables are <b>owned at ~€${fmt(resLCOE,1)}/MWh</b> (not bought at €100), below the sale price, so they subsidise the pricier ~€${fmt(gridPr,1)}/MWh grid. Blended power cost €${fmt(blendPr,1)}, so selling at €${fmt(price9,1)}/MWh still clears 9%.`:`At the €${fmt(price9,1)}/MWh break-even the per-MWh power margin is thin. The 9% is built from the <b>battery trading</b> (€${fmt(battRev,0)}m/yr) plus the sourcing wedge, <b>levered</b> on a small €${fmt(totEqPPA,0)}m equity check (RES bought, not owned) with depreciation shielding tax. Toggle to LCOE: owning the RES at ~€${fmt(resLCOE,1)}/MWh widens the margin.`}</div></div>`;
@@ -650,7 +651,7 @@ function drawSpvCashflow(){
    {x:yrs,y:ops.map(r=>-(r.int+r.repay)),name:'Financing',type:'bar',marker:{color:'#5a6b8c'},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>-r.tax),name:'Tax',type:'bar',marker:{color:'#ffb23e'},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>r.fcfe),name:'Dividends (equity CF)',type:'scatter',line:{color:'#b98cff',width:3},hovertemplate:HT('€m')}
- ],lay('SPV cash-flow build<br><span style="font-size:10px">equity IRR '+(isNaN(SP.irr)?'n/m':fmt(SP.irr*100,2)+'%')+' on €'+fmt(SP.equity,0)+'m equity · Rev − grid/opex − financing − tax = dividends</span>',{barmode:'relative',showlegend:true,yaxis:{title:{text:'€m',font:{size:10}},gridcolor:'#2b3644'}}),CFG);
+ ],lay('SPV cash-flow build<br><span style="font-size:10px">equity IRR '+(isNaN(SP.irr)?'n/m':fmt(SP.irr*100,1)+'%')+' on €'+fmt(SP.equity,0)+'m equity · Rev − grid/opex − financing − tax = dividends</span>',{barmode:'relative',showlegend:true,yaxis:{title:{text:'€m',font:{size:10}},gridcolor:'#2b3644'}}),CFG);
 }
 let profView='heat', profAsset='wind';
 function profilesPage(){
@@ -756,7 +757,7 @@ function pricesPage(){
  const sel=`<div class="panel" style="margin-bottom:14px"><div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
    <div class="inp" style="flex:1;min-width:240px;margin-bottom:0"><label>Curve year<b>${priceYear}</b></label>
    <input type="range" min="2015" max="2025" step="1" value="${priceYear}" oninput="priceYear=String(this.value);render()"></div>
-   <span class="muted" style="flex:2;min-width:260px">Capture price = the wholesale price averaged over the hours each plant generates (modelled hourly profile). Charts use the <b>${priceYear}</b> curve.</span></div></div>`;
+   </div></div>`;
  const kpis=`<div class="kpis">
    ${kpi('Baseload '+priceYear,'€'+fmt(bl,0),'/MWh')}
    <div class="kpi" style="border-color:var(--wind)"><div class="l">Wind capture ${priceYear}</div><div class="v" style="color:var(--wind)">€${fmt(wc,0)}<small> ${fmt(wc/bl*100,0)}% base · CF ${fmt(wCF,0)}%</small></div></div>

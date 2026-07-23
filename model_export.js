@@ -28,19 +28,20 @@ function buildFullModel(ExcelJS, S){
 
  // ================= INPUTS =================
  const wi=wb.addWorksheet('Inputs');
- wi.getColumn(1).width=34; wi.getColumn(2).width=13; wi.getColumn(3).width=46;
- wi.getCell(1,1).value='GDC NICKELSDORF — POWER SPV MODEL  ·  Inputs'; wi.getCell(1,1).font={bold:true,size:14};
- wi.getCell(2,1).value='Yellow = editable inputs (blue font). Every calc sheet links these in red. Exported '+S.today+'.';
+ wi.getColumn(1).width=2.4; wi.getColumn(2).width=2.6; wi.getColumn(3).width=42; wi.getColumn(4).width=24; wi.getColumn(5).width=14; wi.getColumn(6).width=42; wi.views=[{state:'frozen',ySplit:2}];
+ wi.getCell(1,3).value='GDC NICKELSDORF — Power SPV model'; wi.getCell(1,3).font={bold:true,size:15,color:{argb:'FF2D7D32'}};
+ wi.getCell(2,3).value='Yellow = editable inputs (blue). Calc sheets link these in red. Exported '+S.today+'.'; wi.getCell(2,3).font={italic:true,size:9,color:{argb:'FF808080'}};
  const IN={};                 // name -> Inputs row number
  let r=4;
+ function isect(txt){const c=wi.getCell(r,2);c.value=txt;c.font={bold:true,size:11,color:{argb:'FF2D7D32'}};for(let k=1;k<=6;k++)wi.getCell(r,k).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFEFF5EE'}};wi.getRow(r).height=17;r++;}
  function inp(label,value,unit,key){
-  wi.getCell(r,1).value=label;
-  const c=wi.getCell(r,2); c.value=value; c.fill=YEL; c.font=BLUE; c.border={outline:{style:'thin'}};
+  wi.getCell(r,3).value=label;
+  wi.getCell(r,4).value=unit||''; wi.getCell(r,4).font={size:10,color:{argb:'FF7A7A7A'}};
+  const c=wi.getCell(r,5); c.value=value; c.fill=YEL; c.font=BLUE; c.border={outline:{style:'thin'}};
   c.numFmt = (typeof value==='number' && Math.abs(value)<1 && value!==0)?'0.####':(Number.isInteger(value)?'#,##0':'#,##0.####');
-  wi.getCell(r,3).value=unit||'';
   IN[key]=r; r++;
  }
- r=sect(wi,r,'MACRO / FINANCING');
+ isect('MACRO / FINANCING');
  inp('Inflation (CPI)',S.macro.infl,'per yr','INFL');
  inp('Tax rate',S.macro.tax,'','TAXR');
  inp('Gearing (wind/solar/line)',S.macro.gearing,'debt share','GEAR');
@@ -48,7 +49,7 @@ function buildFullModel(ExcelJS, S){
  inp('All-in debt rate',S.macro.allInRate,'','RATE');
  inp('PPA term',S.macro.ppaTermY,'years','PPAT');
  inp('Merchant power (uncontracted RES)',S.macro.merchReal,'€/MWh 2023-real, CPI-indexed','MERCH');
- r++; r=sect(wi,r,'WIND');
+ r++; isect('WIND');
  inp('Capacity',S.wind.mw,'MW AC','W_MW');
  inp('Capex',S.wind.capexPerMW,'€m per MW','W_CAPEX');
  inp('Gross capacity factor',S.wind.grossCF,'','W_GCF');
@@ -61,7 +62,7 @@ function buildFullModel(ExcelJS, S){
  inp('COD (first generation year)',S.wind.codY,'BE list, cap-weighted','W_COD');
  inp('Useful life',S.wind.lifeY,'years','W_LIFE');
  inp('Merchant tail price',S.CAP7w,'€/MWh flat (capture avg ex-2022)','W_TAIL');
- r++; r=sect(wi,r,'SOLAR');
+ r++; isect('SOLAR');
  inp('Capacity',S.solar.mw,'MWp DC','S_MW');
  inp('Capex',S.solar.capexPerMW,'€m per MWp','S_CAPEX');
  inp('Gross capacity factor',S.solar.grossCF,'','S_GCF');
@@ -74,7 +75,7 @@ function buildFullModel(ExcelJS, S){
  inp('COD (first generation year)',S.solar.codY,'','S_COD');
  inp('Useful life',S.solar.lifeY,'years','S_LIFE');
  inp('Merchant tail price',S.CAP7s,'€/MWh flat','S_TAIL');
- r++; r=sect(wi,r,'BATTERY');
+ r++; isect('BATTERY');
  inp('Power',S.battery.powerMW,'MW','B_MW');
  inp('Duration',S.battery.durationH,'hours','B_DUR');
  inp('Cell capex',S.battery.capexPerKWh,'€/kWh','B_CKWH');
@@ -96,7 +97,7 @@ function buildFullModel(ExcelJS, S){
  inp('Grid fee — energy (NE3)',S.battery.gridEnergyFee,'€/MWh on throughput','B_GFE');
  inp('Battery COD (capex year)',S.COD,'','B_COD');
  inp('Useful life',S.battery.lifeY,'years','B_LIFE');
- r++; r=sect(wi,r,'DATA CENTER / RESIDUAL (via BE Trading)');
+ r++; isect('DATA CENTER / RESIDUAL (via BE Trading)');
  inp('DC contracted load',S.dc.firmMW,'MW','DC_MW');
  inp('DC sale price (today)',S.dc.dcPrice,'€/MWh, CPI-indexed','DC_P');
  inp('Residual market price',S.dc.resFix,'€/MWh 2025-real, CPI-indexed','RES_P');
@@ -107,12 +108,12 @@ function buildFullModel(ExcelJS, S){
  inp('RES sourcing (1=owned, 0=PPA)',(S.dc.resMode||'lcoe')==='lcoe'?1:0,'drives SPV sheet','RES_OWN');
  inp('Direct line cost',S.linePer100,'€m per 100 MW','LINE_C');
  inp('SPV first revenue year',S.FF,'','SPV_FF');
- r++; r=sect(wi,r,'BATTERY ARBITRAGE CURVE — hourly wholesale €/MWh, year '+S.priceYear);
+ r++; isect('BATTERY ARBITRAGE CURVE — hourly wholesale €/MWh, year '+S.priceYear);
  const PH0=r;
- for(let h=0;h<24;h++){ wi.getCell(r,1).value='Hour '+h; const c=wi.getCell(r,2); c.value=S.ph[h]; c.fill=YEL; c.font=BLUE; c.numFmt='#,##0.0'; wi.getCell(r,3).value=(h===0?'linked into the Battery sheet':''); r++; }
+ for(let h=0;h<24;h++){ wi.getCell(r,3).value='Hour '+h; const c=wi.getCell(r,5); c.value=S.ph[h]; c.fill=YEL; c.font=BLUE; c.numFmt='#,##0.0'; wi.getCell(r,4).value=(h===0?'→ Battery sheet':''); r++; }
  IN.PH0=PH0;
 
- const inCell = key => `Inputs!$B$${IN[key]}`;   // absolute link to an input
+ const inCell = key => `Inputs!$E$${IN[key]}`;   // absolute link to an input
 
  // ---- helper: write a filled-across time-series row -> returns the row number used
  function tsRow(ws, row, label, Yrow, fmt, fFn, opt){
@@ -144,7 +145,7 @@ function buildFullModel(ExcelJS, S){
 
  // ================= WIND / SOLAR builder =================
  function assetSheet(name,P,chk){
-  const ws=wb.addWorksheet(name); ws.getColumn(1).width=32; ws.getColumn(3).width=30;
+  const ws=wb.addWorksheet(name); ws.getColumn(1).width=38; ws.getColumn(2).width=13; ws.getColumn(3).width=30; ws.views=[{state:'frozen',xSplit:1}];
   ws.getCell(1,1).value=name.toUpperCase()+' — full-formula model'; ws.getCell(1,1).font={bold:true,size:12};
   ws.getCell(2,1).value='Red = linked from Inputs (F2 to trace). Flags are 0/1 (no IF); caps use MIN/MAX. One step per row.';
   ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
@@ -216,6 +217,7 @@ function buildFullModel(ExcelJS, S){
   R.date =rr++;
   R.chk  =rr++;
   R.diff =rr++;
+  R.xcf  =rr++;
   // now fill the reserved rows with correct references (bal known)
   // re-do IDC with proper prevBal ref:
   tsRow(ws,R.idc,'IDC — interest during constr. (€m)',Yrow,numF,(X,pX)=>`${X}$${R.cflag}*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}/2)*${A('RATE')}`);
@@ -234,11 +236,14 @@ function buildFullModel(ExcelJS, S){
   for(let i=0;i<NY;i++){const y=Y0+i;const c=ws.getCell(R.chk,c0+i);c.value=(chk&&chk[y]!==undefined?chk[y]:0);c.fill=CHK;c.numFmt=numF;}
   tsRow(ws,R.diff,'Check diff (≈0)',Yrow,numF,X=>`${X}$${R.fcfe}-${X}$${R.chk}`);
   ws.getCell(R.fcfe,1).fill=HDR; ws.getCell(R.fcfe,1).font=white;
+  ws.getCell(R.xcf,1).value='Equity CF for XIRR (dummy seed − t0, immaterial)';
+  ws.getCell(R.xcf,c0).value=-0.01; ws.getCell(R.xcf,c0).numFmt=numF;
+  for(let i=1;i<NY;i++){const c=ws.getCell(R.xcf,c0+i);c.value={formula:`${colL(c0+i)}${R.fcfe}`};c.numFmt=numF;}
 
   // ---- RESULTS
   let k=rr+1; k=sect(ws,k,'RESULTS');
   const put=(row,label,formula,fmt,fill)=>{ws.getCell(row,1).value=label;const c=ws.getCell(row,2);c.value={formula:formula};c.numFmt=fmt;if(fill)c.fill=fill;return row;};
-  const IRR=k; put(k++,'Equity IRR (XIRR)',`XIRR(B${R.fcfe}:${lastC}${R.fcfe},B${R.date}:${lastC}${R.date})`,pctF); ws.getCell(IRR,2).font=bold;
+  const IRR=k; put(k++,'Equity IRR (XIRR)',`XIRR(B${R.xcf}:${lastC}${R.xcf},B${R.date}:${lastC}${R.date})`,pctF); ws.getCell(IRR,2).font=bold;
   const MOIC=k; put(k++,'MOIC',`SUMIF(B${R.fcfe}:${lastC}${R.fcfe},">0")/-SUMIF(B${R.fcfe}:${lastC}${R.fcfe},"<0")`,xF);
   put(k++,'Total capex (€m)',`$B$${D.TCAPEX}`,eurF);
   put(k++,'Equity (€m)',`$B$${D.EQUITY}`,eurF);
@@ -254,7 +259,7 @@ function buildFullModel(ExcelJS, S){
 
  // ================= BATTERY =================
  function batterySheet(){
-  const ws=wb.addWorksheet('Battery'); ws.getColumn(1).width=34; ws.getColumn(3).width=26; ws.getColumn(4).width=8;
+  const ws=wb.addWorksheet('Battery'); ws.getColumn(1).width=38; ws.getColumn(2).width=13; ws.getColumn(3).width=26; ws.getColumn(4).width=8; ws.views=[{state:'frozen',xSplit:1}];
   ws.getCell(1,1).value='BATTERY — full-formula model'; ws.getCell(1,1).font={bold:true,size:12};
   ws.getCell(2,1).value='Red = linked from Inputs. 24h curve replicated locally for the arbitrage stack; flags 0/1, no IF.';
   ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
@@ -274,7 +279,7 @@ function buildFullModel(ExcelJS, S){
   const CST=rr;
   for(let h=0;h<24;h++){
    ws.getCell(rr,1).value='Hour '+h;
-   const p=ws.getCell(rr,2); p.value={formula:`Inputs!$B$${IN.PH0+h}`}; p.font=RED; p.numFmt='#,##0.0';
+   const p=ws.getCell(rr,2); p.value={formula:`Inputs!$E$${IN.PH0+h}`}; p.font=RED; p.numFmt='#,##0.0';
    rr++;
   }
   const CEN=rr-1;
@@ -313,7 +318,7 @@ function buildFullModel(ExcelJS, S){
   R.gfee =tsRow(ws,rr++,'Grid fees (€m, from ban)',Yrow,numF,X=>`${X}$${R.olf}*${X}$${R.mflag}*($B$${D.GFCAP}+$B$${D.GFENE})*(1+${A('FEESC')})^MAX(0,${yr(X)}-2028)`);
   R.opex =tsRow(ws,rr++,'Opex — total (€m)',Yrow,numF,X=>`${X}$${R.opxc}+${X}$${R.gfee}`);
   R.codf =tsRow(ws,rr++,'COD flag (y=COD)',Yrow,intF,X=>`(${yr(X)}=${A('B_COD')})`);
-  R.intr =rr++; R.prin=rr++; R.bal=rr++; R.dep=rr++; R.ebt=rr++; R.nol=rr++; R.tax=rr++; R.fcfe=rr++; R.date=rr++; R.chk=rr++; R.diff=rr++;
+  R.intr =rr++; R.prin=rr++; R.bal=rr++; R.dep=rr++; R.ebt=rr++; R.nol=rr++; R.tax=rr++; R.fcfe=rr++; R.date=rr++; R.chk=rr++; R.diff=rr++; R.xcf=rr++;
   tsRow(ws,R.intr,'Interest (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>${A('B_COD')})*(${pX?pX+'$'+R.bal:'0'})*${A('B_RATE')}`);
   tsRow(ws,R.prin,'Principal repay (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>${A('B_COD')})*(${yr(X)}<=${A('B_COD')}+$B$${D.REPY})*MIN((${pX?pX+'$'+R.bal:'0'}),$B$${D.ANNPRIN})`);
   tsRow(ws,R.bal,'Debt balance EOY (€m)',Yrow,numF,(X,pX)=>`${X}$${R.codf}*${A('B_GEAR')}*$B$${D.TCAPEX}+(${yr(X)}>${A('B_COD')})*MAX(0,(${pX?pX+'$'+R.bal:'0'})-${X}$${R.prin})`);
@@ -328,9 +333,12 @@ function buildFullModel(ExcelJS, S){
   for(let i=0;i<NY;i++){const y=Y0+i;const c=ws.getCell(R.chk,c0+i);c.value=(S.chkBatt&&S.chkBatt[y]!==undefined?S.chkBatt[y]:0);c.fill=CHK;c.numFmt=numF;}
   tsRow(ws,R.diff,'Check diff (≈0)',Yrow,numF,X=>`${X}$${R.fcfe}-${X}$${R.chk}`);
   ws.getCell(R.fcfe,1).fill=HDR; ws.getCell(R.fcfe,1).font=white;
+  ws.getCell(R.xcf,1).value='Equity CF for XIRR (dummy seed − t0, immaterial)';
+  ws.getCell(R.xcf,c0).value=-0.01; ws.getCell(R.xcf,c0).numFmt=numF;
+  for(let i=1;i<NY;i++){const c=ws.getCell(R.xcf,c0+i);c.value={formula:`${colL(c0+i)}${R.fcfe}`};c.numFmt=numF;}
 
   let k=rr+1; k=sect(ws,k,'RESULTS');
-  const IRR=k; ws.getCell(k,1).value='Equity IRR (XIRR)'; ws.getCell(k,2).value={formula:`IFERROR(XIRR(B${R.fcfe}:${lastC}${R.fcfe},B${R.date}:${lastC}${R.date}),"n/m")`}; ws.getCell(k,2).numFmt=pctF; ws.getCell(k,2).font=bold; k++;
+  const IRR=k; ws.getCell(k,1).value='Equity IRR (XIRR)'; ws.getCell(k,2).value={formula:`IFERROR(XIRR(B${R.xcf}:${lastC}${R.xcf},B${R.date}:${lastC}${R.date}),"n/m")`}; ws.getCell(k,2).numFmt=pctF; ws.getCell(k,2).font=bold; k++;
   ws.getCell(k,1).value='Equity (€m)'; ws.getCell(k,2).value={formula:`$B$${D.EQUITY}`}; ws.getCell(k,2).numFmt=eurF; k++;
   ws.getCell(k,1).value='Total capex (€m)'; ws.getCell(k,2).value={formula:`$B$${D.TCAPEX}`}; ws.getCell(k,2).numFmt=eurF; k++;
   const MX=k; ws.getCell(k,1).value='Max |check diff| (€m)'; ws.getCell(k,2).value={formula:`MAX(ABS(MIN(B${R.diff}:${lastC}${R.diff})),ABS(MAX(B${R.diff}:${lastC}${R.diff})))`}; ws.getCell(k,2).numFmt=numF; ws.getCell(k,2).fill=CHK; k++;
@@ -343,7 +351,7 @@ function buildFullModel(ExcelJS, S){
 
  // ================= SPV =================
  function spvSheet(){
-  const ws=wb.addWorksheet('SPV'); ws.getColumn(1).width=36; ws.getColumn(3).width=24;
+  const ws=wb.addWorksheet('SPV'); ws.getColumn(1).width=40; ws.getColumn(2).width=13; ws.getColumn(3).width=24; ws.views=[{state:'frozen',xSplit:1}];
   ws.getCell(1,1).value='CONSOLIDATED POWER SPV — owns RES (per mode), battery & line; buys residual; sells to DC'; ws.getCell(1,1).font={bold:true,size:12};
   ws.getCell(2,1).value='Red = linked (Inputs, or Wind/Solar/Battery sheets). Blended gearing/rate computed once below. Flags 0/1.';
   ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
@@ -416,7 +424,7 @@ function buildFullModel(ExcelJS, S){
   R.capex=tsRow(ws,rr++,'Capex (€m)',Yrow,numF,X=>`${X}$${R.cshr}*$B$${D.RESCX}+(${yr(X)}=${A('SPV_FF')}-1)*(${BXL('TCAPEX')}+$B$${D.LINECX})`);
   R.draw =tsRow(ws,rr++,'Debt draw (€m)',Yrow,numF,X=>`${X}$${R.capex}*$B$${D.BGEAR}`);
   R.cflag=tsRow(ws,rr++,'Construction flag',Yrow,intF,X=>`(${yr(X)}>=${A('SPV_FF')}-2)*(${yr(X)}<${A('SPV_FF')})`);
-  R.idc=rr++; R.intr=rr++; R.prin=rr++; R.bal=rr++; R.dep=rr++; R.ebt=rr++; R.nol=rr++; R.tax=rr++; R.fcfe=rr++; R.date=rr++;
+  R.idc=rr++; R.intr=rr++; R.prin=rr++; R.bal=rr++; R.dep=rr++; R.ebt=rr++; R.nol=rr++; R.tax=rr++; R.fcfe=rr++; R.date=rr++; R.xcf=rr++;
   tsRow(ws,R.idc,'IDC — constr. interest (€m)',Yrow,numF,(X,pX)=>`${X}$${R.cflag}*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}/2)*$B$${D.BRATE}`);
   tsRow(ws,R.intr,'Interest (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A('SPV_FF')})*(${pX?pX+'$'+R.bal:'0'})*$B$${D.BRATE}`);
   tsRow(ws,R.prin,'Principal repay (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A('SPV_FF')})*(${yr(X)}<${A('SPV_FF')}+$B$${D.REPY})*MIN((${pX?pX+'$'+R.bal:'0'}),$B$${D.ANNPRIN})`);
@@ -429,9 +437,12 @@ function buildFullModel(ExcelJS, S){
   for(let i=0;i<NY;i++){const c=ws.getCell(R.date,c0+i);c.value={formula:`DATE(${colL(c0+i)}$${Yrow},12,31)`};c.numFmt='yyyy-mm-dd';}
   ws.getCell(R.date,1).value='Date (XIRR)';
   ws.getCell(R.fcfe,1).fill=HDR; ws.getCell(R.fcfe,1).font=white;
+  ws.getCell(R.xcf,1).value='Equity CF for XIRR (dummy seed − t0, immaterial)';
+  ws.getCell(R.xcf,c0).value=-0.01; ws.getCell(R.xcf,c0).numFmt=numF;
+  for(let i=1;i<NY;i++){const c=ws.getCell(R.xcf,c0+i);c.value={formula:`${colL(c0+i)}${R.fcfe}`};c.numFmt=numF;}
 
   let k=rr+1; k=sect(ws,k,'RESULTS');
-  const IRR=k; ws.getCell(k,1).value='SPV equity IRR (XIRR)'; ws.getCell(k,2).value={formula:`IFERROR(XIRR(B${R.fcfe}:${lastC}${R.fcfe},B${R.date}:${lastC}${R.date}),"n/m")`}; ws.getCell(k,2).numFmt=pctF; ws.getCell(k,2).font=bold; k++;
+  const IRR=k; ws.getCell(k,1).value='SPV equity IRR (XIRR)'; ws.getCell(k,2).value={formula:`IFERROR(XIRR(B${R.xcf}:${lastC}${R.xcf},B${R.date}:${lastC}${R.date}),"n/m")`}; ws.getCell(k,2).numFmt=pctF; ws.getCell(k,2).font=bold; k++;
   ws.getCell(k,1).value='Dashboard SPV IRR at export'; ws.getCell(k,2).value=S.spvIRR; ws.getCell(k,2).numFmt=pctF; ws.getCell(k,2).fill=CHK; k++;
   ws.getCell(k,1).value='SPV total capex (€m)'; ws.getCell(k,2).value={formula:`$B$${D.SPVCX}`}; ws.getCell(k,2).numFmt=eurF; k++;
   ws.getCell(k,1).value='Note'; ws.getCell(k,2).value='Small diffs vs dashboard are timing conventions; Goal-Seek Inputs DC price for a target IRR.';
