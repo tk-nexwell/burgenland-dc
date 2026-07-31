@@ -66,7 +66,24 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
 .seg button.on{background:var(--acc);color:#04120f;font-weight:600}
 .dl{float:right;background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--acc);font-size:11px;padding:3px 9px;cursor:pointer;font-weight:600}
 .dl:hover{background:var(--acc);color:#04120f}
-.brand .nx{height:40px;width:auto;display:block}.brand .wm{display:flex;flex-direction:column;line-height:1;margin-left:1px}.brand .wm b{font-size:28px;font-weight:800;letter-spacing:-1.2px;color:var(--txt)}.brand .wm i{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:5px;color:var(--acc);margin-top:3px}.panel h3::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--acc);margin-right:8px;vertical-align:baseline;opacity:.95}.kpi{border-left:2px solid rgba(69,184,93,.45)}header{background:linear-gradient(180deg,#17271e,#10161d)}nav button.on{color:var(--acc)}</style>
+.brand .nx{height:40px;width:auto;display:block}.brand .wm{display:flex;flex-direction:column;line-height:1;margin-left:1px}.brand .wm b{font-size:28px;font-weight:800;letter-spacing:-1.2px;color:var(--txt)}.brand .wm i{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:5px;color:var(--acc);margin-top:3px}.panel h3::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--acc);margin-right:8px;vertical-align:baseline;opacity:.95}.kpi{border-left:2px solid rgba(69,184,93,.45)}header{background:linear-gradient(180deg,#17271e,#10161d)}nav button.on{color:var(--acc)}
+.rpanel svg{width:100%;height:auto;display:block;background:#0d1319;border:1px solid var(--line);border-radius:8px}
+.rpanel svg text{font-family:ui-sans-serif,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+.rpanel svg text.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.rsub{color:var(--mut);font-size:12.5px;line-height:1.6;margin:-4px 0 12px}
+.rsub b{color:var(--txt)}
+.rreg{margin-top:10px}
+.rreg summary{cursor:pointer;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.6px;padding:7px 0;user-select:none}
+.rreg summary:hover{color:var(--txt)}
+.rreg table{width:100%;border-collapse:collapse;font-size:11.5px;line-height:1.55}
+.rreg td{padding:6px 9px;border-top:1px solid var(--line);vertical-align:top;color:var(--mut)}
+.rreg td:nth-child(1){width:1%;white-space:nowrap}
+.rreg td:nth-child(2){width:1%;white-space:nowrap;color:var(--txt)}
+.rreg i{color:#a9d3ff;font-style:normal;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
+.cf{display:inline-block;padding:1.5px 7px;border-radius:9px;font-size:9px;font-weight:700;letter-spacing:.4px}
+.rlegend{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--mut);margin-top:10px;align-items:center}
+.rlegend i{width:11px;height:11px;border-radius:2px;display:inline-block;margin-right:6px;vertical-align:-1px}
+</style>
 </head>
 <body>
 <header>
@@ -90,7 +107,7 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
 </header>
 <nav id="nav"></nav>
 <main id="main"></main>
-<footer>Directional model for discussion · Burgenland DC · Nexwell Power. Data: EPEX Spot AT hourly 2015-2025, Netz Burgenland grid-connection estimate & NE3 tariffs (26 Jun 2026), BE Q&A II (16/19 Jun 2026), BE project list & OPEX/FLH guidance (10-13 Jul 2026), BE Trading grid-fee path & Wallern-Tadten line-loss basis (14-15 Jul 2026). Not investment advice.</footer>
+<footer>Directional model for discussion · Burgenland DC · Nexwell Power. Data: EPEX Spot AT hourly 2015-2025, Netz Burgenland grid-connection estimate & NE3 tariffs (26 Jun 2026), BE Q&A II (16/19 Jun 2026), BE project list & OPEX/FLH guidance (10-13 Jul 2026), BE Trading grid-fee path & Wallern-Tadten line-loss basis (14-15 Jul 2026), BE CapEx/OpEx & tracker guidance call (23 Jul 2026). Not investment advice.</footer>
 <script>
 const PROFILES={
  meta:{wind_cf:0.4519,solar_cf:0.1376},
@@ -132,12 +149,12 @@ const EMBER={years:['2015','2016','2017','2018','2019','2020','2021','2022','202
 const CAP7=(function(){const ys=['2019','2020','2021','2023','2024','2025'];const a=k=>ys.reduce((s,y)=>s+PRICES.per_year[y][k],0)/ys.length;return{wind:a('wind'),solar:a('solar')};})();
 const M={
  view:'INT',
- macro:{infl:0.02,tax:0.23,gearing:0.70,merchReal:100,tenor:20,allInRate:0.045,ppaTermY:20},
- wind:{on:true,mw:320,capexPerMW:1.30,grossCF:0.290636,loss:0.02,lineLoss:0.045,opexPerMW:0.04,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2029},
- solar:{on:true,mw:357,capexPerMW:0.45,grossCF:0.126169,loss:0.02,lineLoss:0.033,opexPerMW:0.02,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2030},
- battery:{on:true,powerMW:500,durationH:8,capexPerKWh:130,rte:0.87,opexPct:0.02,degr:0.015,socFloor:0.10,gridYear:2035,priceYear:'2025',captureFactor:1.0,cyclesDay:1,ancPerMW:20,capChargeMWyr:40,compression:0.02,gearing:0.60,debtRate:0.05,substation:24.25,interconnect:17,gridCapFee:0,gridEnergyFee:0,lifeY:25}, // defaults: 8h · behind-the-meter charging via direct line → grid fees 0 (sliders remain) · DC reliability charge 40 k€/MW/yr
+ macro:{infl:0.02,tax:0.23,gearing:0.70,merchReal:100,tenor:20,allInRate:0.047,ppaTermY:20,amort:'annuity'},
+ wind:{on:true,mw:320,capexPerMW:1.45,grossCF:0.290636,loss:0.02,lineLoss:0.045,opexPerMW:0.04,gridFee:0,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2029},
+ solar:{on:true,mw:357,capexPerMW:0.60,grossCF:0.1566,loss:0.02,lineLoss:0.033,opexPerMW:0.032,gridFee:0,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2030},
+ battery:{on:true,powerMW:500,durationH:8,capexPerKWh:130,rte:0.87,opexPct:0.02,degr:0.015,socFloor:0.10,gridYear:2035,priceYear:'2025',captureFactor:1.0,cyclesDay:1,ancPerMW:20,capChargeMWyr:40,compression:0.02,gearing:0.60,debtRate:0.05,substation:24.25,interconnect:17,gridCapFee:0,gridEnergyFee:0,btmCharge:0,lifeY:25}, // defaults: 8h · behind-the-meter charging via direct line → grid fees 0 (sliders remain) · DC reliability charge 40 k€/MW/yr
  dc:{firmMW:500,dcPrice:120,srcMode:'fixed',resFix:99,beMargin:0.03,gridEnergyFee:8.4,gridCapFeeKW:42.84,feeEsc:0.04,resMode:'ppa'}, // feeEsc: BE Trading 14-Jul-26 tariff path = ~4%/yr from 2028 (Arbeitspreis 8.4→18.4, Leistungspreis 42.84→93.87 k€/MW by 2048)
- conn:{directPer100:7.54} // private tie-lines €m per 100 MW; NEB Netzzutritt & customer DC connection live as battery.substation / battery.interconnect
+ conn:{directPer100:10.34} // private tie-lines €m per 100 MW → ~€70m all parks (BE 23-Jul lump sum; Adam's per-km recon pending); NEB Netzzutritt & customer DC connection live as battery.substation / battery.interconnect
 };
 const DEFAULTS_JSON=JSON.stringify(M);
 const Y0=2026,YN=2070,COD=2028,FF=2029,DEPRY=20;
@@ -170,14 +187,14 @@ function dlXLSX(){withXL(()=>{
 });}
 function xirr(cfs,dt){const npv=r=>cfs.reduce((s,c,i)=>s+c/Math.pow(1+r,dt[i]-dt[0]),0);if(npv(0)<=0)return NaN;let a=0,b=0,f=false;for(let r=0.005;r<=10;r+=0.005){if(npv(r)<=0){a=r-0.005;b=r;f=true;break;}}if(!f)return NaN;for(let i=0;i<200;i++){const m=(a+b)/2,v=npv(m);if(Math.abs(v)<1e-7)return m;(v>0)?(a=m):(b=m);}return (a+b)/2;}
 // Net delivered CF = gross × (1 − plant losses) × (1 − direct-line losses). Line-loss basis per BE 15-Jul-26 (Wallern-Tadten operational): 4.0% @ 12.5 km incl LV/MV trafo 0.70% + AC cable 0.72% + MV cable 2.07% + auxiliary 0.50% → ~1.2% fixed + ~0.224%/km. Capacity-weighted route km from BE project list: wind ~14.7 km → ~4.5%, solar ~9.1 km → ~3.3%.
-function effCF(a){ const ll=(1-(a.lineLoss||0)); if(a.basis==='profile') return (a===M.wind?PROFILES.meta.wind_cf:PROFILES.meta.solar_cf)*ll; return a.grossCF*(1-a.loss)*ll;}
+function effCF(a){ const ll=(1-(a.lineLoss||0)); return a.grossCF*(1-a.loss)*ll;} // net delivered CF = slider gross CF × (1−plant loss) × (1−line loss)
 function computeAsset(a){
  const mac=M.macro, allIn=mac.allInRate, netCF=effCF(a);
  const cod=a.codY||FF; // per-asset first generation year (capacity-weighted from BE project list 10 Jul 26)
  const life=a.lifeY||25, endY=cod+life, ppaEnd=cod+Math.min(mac.ppaTermY||20,life), effTenor=Math.min(mac.tenor,life), depY=Math.min(DEPRY,life);
  const tail=(a===M.solar?CAP7.solar:CAP7.wind);
  const cap={}; cap[cod-2]=0.30*a.mw*a.capexPerMW; cap[cod-1]=0.70*a.mw*a.capexPerMW;
- const rows=[]; let bal=0,nol=0,ppy=0;
+ const rows=[]; let bal=0,nol=0,ppy=0,annDS=0;
  for(let y=Y0;y<=YN;y++){
    const op=(y>=cod&&y<endY)?1:0;
    const prod=op? a.mw*8760*netCF*Math.pow(1-a.degr,y-cod):0;
@@ -185,13 +202,14 @@ function computeAsset(a){
    const merch=mac.merchReal*esc, tailP=tail;
    const ppaOn=y<ppaEnd;
    const rev=op?(ppaOn?(a.contr*prod*a.ppa+(1-a.contr)*prod*merch):(prod*tailP))/1e6:0;
-   const opex=op?a.opexPerMW*a.mw*esc:0;
+   const gridFeeM=op?prod*(a.gridFee||0)*esc/1e6:0; // direct private line → no public-grid use-of-system charge (default 0, shown so it's audited as nil)
+   const opex=(op?a.opexPerMW*a.mw*esc:0)+gridFeeM;
    const ebitda=rev-opex;
    const capex=cap[y]||0;
    const dep=(y>=cod&&y<cod+depY)?(a.mw*a.capexPerMW)/depY:0;
    let draw=0,int=0,tax=0,repay=0,fcfe=0;
    if(y<cod){draw=mac.gearing*capex;const idc=(bal+draw/2)*allIn*(capex>0?1:0);bal+=draw+idc;fcfe=-capex+draw;}
-   else{if(y===cod)ppy=bal/effTenor;int=bal*allIn;const ebt=ebitda-dep-int;let taxable=ebt+nol;if(taxable>0){tax=taxable*mac.tax;nol=0;}else{nol=taxable;}repay=(y<cod+effTenor)?Math.min(bal,ppy):0;bal-=repay;fcfe=ebitda-tax-capex-repay-int;}
+   else{if(y===cod){ppy=bal/effTenor;annDS=annPay(bal,allIn,effTenor);}int=bal*allIn;const ebt=ebitda-dep-int;let taxable=ebt+nol;if(taxable>0){tax=taxable*mac.tax;nol=0;}else{nol=taxable;}repay=(y<cod+effTenor)?Math.min(bal,mac.amort==='annuity'?annDS-int:ppy):0;bal-=repay;fcfe=ebitda-tax-capex-repay-int;}
    rows.push({y,prod,rev,opex,ebitda,dep,capex,int,tax,repay,fcfe,debt:bal});
  }
  const totalCapex=a.mw*a.capexPerMW,equity=(1-mac.gearing)*totalCapex,debt=mac.gearing*totalCapex;
@@ -212,7 +230,14 @@ function computeBattery(b){
  const nCh=Math.min(12,Math.max(0,Math.round(effDur*b.cyclesDay)));
  const srt=ph.slice().sort((x,y)=>x-y), buy=srt.slice(0,nCh), sell=srt.slice(24-nCh);
  const sumBuy=buy.reduce((s,x)=>s+x,0), sumSell=sell.reduce((s,x)=>s+x,0), cf=(b.captureFactor||1);
- const dayArb=Math.max(0,b.powerMW*(b.rte*sumSell-sumBuy))*cf;   // €/day
+ // behind-the-meter self-charge: renewable output above DC firm load spills into the battery at btmCharge (€/MWh; default 0 = curtailed/export-banned spill is free)
+ const _wc=[...Array(24)].map((_,h)=>avg(PROFILES.windMonthHour.map(r=>r[h]))), _sc=[...Array(24)].map((_,h)=>avg(PROFILES.solarMonthHour.map(r=>r[h])));
+ const _wS=avg(_wc)>0?(M.wind.grossCF*(1-M.wind.loss))/avg(_wc):0, _sS=avg(_sc)>0?(M.solar.grossCF*(1-M.solar.loss))/avg(_sc):0, _load=M.dc.firmMW;
+ const _wOn=M.wind.on!==false, _sOn=M.solar.on!==false;
+ let surplusDay=0; for(let h=0;h<24;h++){const gen=(_wOn?M.wind.mw*_wc[h]*_wS:0)+(_sOn?M.solar.mw*_sc[h]*_sS:0); surplusDay+=Math.min(b.powerMW,Math.max(0,gen-_load));} // MWh/day of renewable spill the battery can absorb
+ const chargeDay=nCh*b.powerMW, fSelf=chargeDay>0?Math.min(1,surplusDay/chargeDay):0; // share of charging met free from spill
+ const effBuy=sumBuy*(1-fSelf)+fSelf*nCh*(b.btmCharge||0);       // per-MW charge cost over the window: grid portion + BTM portion
+ const dayArb=Math.max(0,b.powerMW*(b.rte*sumSell-effBuy))*cf;   // €/day
  const arbRev=dayArb*365/1e6;                                    // €m/yr
  const deliv=nCh*b.powerMW*b.rte;                                // MWh delivered per day
  const capturedSpread=deliv>0?dayArb/deliv:0;                    // effective €/MWh (declines with duration)
@@ -221,12 +246,14 @@ function computeBattery(b){
  const capRev=b.powerMW*(b.capChargeMWyr||0)/1000; // DC reliability/capacity charge paid by the DC operator
  const totalRev=arbRev+ancRev+capRev;
  const gridCap=b.powerMW*(b.gridCapFee||0)/1000, thru=nCh*b.powerMW*b.rte*365, gridEng=thru*(b.gridEnergyFee||0)/1e6, gridFee=gridCap+gridEng;
- return{energy,usable,cellCapex,icx,sub,inter,capex,perKW,opex,arbRev,ancRev,capRev,totalRev,gridCap,gridEng,gridFee,thru,energy10,capturedSpread,avgBuy,avgSell,nCh};
+ return{energy,usable,cellCapex,icx,sub,inter,capex,perKW,opex,arbRev,ancRev,capRev,totalRev,gridCap,gridEng,gridFee,thru,energy10,capturedSpread,avgBuy,avgSell,nCh,fSelf,surplusDay,chargeDay};
 }
 function batteryDay(){
  const b=M.battery, load=M.dc.firmMW, powMW=b.powerMW, energyMWh=b.powerMW*b.durationH, rt=Math.sqrt(b.rte);
- const wc=[...Array(24)].map((_,h)=>avg(PROFILES.windMonthHour.map(r=>r[h])));
- const sc=[...Array(24)].map((_,h)=>avg(PROFILES.solarMonthHour.map(r=>r[h])));
+ const wc0=[...Array(24)].map((_,h)=>avg(PROFILES.windMonthHour.map(r=>r[h])));
+ const sc0=[...Array(24)].map((_,h)=>avg(PROFILES.solarMonthHour.map(r=>r[h])));
+ const _wS=avg(wc0)>0?(M.wind.grossCF*(1-M.wind.loss))/avg(wc0):0, _sS=avg(sc0)>0?(M.solar.grossCF*(1-M.solar.loss))/avg(sc0):0;
+ const wc=wc0.map(v=>v*_wS), sc=sc0.map(v=>v*_sS); // shape rescaled to the CF slider (net of plant loss)
  let soc=energyMWh*0.5; const res=[],act=[],socP=[],col=[],txt=[];
  for(let h=0;h<24;h++){
    const gen=M.wind.mw*wc[h]+M.solar.mw*sc[h]; res.push(gen); const net=gen-load; let a=0;
@@ -240,6 +267,8 @@ function typicalYear(){const w=[],s=[]; for(let m=0;m<12;m++){for(let d=0;d<DAYS
 function fmt(x,d=1){if(x==null||isNaN(x))return '-';return x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function pct(x,d=1){return (x*100).toFixed(d)+'%';}
 function avg(a){return a.reduce((x,y)=>x+y,0)/a.length;}
+function annPay(bal0,r,n){return (r>0&&n>0)?bal0*r/(1-Math.pow(1+r,-n)):(n>0?bal0/n:0);} // level debt service (annuity) — reduces to flat principal at r=0
+function amortSeg(){return `<div class="inp"><label>Amortization</label><div class="seg"><button class="${M.macro.amort!=='annuity'?'on':''}" onclick="M.macro.amort='flat';render()">Flat principal</button><button class="${M.macro.amort==='annuity'?'on':''}" onclick="M.macro.amort='annuity';render()">Annuity</button></div></div>`;}
 const CFG={displayModeBar:false,responsive:true};
 function lay(title,opts){return Object.assign({
   title:{text:title,font:{size:12.5,color:'#94a2b1'},x:0.5,xanchor:'center',xref:'paper'},
@@ -272,11 +301,12 @@ function assetPage(sec){
  const inputsL=`<div class="panel"><h3>${isWind?'Wind':'Solar'} · plant & technical</h3>
   ${sliderHTML(sec,'mw','Capacity',50,600,5,isWind?' MW<sub>AC</sub>':' MWp<sub>DC</sub>')}
   ${sliderHTML(sec,'capexPerMW','Capex',0.2,2,0.005,isWind?' €k/MW<sub>AC</sub>':' €k/MWp<sub>DC</sub>',1000)}
-  ${basisSeg(sec)}
+  ${sliderHTML(sec,'grossCF','Capacity factor (gross)',isWind?0.15:0.06,isWind?0.5:0.22,0.001,'%',100)}
   ${sliderHTML(sec,'loss',isWind?'Losses (wake, electrical)':'Losses (soiling, inverter)',0,0.1,0.005,'%',100)}
   ${sliderHTML(sec,'lineLoss','Direct-line losses (BE 4%@12.5km)',0,0.08,0.001,'%',100)}
   ${sliderHTML(sec,'degr','Degradation',0,0.02,0.0005,'%/yr',100)}
-  ${sliderHTML(sec,'opexPerMW','Opex (excl land rent - TBC)',0,0.12,0.001,' €k/MW',1000)}
+  ${sliderHTML(sec,'opexPerMW','Opex (all-in incl land; BE breakdown pending)',0,0.12,0.001,' €k/MW',1000)}
+  ${sliderHTML(sec,'gridFee','Grid fee — direct line, nil',0,10,0.5,' €/MWh')}
   ${sliderHTML(sec,'lifeY','Useful life',10,40,1,' yr')}</div>`;
  const inputsR=`<div class="panel"><h3>Commercial & financing</h3>
   ${sliderHTML(sec,'ppa','PPA price',0,150,1,' €/MWh')}
@@ -284,7 +314,8 @@ function assetPage(sec){
   ${sliderHTML('macro','ppaTermY','PPA term',5,30,1,' yr')}
   ${sliderHTML('macro','gearing','Gearing',0,0.9,0.05,'%',100)}
   ${sliderHTML('macro','tenor','Debt tenor',5,25,1,' yrs')}
-  ${sliderHTML('macro','allInRate','All-in rate',0.02,0.08,0.0025,'%',100)}
+  ${sliderHTML('macro','allInRate','All-in rate',0.02,0.08,0.001,'%',100)}
+  ${amortSeg()}
   ${sliderHTML('macro','infl','Inflation',0,0.05,0.0025,'%',100)}</div>`;
  const unit=isWind?'MW<sub>AC</sub>':'MWp<sub>DC</sub>';
  const kpis=`<div class="kpis">
@@ -297,7 +328,7 @@ function assetPage(sec){
    <div class="chart" id="c_prod"></div><div class="chart" id="c_pl"></div>
    <div class="chart" id="c_fin"></div><div class="chart" id="c_debt"></div>
    <div class="chart" id="c_eq"></div><div class="chart" id="c_sens"></div></div>${inputsR}</div>
-   <div class="chart tall" id="c_map" style="margin-top:12px"></div>`;
+   <div class="chart tall" id="c_map" style="margin-top:12px"></div>`+renderBlock(sec);
 }
 function assetRanges(){
  // shared €m scales across wind, solar AND battery so charts are visually comparable
@@ -416,32 +447,33 @@ function batteryPage(){
  const inputsR=`<div class="panel"><h3>Grid, fees & financing</h3>
   ${sliderHTML('battery','gridCapFee','Grid fee - capacity (NE3)',0,50,0.5,' €/kW/yr')}
   ${sliderHTML('battery','gridEnergyFee','Grid fee - energy (NE3)',0,20,0.1,' €/MWh')}
+  ${sliderHTML('battery','btmCharge','BTM self-charge cost (RES spill)',0,80,1,' €/MWh')}
   ${sliderHTML('battery','ancPerMW','Ancillary',0,60,5,' €k/MW/yr')}
   ${sliderHTML('battery','capChargeMWyr','DC reliability charge (paid by DC)',0,150,5,' €k/MW/yr')}
   ${sliderHTML('battery','gearing','Leverage',0,0.9,0.05,'%',100)}
   ${sliderHTML('battery','debtRate','BESS debt rate',0.02,0.08,0.0025,'%',100)}
   ${sliderHTML('battery','substation','NEB Netzzutritt (UW Zurndorf)',0,120,0.25,' €m')}
   ${sliderHTML('battery','interconnect','DC connection (3×3.5km, customer)',0,120,1,' €m')}
-  <div class="inp"><label>First merchant year (export ban to 2035)<b id="lbl_battery_gridYear">${b.gridYear}</b></label><div class="seg">${['2030','2032','2035','2036'].map(y=>`<button class="${b.gridYear==y?'on':''}" onclick="M.battery.gridYear=${y};render()">${y}</button>`).join('')}</div></div>
+  <div class="inp"><label>First merchant year (grid-access scenario)<b id="lbl_battery_gridYear">${b.gridYear>=2099?'Never':b.gridYear}</b></label><div class="seg">${['2030','2032','2035','2036','2099'].map(y=>`<button class="${b.gridYear==y?'on':''}" onclick="M.battery.gridYear=${y};render()">${y==2099?'Never':y}</button>`).join('')}</div></div>
   ${sliderHTML('battery','compression','Rev compression',0,0.2,0.005,'%/yr',100)}</div>`;
  const battCol='var(--batt)', irr=isNaN(F.irr)?'n/m':fmt(F.irr*100,1)+'%';
  const kpis=`<div class="kpis">
   ${kpiM([['Power',fmt(b.powerMW,0),'MW<sub>AC</sub>'],['Energy',fmt(B.energy/1000,1),'GWh'],['Duration',fmt(b.durationH,0),'h']],battCol)}
   ${kpiM([['Capex','€'+fmt(B.capex,0),'m'],['Equity','€'+fmt(F.equity,0),'m'],['Debt','€'+fmt(F.debt,0),'m ('+pct(b.gearing,0)+')']])}
-  ${kpiM([['Arbitrage','€'+fmt(B.arbRev,1),'m/yr'],['Total rev','€'+fmt(B.totalRev,1),'m/yr']])}
+  ${kpiM([['Arbitrage','€'+fmt(B.arbRev,1),'m/yr'],['Total rev','€'+fmt(B.totalRev,1),'m/yr'],['Self-charge',fmt((B.fSelf||0)*100,0)+'%','RES spill']])}
   ${kpiM([['Equity IRR',irr,'levered '+pct(b.gearing,0),battCol],['Captured spread','€'+fmt(B.capturedSpread,0),'/MWh']],battCol)}</div>`;
  setTimeout(drawBatteryCharts,0);
  const expl='';
- const note=`<div class="warn">⚠️ Grid market participation only from ~${b.gridYear} (BE stated the export ban runs to 2035) - the figures shown are the post-${b.gridYear} run-rate. Austria's aFRR market is only ±225 MW deep, so treat ancillary (€${fmt(b.ancPerMW,0)}k/MW/yr) as indicative of a captured slice, not the whole market.</div>
+ const note=(b.gridYear>=2099)?`<div class="warn">⚠️ No grid market participation modeled — the battery earns the DC reliability charge only. BE (23 Jul): a two-way battery grid connection competes with generation projects for scarce grid capacity and regulation is in flux; they put the odds below 50/50 even post-2035.</div>`:`<div class="warn">⚠️ Grid market participation only from ~${b.gridYear} (BE stated the export ban runs to 2035; on 23 Jul BE put &lt;50/50 odds on a two-way battery connection at all — see the 'Never' scenario) - the figures shown are the post-${b.gridYear} run-rate. Austria's aFRR market is only ±225 MW deep, so treat ancillary (€${fmt(b.ancPerMW,0)}k/MW/yr) as indicative of a captured slice, not the whole market.</div>
  <div class="info"><b>Reliability, not tiers:</b> the ${pct(b.socFloor||0,0)} SoC floor (${fmt((b.socFloor||0)*B.energy,0)} MWh) is held as outage ride-through ≈ <b>${fmt((b.socFloor||0)*B.energy/M.dc.firmMW*60,0)} min at the full ${fmt(M.dc.firmMW,0)} MW load</b> vs unplanned SAIDI of ~23 min/yr Austria / <b>~14 min/yr Netz Burgenland area</b> (2024, per BE VDR #208; 35-40 min/yr on wider bases incl. planned). That is effective N+1 on electrons. The grid tie itself is <b>N</b>: Andau feeds through Zurndorf (shared busbar), so it adds capacity, not independent redundancy. No Uptime tier is claimed.</div>`;
  return kpis+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr">
-   <div class="chart tall" id="bch_disp"></div><div class="chart" id="bch_econ"></div></div>${inputsR}</div>${expl}${note}`;
+   <div class="chart tall" id="bch_disp"></div><div class="chart" id="bch_econ"></div></div>${inputsR}</div>${expl}${note}`+renderBlock('battery');
 }
 function computeBatteryFin(){
  // Costs, debt service and (optional) TW capacity charge run from COD; merchant arbitrage+ancillary only from gridYear (export ban).
  const b=M.battery,B=computeBattery(b),mac=M.macro,allIn=(b.debtRate||mac.allInRate),g=(b.gearing!=null?b.gearing:mac.gearing),gy=b.gridYear,comp=b.compression,infl=mac.infl,bdeg=b.degr;
  const life=b.lifeY||25, endY=COD+life, btenor=Math.min(mac.tenor,Math.max(1,endY-(COD+1))), depY=Math.min(15,Math.max(1,endY-(COD+1)));
- const capex=B.capex; let bal=0,nol=0,ppy=0; const rows=[];
+ const capex=B.capex; let bal=0,nol=0,ppy=0,annDS=0; const rows=[];
  for(let y=Y0;y<=YN;y++){
   let rev=0,opex=0,int=0,t=0,repay=0,fcfe=0;
   if(y===COD){const draw=g*capex;bal=draw;fcfe=-capex+draw;}
@@ -451,9 +483,9 @@ function computeBatteryFin(){
    const capR=(B.capRev||0)*Math.pow(1+infl,y-(COD+1));
    rev=merch+capR;
    opex=B.opex*Math.pow(1+infl,y-2023)+((y>=gy)?B.gridFee*feeF(y):0);
-   if(ppy===0)ppy=bal/btenor; int=bal*allIn;
+   if(ppy===0){ppy=bal/btenor;annDS=annPay(bal,allIn,btenor);} int=bal*allIn;
    const dep=(y<=COD+depY)?capex/depY:0; const ebt=rev-opex-dep-int; let tb=ebt+nol; if(tb>0){t=tb*mac.tax;nol=0;}else{nol=tb;}
-   repay=(y<=COD+btenor)?Math.min(bal,ppy):0; bal-=repay; fcfe=rev-opex-t-repay-int;
+   repay=(y<=COD+btenor)?Math.min(bal,mac.amort==='annuity'?annDS-int:ppy):0; bal-=repay; fcfe=rev-opex-t-repay-int;
   }
   rows.push({y,rev,fcfe});
  }
@@ -560,7 +592,7 @@ function summaryPage(){
   ${sliderHTML('wind','ppa','PPA wind',0,150,1,' €/MWh')}${sliderHTML('solar','ppa','PPA solar',0,150,1,' €/MWh')}
   ${sliderHTML('dc','dcPrice','DC price',80,180,1,' €/MWh')}${sliderHTML('dc','firmMW','DC firm',100,900,10,' MW<sub>AC</sub>')}
   ${sliderHTML('macro','gearing','Gearing',0,0.9,0.05,'%',100)}${sliderHTML('macro','tenor','Debt tenor',5,25,1,' yrs')}
-  ${sliderHTML('macro','allInRate','All-in rate',0.02,0.08,0.0025,'%',100)}${sliderHTML('battery','compression','Batt compression',0,0.2,0.005,'%/yr',100)}
+  ${sliderHTML('macro','allInRate','All-in rate',0.02,0.08,0.001,'%',100)}${amortSeg()}${sliderHTML('battery','compression','Batt compression',0,0.2,0.005,'%/yr',100)}
   ${sliderHTML('conn','directPer100','Direct line',0,20,0.5,' €m/100MW')}${sliderHTML('macro','infl','Inflation',0,0.05,0.005,'%',100)}
   <div class="inp"><label>Decouple preset</label><div class="seg"><button onclick="M.wind.ppa=85;M.solar.ppa=40;render()">Wind 85 / Solar 40</button><button onclick="M.wind.ppa=100;M.solar.ppa=100;render()">Flat 100</button></div></div></div>`;
  const eqRow=(n,c,l,p)=>`<tr><td><b style="color:${c}">${n}</b></td><td>${l}</td><td>${p}</td></tr>`;
@@ -572,7 +604,7 @@ function summaryPage(){
    <tr class="tot"><td>Total SPV equity</td><td>${fmt(totEqLCOE,0)}</td><td>${fmt(totEqPPA,0)}</td></tr>
    </tbody></table><div class="muted" style="margin-top:8px">LCOE case: the SPV owns wind, solar, battery and the line. PPA case: only the battery and line (renewables bought at €${fmt(ppaUnit,0)}), a far smaller equity check. Wind, solar and line levered ${pct(M.macro.gearing,0)}; battery ${pct(M.battery.gearing,0)}.</div>
    <div class="warn" style="margin-top:10px"><b>Interconnection burden (€${fmt(line+M.battery.substation+M.battery.interconnect,0)}m + €6m Netzbereitstellung):</b> private RES tie-lines €${fmt(line,0)}m (€7.5m per 100 MW × ${fmt(M.wind.mw+M.solar.mw,0)} MW - all new-build, no double count) + NEB Netzzutritt €${fmt(M.battery.substation,1)}m (new 110-kV switching station at UW Zurndorf; NEB estimate 26-Jun-26, <b>billed on actual costs</b>) + customer-side DC connection €${fmt(M.battery.interconnect,0)}m (3×3.5 km 110-kV feeders + bays - explicitly outside NEB scope) + Netzbereitstellungsentgelt €6m (12 €/kW tariff). This interconnection layer, not the PPA, is the heaviest single burden in the integration case; cost allocation across the parties is under discussion. Slot reservation: Reugeld = 40% of expected connection costs (~€10m), 12-month use-it-or-lose-it, queue rank = deposit timestamp. <b>Distance-weighted check:</b> BE cluster distances × #7 unit cost (€7.54m/100MW/10km) ⇒ ~€${fmt(dwLine,0)}m for the private ties vs €${fmt(line,0)}m on the slider — far clusters (Frauenkirchen ~19 km, Tadten-Wallern ~27 km) push above the flat €7.5m/100MW unless a shared trunk is used.</div></div>`;
- return `<div class="grid cols">${masters}<div class="grid">${table}${spvBlock}${equityBuild}<div class="chart tall" id="spvEcon"></div><div class="chart tall" id="spvcf"></div><div class="chart" id="sbal"></div></div></div>`;
+ return `<div class="grid cols">${masters}<div class="grid">${table}${spvBlock}${equityBuild}<div class="chart tall" id="spvEcon"></div><div class="chart tall" id="spvcf"></div><div class="chart" id="sbal"></div></div></div>`+renderBlock('dc');
 }
 function drawSummaryBalance(){
  const W=computeAsset(M.wind),S=computeAsset(M.solar),dcLoad=M.dc.firmMW*8760/1e6;
@@ -619,7 +651,7 @@ function computeSPV(dcP){
  const resIn=owned?resCx:0, totCap=resIn+battCx+lineCx, totDebt=g*(resIn+lineCx)+battG*battCx, blendG=totCap>0?totDebt/totCap:g;
  const bRate=(M.battery.debtRate||allIn), xRate=totDebt>0?((g*(resIn+lineCx))*allIn+(battG*battCx)*bRate)/totDebt:allIn; // debt-weighted blended rate (audit 15 Jul: battery debt was priced at the RES all-in rate here, 4.5% vs its own 5.0%)
  const lev=cap, depBase=owned?(resCx+battCx+lineCx):(battCx+lineCx);
- let bal=0,nol=0,ppy=0; const rows=[];
+ let bal=0,nol=0,ppy=0,annDS=0; const rows=[];
  const resLife=Math.max(M.wind.lifeY||25,M.solar.lifeY||25), spvEnd=FF+resLife, effTen=Math.min(tenor,resLife), depN=Math.min(20,resLife), battEnd=COD+(M.battery.lifeY||25);
  for(let y=Y0;y<=YN;y++){
   const op=(y>=FF&&y<spvEnd)?1:0, wr=W.rows.find(r=>r.y===y), sr=S.rows.find(r=>r.y===y);
@@ -635,7 +667,7 @@ function computeSPV(dcP){
   const dep=(y>=FF&&y<FF+depN)?depBase/depN:0, capex=cap[y]||0;
   let int=0,t=0,repay=0,fcfe=0;
   if(y<FF){const draw=(lev[y]||0)*blendG;const idc=(bal+draw/2)*xRate*(capex>0?1:0);bal+=draw+idc;fcfe=-capex+draw;}
-  else{if(y===FF)ppy=bal/effTen;int=bal*xRate;const ebt=ebitda-dep-int;let tb=ebt+nol;if(tb>0){t=tb*mac.tax;nol=0;}else{nol=tb;}repay=(y<FF+effTen)?Math.min(bal,ppy):0;bal-=repay;fcfe=ebitda-t-capex-repay-int;}
+  else{if(y===FF){ppy=bal/effTen;annDS=annPay(bal,xRate,effTen);}int=bal*xRate;const ebt=ebitda-dep-int;let tb=ebt+nol;if(tb>0){t=tb*mac.tax;nol=0;}else{nol=tb;}repay=(y<FF+effTen)?Math.min(bal,mac.amort==='annuity'?annDS-int:ppy):0;bal-=repay;fcfe=ebitda-t-capex-repay-int;}
   rows.push({y,rev,bRev,gridCost,resPPA,opex,int,repay,tax:t,ebitda,fcfe});
  }
  const irr=xirr(rows.map(r=>r.fcfe),rows.map(r=>r.y+0.99));
@@ -795,6 +827,656 @@ function drawPrices(){
    {x:MONTHS,y:PRICES.windMo,name:'Wind profile',type:'scatter',yaxis:'y2',mode:'lines',fill:'tozeroy',line:{color:'#4aa8ff',width:2},fillcolor:'rgba(74,168,255,0.14)',hovertemplate:'wind %{y:.2f}<extra></extra>'}
  ],lay('Seasonal shape ('+priceYear+')<br><span style="font-size:10px">monthly price vs wind & solar profiles</span>',{showlegend:true,yaxis:{title:{text:'€/MWh',font:{size:10}},gridcolor:'#1c2531',zeroline:false},xaxis:{gridcolor:'#1c2531'},yaxis2:{overlaying:'y',side:'right',range:[0,0.6],title:{text:'profile',font:{size:9}},gridcolor:'transparent'}}),CFG);
 }
+/* ===================== CONCEPT RENDERINGS (technical) =====================
+   Drawings generated from live model state M. Every dimension is read from M,
+   derived by a stated rule, or explicitly tagged. Confidence classes:
+   C = Confirmed (named VDR document) · D = Derived (rule stated in register)
+   I = Indicative (industry standard, not project-confirmed) · P = Open question
+   ------------------------------------------------------------------------- */
+const RC={bg:'#0d1319',gr:'#16202a',ln:'#2b3644',tx:'#e8eef3',mu:'#94a2b1',dim:'#7d8fa1',
+ wind:'#4aa8ff',solar:'#ffb23e',batt:'#b98cff',acc:'#45b85d',nex:'#3DAE3A',cab:'#43c079',
+ red:'#ff6b6b',crop:'#1d2a20',road:'#39465a',bld:'#2c3a4a',steel:'#8fa3b8',ghost:'#4a5668'};
+const TECH={
+ turbRatedMW:7.2,rotorD:162,hubH:166,dCross:4.5,dDown:7.5,padHa:0.40,
+ modWp:627.5,modL:2.382,modW:1.134,invKW:330,dcac:1.20,gcr:0.40,chord:2.38,
+ trkH:1.8,agriH:2.9,strMod:26,haPerMWp:1.45,agriHaPerMWp:2.2,
+ contMWh:5.0,contL:6.06,contW:2.44,contH:2.90,pcsMW:3.45,blockMW:20,
+ pue:1.35,hallMW:35,hallM2:14000,hallW:70,hallD:200};
+const CONF={C:['CONFIRMED','#43c079'],D:['DERIVED','#4aa8ff'],I:['INDICATIVE','#ffb23e'],P:['OPEN','#ff6b6b']};
+function fin(v,f){return Number.isFinite(v)?v:(f||0);}
+function fx(v,d){return Number.isFinite(v)?v.toFixed(d==null?1:d):'—';}
+function sane(s){return String(s).replace(/="[^"]*"/g,m=>/NaN|Infinity/.test(m)?m.replace(/-?(?:NaN|Infinity)/g,'0'):m);}
+function cfPill(k){const c=CONF[k]||CONF.I;return `<span class="cf" style="background:${c[1]}1f;color:${c[1]};border:1px solid ${c[1]}55">${c[0]}</span>`;}
+function reg(rows){return `<details class="rreg"><summary>Source register &amp; derivation — ${rows.length} entries</summary><table><tbody>${rows.map(r=>`<tr><td>${cfPill(r[0])}</td><td><b>${r[1]}</b></td><td>${r[2]}</td></tr>`).join('')}</tbody></table></details>`;}
+function lg(c,t,d){return `<span><i style="background:${d?'transparent':c};${d?'border-bottom:2px dashed '+c+';height:0':''}"></i>${t}</span>`;}
+function rpanel(title,sub,svg,rows,legend){
+ return `<div class="panel rpanel" style="margin-top:12px"><h3>${title}</h3><div class="rsub">${sub}</div>${svg}`+
+  `${legend?`<div class="rlegend">${legend}</div>`:''}${reg(rows)}</div>`;}
+function sv(w,h,body,mh){return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"${mh?` style="max-height:${mh}px"`:''}>${sane(body)}</svg>`;}
+function tx(x,y,s,o){o=o||{};x=fin(x);y=fin(y);return `<text x="${x}" y="${y}" fill="${o.f||RC.mu}" font-size="${o.s||11}" text-anchor="${o.a||'start'}"`+
+ `${o.w?' font-weight="'+o.w+'"':''}${o.m?' class="mono"':''}${o.r!=null?` transform="rotate(${o.r} ${x} ${y})"`:''}${o.o!=null?` opacity="${o.o}"`:''}>${s}</text>`;}
+function rct(x,y,w,h,f,s,o){return `<rect x="${fin(x)}" y="${fin(y)}" width="${Math.max(0,fin(w))}" height="${Math.max(0,fin(h))}" fill="${f||'none'}"${s?` stroke="${s}" stroke-width="${(o&&o.sw)||1}"`:''}`+
+ `${o&&o.rx?` rx="${o.rx}"`:''}${o&&o.d?` stroke-dasharray="${o.d}"`:''}${o&&o.op!=null?` opacity="${o.op}"`:''}/>`;}
+function ln(x1,y1,x2,y2,c,w,d){return `<line x1="${fin(x1)}" y1="${fin(y1)}" x2="${fin(x2)}" y2="${fin(y2)}" stroke="${c||RC.ln}" stroke-width="${w||1}"${d?` stroke-dasharray="${d}"`:''}/>`;}
+function dimH(x1,x2,y,label,col,below){col=col||RC.dim;
+ return ln(x1,y,x2,y,col,1)+ln(x1,y-4,x1,y+4,col,1)+ln(x2,y-4,x2,y+4,col,1)+
+  tx((x1+x2)/2,below?y+12:y-5,label,{a:'middle',f:col,s:10,m:1});}
+function dimV(y1,y2,x,label,col,right){col=col||RC.dim;
+ return ln(x,y1,x,y2,col,1)+ln(x-4,y1,x+4,y1,col,1)+ln(x-4,y2,x+4,y2,col,1)+
+  tx(right?x+11:x-6,(y1+y2)/2,label,{a:'middle',f:col,s:10,m:1,r:-90});}
+function scaleBar(x,y,pxPerM,niceM,unit){
+ const w=Math.min(320,Math.max(0,fin(pxPerM)*niceM)),lab=unit==='km'?(niceM/1000)+' km':niceM+' m';
+ return rct(x,y,w,5,RC.mu)+rct(x,y,w/2,5,RC.bg)+rct(x,y,w,5,'none',RC.mu)+
+  tx(x,y+17,'0',{a:'middle',s:9.5,m:1})+tx(x+w,y+17,lab,{a:'middle',s:9.5,m:1});}
+function northArrow(x,y,r,rot){rot=rot||0;
+ const a=rot*Math.PI/180, lx=x+Math.sin(a)*(r+10), ly=y-Math.cos(a)*(r+10);   // N stays upright
+ return `<g transform="rotate(${rot} ${x} ${y})"><polygon points="${x},${y-r} ${x-r*0.42},${y+r*0.72} ${x},${y+r*0.34} ${x+r*0.42},${y+r*0.72}" fill="${RC.mu}"/></g>`+
+  `<text x="${fin(lx)}" y="${fin(ly)+3.5}" fill="${RC.mu}" font-size="10" text-anchor="middle" font-weight="700">N</text>`;}
+function frame(x,y,w,h,title){return rct(x,y,w,h,RC.bg,RC.ln)+tx(x+10,y+17,title,{f:RC.tx,s:11.5,w:600});}
+function nfm(v,d){return Number.isFinite(v)?v.toLocaleString('en-US',{minimumFractionDigits:d||0,maximumFractionDigits:d||0}):'—';}
+/* word-wrap into stacked <text> lines — keeps captions inside their boxes */
+function wrapT(x,y,s,maxCh,lh,o){
+ const words=String(s).split(' '),lines=[];let cur='';
+ words.forEach(w=>{if(cur&&(cur+' '+w).length>maxCh){lines.push(cur);cur=w;}else cur=(cur?cur+' ':'')+w;});
+ if(cur)lines.push(cur);
+ return lines.map((L,i)=>tx(x,y+i*(lh||12),L,o)).join('');
+}
+/* dimension parallel to an arbitrary segment, offset perpendicular */
+function dimSeg(x1,y1,x2,y2,off,label,col){col=col||RC.dim;
+ const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,nx=uy,ny=-ux;
+ const ax=x1+nx*off,ay=y1+ny*off,bx=x2+nx*off,by=y2+ny*off,ang=Math.atan2(dy,dx)*180/Math.PI;
+ return ln(x1,y1,ax,ay,col,.7)+ln(x2,y2,bx,by,col,.7)+ln(ax,ay,bx,by,col,1)+
+  ln(ax-nx*4,ay-ny*4,ax+nx*4,ay+ny*4,col,1)+ln(bx-nx*4,by-ny*4,bx+nx*4,by+ny*4,col,1)+
+  tx((ax+bx)/2,(ay+by)/2-4,label,{a:'middle',f:col,s:9.5,m:1,r:ang});
+}
+
+function windGeom(){
+ const mw=M.wind.mw,rt=TECH.turbRatedMW,N=Math.max(1,Math.ceil(mw/rt));
+ const sx=TECH.dCross*TECH.rotorD,sy=TECH.dDown*TECH.rotorD;
+ const rows=Math.max(1,Math.round(Math.sqrt(N*sx/sy))),cols=Math.ceil(N/rows);
+ return{mw,rt,N,sx,sy,rows,cols,Wm:cols*sx,Hm:rows*sy,
+  envHa:cols*sx*rows*sy/1e4,takeHa:N*TECH.padHa,tipH:TECH.hubH+TECH.rotorD/2};
+}
+function svgWindPark(){
+ const g=windGeom(),R=computeAsset(M.wind);
+ const PX=30,PY=44,PW=560,PH=452;                          // plan box
+ const sc=Math.min((PW-104)/g.Wm,(PH-128)/g.Hm), rr=TECH.rotorD/2*sc;
+ const ox=PX+54+((PW-104)-g.Wm*sc)/2, oy=PY+58+((PH-128)-g.Hm*sc)/2;
+ const dvY=oy+(g.rows>1?g.sy*sc:0);                        // downwind pitch shown on the 2nd bay
+ const cmpX=PX+PW-32;                                      // compass / wind column, right margin
+ let turb='';
+ for(let i=0;i<g.N;i++){
+  const r=Math.floor(i/g.cols),c=i%g.cols;
+  const cx=ox+(c+0.5)*g.sx*sc, cy=oy+(r+0.5)*g.sy*sc;
+  turb+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${rr.toFixed(1)}" fill="${RC.wind}" opacity=".10"/>`+
+   `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${rr.toFixed(1)}" fill="none" stroke="${RC.wind}" stroke-width=".7" opacity=".55"/>`+
+   `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="1.6" fill="${RC.wind}"/>`;
+ }
+ // wake shadow behind first row (illustrative)
+ let wake='';
+ for(let c=0;c<g.cols;c++){const cx=ox+(c+0.5)*g.sx*sc;
+  wake+=`<path d="M ${(cx-rr).toFixed(1)} ${(oy+g.sy*sc*0.5).toFixed(1)} L ${(cx-rr*2.1).toFixed(1)} ${(oy+g.sy*sc*1.5).toFixed(1)} L ${(cx+rr*2.1).toFixed(1)} ${(oy+g.sy*sc*1.5).toFixed(1)} L ${(cx+rr).toFixed(1)} ${(oy+g.sy*sc*0.5).toFixed(1)} Z" fill="${RC.wind}" opacity=".055"/>`;}
+ const plan=frame(PX,PY,PW,PH,'PLAN — array geometry')+
+  rct(ox,oy,g.Wm*sc,g.Hm*sc,RC.crop,RC.ln,{d:'4 3'})+wake+turb+
+  dimH(ox,ox+g.sx*sc,oy-10,`${nfm(g.sx)} m = ${TECH.dCross}D crosswind`,RC.dim)+
+  dimV(dvY,dvY+g.sy*sc,ox-12,`${nfm(g.sy)} m = ${TECH.dDown}D`,RC.dim)+
+  dimH(ox,ox+g.Wm*sc,oy+g.Hm*sc+20,`envelope ${(g.Wm/1000).toFixed(1)} km`,RC.mu,1)+
+  dimV(oy,oy+g.Hm*sc,ox+g.Wm*sc+16,`${(g.Hm/1000).toFixed(1)} km`,RC.mu,1)+
+  northArrow(cmpX,PY+40,11,45)+
+  `<g><path d="M ${cmpX} ${PY+72} l 0 26 l -5.5 -6.5 m 5.5 6.5 l 5.5 -6.5" stroke="${RC.wind}" stroke-width="1.7" fill="none"/></g>`+
+  tx(cmpX,PY+114,'prevailing',{a:'middle',f:RC.wind,s:9.5})+
+  tx(cmpX,PY+125,'wind, NW',{a:'middle',f:RC.wind,s:9.5})+
+  scaleBar(PX+18,PY+PH-26,sc,1000,'km')+
+  tx(PX+PW-14,PY+PH-14,`${g.N} × ${g.rt} MW  ·  ${g.rows} rows × ${g.cols}`,{a:'end',s:10,m:1});
+ // ---- elevation ----
+ const EX=608,EY=44,EW=462,EH=452, gnd=EY+EH-52;
+ const vs=(EH-118)/g.tipH, hub=gnd-TECH.hubH*vs, br=TECH.rotorD/2*vs, cxE=EX+188;
+ const blades=[0,120,240].map(a=>`<g transform="rotate(${a} ${cxE} ${hub})"><path d="M ${cxE} ${hub} l -3.2 -${br*0.16} L -0 0 z" fill="none"/>`+
+  `<path d="M ${cxE-3.4} ${hub-br*0.1} Q ${cxE-2.2} ${hub-br*0.6} ${cxE-0.6} ${hub-br} Q ${cxE+2.4} ${hub-br*0.55} ${cxE+3.6} ${hub-br*0.08} Z" fill="${RC.steel}" opacity=".9"/></g>`).join('');
+ const tower=`<polygon points="${cxE-9},${gnd} ${cxE-3.1},${hub} ${cxE+3.1},${hub} ${cxE+9},${gnd}" fill="${RC.steel}" opacity=".8"/>`;
+ const nac=rct(cxE-3.4,hub-5,17,10,RC.steel,null,{rx:3});
+ const refH=136.4, refY=gnd-refH*vs;                        // Stephansdom
+ const elev=frame(EX,EY,EW,EH,'ELEVATION — single machine to scale')+
+  ln(EX+8,gnd,EX+EW-8,gnd,RC.ln,1.4)+
+  rct(EX+8,gnd,EW-16,EH-(gnd-EY)-8,RC.crop)+
+  // reference silhouettes
+  rct(EX+EW-178,gnd-9.5*vs,26,9.5*vs,RC.bld)+`<polygon points="${EX+EW-181},${gnd-9.5*vs} ${EX+EW-165},${gnd-14*vs} ${EX+EW-149},${gnd-9.5*vs}" fill="${RC.bld}"/>`+
+  tx(EX+EW-165,gnd+13,'farmstead',{a:'middle',s:9,m:1})+tx(EX+EW-165,gnd+23,'~14 m',{a:'middle',s:9,m:1})+
+  rct(EX+EW-64,refY,15,refH*vs,RC.ghost,null,{op:.55})+`<polygon points="${EX+EW-64},${refY} ${EX+EW-56.5},${refY-16}, ${EX+EW-49},${refY}" fill="${RC.ghost}" opacity=".55"/>`+
+  tx(EX+EW-56,gnd+13,'Stephansdom',{a:'middle',s:9,m:1})+tx(EX+EW-56,gnd+23,'136 m',{a:'middle',s:9,m:1})+
+  tower+nac+blades+`<circle cx="${cxE}" cy="${hub}" r="4" fill="${RC.tx}"/>`+
+  ln(cxE-br-6,hub,cxE+br+6,hub,RC.wind,.6,'3 3')+
+  dimV(hub,gnd,cxE-br-24,`hub ${TECH.hubH} m`,RC.wind)+
+  dimV(hub-br,gnd,EX+22,`tip ${nfm(g.tipH)} m`,RC.mu)+
+  dimH(cxE-br,cxE+br,hub-br-16,`rotor Ø ${TECH.rotorD} m`,RC.wind)+
+  tx(EX+14,EY+EH-30,`swept ${nfm(Math.PI*Math.pow(TECH.rotorD/2,2))} m² · specific power ${nfm(g.rt*1e6/(Math.PI*Math.pow(TECH.rotorD/2,2)),0)} W/m²`,{s:9.5,m:1});
+ const svg=sv(1100,540,rct(0,0,1100,540,RC.bg)+plan+elev,600);
+ const sub=`<b>${nfm(g.N)} machines</b> at ${g.rt} MW to reach the <b>${nfm(g.mw)} MW<sub>AC</sub></b> on the slider, drawn at IEC spacing. `+
+  `Array envelope <b>${nfm(g.envHa)} ha</b>; permanently sealed (foundations, crane pads, access) <b>${nfm(g.takeHa)} ha = ${(g.takeHa/g.envHa*100).toFixed(2)}%</b> — the other 99.5% stays in cultivation. `+
+  `Yield ${nfm(R.prod/g.mw)} MWh/MW<sub>AC</sub> at ${pct(effCF(M.wind),1)} net. `+
+  `<b>This is a spacing study, not a proposed layout</b>: the ${nfm(g.mw)} MW is split across Halbturn/Mönchhof, Frauenkirchen I–III, Andau II, Zurndorf II and Nick Alpha, each already sited in its own permit. Drawn as one array to show the spacing rule and the land arithmetic.`;
+ const rows=[
+  ['C','Turbine platform','VDR <i>EnVentus_Platform_Brochure.pdf</i> and <i>0112-2836_2-DE Allgemeine Beschreibung EnVentus 7 MW</i> — Vestas EnVentus, ~7 MW class, is the machine BE has in the data room.'],
+  ['I','Rotor 162 m / hub 166 m / 7.2 MW','V162-7.2 MW variant assumed. The platform is confirmed; the exact variant and hub option are not. Tip height follows as hub + rotor/2 = '+nfm(g.tipH)+' m.'],
+  ['C','Real turbine positions exist','<i>#49 B.02.02.00-00 Plan Lagepläne Vorhaben [A0]</i> carries the surveyed Halbturn positions. This figure does not reproduce them — swap it for the A0 sheet when siting matters.'],
+  ['D','Machine count','ceil(' + nfm(g.mw) + ' MW ÷ ' + g.rt + ' MW) = ' + g.N + '. Re-computes live from the capacity slider.'],
+  ['I','Spacing '+TECH.dCross+'D × '+TECH.dDown+'D','Standard onshore practice for a wake loss inside the '+pct(M.wind.loss,1)+' loss allowance already in the model. Rows set perpendicular to the prevailing NW flow.'],
+  ['D','Array envelope','cols × '+nfm(g.sx)+' m by rows × '+nfm(g.sy)+' m = '+nfm(g.envHa)+' ha gross.'],
+  ['I','Permanent take '+TECH.padHa+' ha/turbine','Foundation, crane hardstand and access spur. Austrian consenting practice; not from a project document.'],
+  ['C','Impact studies are in the VDR','<i>#28 Wirkfaktor Schattenwurf</i> (shadow flicker), <i>#28 Wirkfaktor Eisabfall</i> (ice throw), <i>#28 Wirkfaktor Schall Betriebsphase</i> (operational noise), <i>#50 D.03.10.00-00 Fachbeitrag Landschaft</i> (48 pp of photomontage and viewshed). Setback rings are not drawn here — they come from those studies, not from a rule of thumb.']];
+ return rpanel('Wind — array geometry and machine scale',sub,svg,rows,
+  lg(RC.wind,'rotor swept circle (true scale)')+lg(RC.wind,'wake shadow, first row')+lg(RC.crop,'land remaining in cultivation')+lg(RC.steel,'machine'));
+}
+
+function solarGeom(){
+ const mwp=M.solar.mw, pitch=TECH.chord/TECH.gcr, pac=mwp/TECH.dcac;
+ const mods=Math.round(mwp*1e6/TECH.modWp), strMod=TECH.strMod;
+ const strings=Math.round(mods/strMod), inv=Math.ceil(pac*1000/TECH.invKW);
+ const mvUnits=Math.ceil(pac/6.6), haStd=mwp*TECH.haPerMWp, haAgri=mwp*TECH.agriHaPerMWp;
+ return{mwp,pac,pitch,mods,strings,inv,mvUnits,haStd,haAgri,strPerInv:inv>0?Math.round(strings/inv):0};
+}
+function svgSolarArray(){
+ const g=solarGeom(),R=computeAsset(M.solar);
+ // ---------- A: tracker cross-section ----------
+ const AX=24,AY=40,AW=690,AH=250, gnd=AY+AH-56;
+ const mpp=Math.min(150,(AW-150)/(2*g.pitch+TECH.chord));  // px per metre
+ const tube=gnd-TECH.trkH*mpp, half=TECH.chord/2*mpp;
+ function table(cx,tilt,op,sw){
+  const dx=Math.cos(tilt*Math.PI/180)*half, dy=Math.sin(tilt*Math.PI/180)*half;
+  return `<line x1="${(cx-dx).toFixed(1)}" y1="${(tube+dy).toFixed(1)}" x2="${(cx+dx).toFixed(1)}" y2="${(tube-dy).toFixed(1)}" stroke="${RC.solar}" stroke-width="${sw||5}" stroke-linecap="round" opacity="${op||1}"/>`+
+   ln(cx,tube,cx,gnd,RC.steel,2.2)+`<circle cx="${cx}" cy="${tube}" r="2.6" fill="${RC.steel}"/>`;
+ }
+ const x0=AX+96;
+ let rowsSvg='';
+ for(let i=0;i<3;i++){const cx=x0+i*g.pitch*mpp;
+  rowsSvg+=table(cx,42,.10,2)+table(cx,0,.10,2)+table(cx,-42,1,5);}
+ const A=frame(AX,AY,AW,AH,'SECTION — single-axis tracker row, looking north')+
+  rct(AX+8,gnd,AW-16,AH-(gnd-AY)-8,RC.crop)+ln(AX+8,gnd,AX+AW-8,gnd,RC.ln,1.4)+rowsSvg+
+  dimH(x0,x0+g.pitch*mpp,gnd+20,`pitch ${g.pitch.toFixed(2)} m (GCR ${TECH.gcr})`,RC.mu)+
+  dimV(tube,gnd,x0-42,`torque tube ${TECH.trkH} m`,RC.dim)+
+  dimSeg(x0-Math.cos(42*Math.PI/180)*half,tube+Math.sin(-42*Math.PI/180)*half,
+         x0+Math.cos(42*Math.PI/180)*half,tube-Math.sin(-42*Math.PI/180)*half,
+         34,`chord ${TECH.chord} m (1P)`,RC.solar)+
+  `<path d="M ${x0+16} ${tube-12} A 24 24 0 0 1 ${x0+16} ${tube+12}" fill="none" stroke="${RC.solar}" stroke-width="1" stroke-dasharray="2 2"/>`+
+  tx(x0+42,tube+38,'±60° travel, backtracking at low sun',{f:RC.solar,s:9.5})+
+  tx(AX+14,AY+AH-12,`module ${TECH.modL}×${TECH.modW} m bifacial ${TECH.modWp} Wp · ${TECH.strMod}/string (1500 V) · rear-side gain not credited in the ${pct(M.solar.grossCF,2)} CF`,{s:9.5,m:1})+
+  // agri-PV option ghost
+  ln(AX+AW-172,gnd-TECH.agriH*mpp,AX+AW-40,gnd-TECH.agriH*mpp,RC.red,1,'4 3')+
+  tx(AX+AW-106,gnd-TECH.agriH*mpp-6,`agri-PV option: tube at ${TECH.agriH} m`,{a:'middle',f:RC.red,s:9.5});
+ // ---------- B: electrical block ----------
+ const BX=730,BY=40,BW=346,BH=250;
+ const chain=[['modules',nfm(g.mods),RC.solar],['strings',nfm(g.strings),RC.solar],
+  [`inverters ${TECH.invKW} kW`,nfm(g.inv),RC.acc],[`MV stations 6.6 MVA`,nfm(g.mvUnits),RC.acc],
+  ['30 kV internal ring','1',RC.cab],['110 kV direct line to GDC','buried',RC.cab]];
+ let cb='';
+ chain.forEach((c,i)=>{const y=BY+40+i*31;
+  cb+=rct(BX+16,y,BW-110,25,RC.gr,c[2],{rx:5,sw:.9})+tx(BX+26,y+17,c[0],{f:RC.tx,s:10.5})+
+   tx(BX+BW-102,y+17,c[1],{a:'end',f:c[2],s:11,w:700,m:1})+
+   (i<chain.length-1?`<path d="M ${BX+(BW-110)/2+16} ${y+25} l 0 8 l -4 -4 m 4 4 l 4 -4" stroke="${RC.mu}" stroke-width="1" fill="none"/>`:'');});
+ const B=frame(BX,BY,BW,BH,'ELECTRICAL — collection chain')+cb+
+  tx(BX+16,BY+BH-12,`DC/AC ${TECH.dcac} → ${nfm(g.pac)} MW`+'<tspan baseline-shift="sub" font-size="8">AC</tspan>'+` at the point of export`,{s:9.5,m:1});
+ // ---------- C: land footprint block plan ----------
+ const CX=24,CY=304,CW=1052,CH=196;
+ const sideM=Math.sqrt(Math.max(g.haStd,0.5)*1e4);
+ const agriM=Math.sqrt(Math.max(g.haAgri,0.5)*1e4), mpp2=(CH-64)/Math.max(sideM,agriM);
+ const bw=sideM*mpp2, bx=CX+24, by=CY+34;
+ let stripes='';
+ const nStripes=Math.max(0,Math.min(46,Math.floor(sideM/g.pitch/4)));
+ for(let i=0;i<nStripes;i++){const yy=by+ (i+0.5)*(bw/nStripes);
+  stripes+=ln(bx+3,yy,bx+bw-3,yy,RC.solar,1.1,null);}
+ const agriSide=agriM*mpp2;
+ const C=frame(CX,CY,CW,CH,'PLAN — land take at portfolio scale')+
+  rct(bx,by,bw,bw,RC.gr,RC.solar,{sw:1})+`<g opacity=".45">${stripes}</g>`+
+  rct(bx,by,agriSide,agriSide,'none',RC.red,{d:'5 4'})+
+  tx(bx+agriSide+22,by+14,`${nfm(g.haStd)} ha`,{f:RC.solar,s:13,w:700,m:1})+
+  tx(bx+agriSide+22,by+30,`standard HSAT · ${TECH.haPerMWp} ha/MWp`,{f:RC.solar,s:10})+
+  tx(bx+agriSide+22,by+46,`${nfm(g.haAgri)} ha as elevated agri-PV`,{f:RC.red,s:11,w:600,m:1})+
+  tx(bx+agriSide+22,by+62,`(${TECH.agriHaPerMWp} ha/MWp — dashed outline)`,{f:RC.red,s:10})+
+  scaleBar(CX+236,CY+CH-30,mpp2,1000,'km')+
+  tx(CX+470,by+18,`${nfm(g.mwp)} MWp`+'<tspan baseline-shift="sub" font-size="8">DC</tspan>'+` · ${nfm(R.prod/1000)} GWh yr-1 · ${nfm(R.prod/g.mwp)} MWh/MWp`,{f:RC.tx,s:12,w:600,m:1})+
+  wrapT(CX+470,by+40,`Spread across St. Andrä, Mönchhof, Nickelsdorf-Ratzenböck, Tadten-Wallern, Halbturn I–III and Frauenkirchen — not one field.`,72,15,{s:10.5})+
+  wrapT(CX+470,by+76,`Built reference in the VDR: SonnenPark Tadten-Wallern, 118.3 MWp agri-PV, €43.3m (≈ €366/kWp), 155 GWh/yr.`,72,15,{s:10.5})+
+  wrapT(CX+470,by+112,`Slider capex is €${nfm(M.solar.capexPerMW*1000)}/kWp — ${M.solar.capexPerMW*1000<366?'below':'above'} that built reference.`,72,15,{s:10.5,f:M.solar.capexPerMW*1000<366?RC.red:RC.mu});
+ const svg=sv(1100,520,rct(0,0,1100,520,RC.bg)+A+B+C,600);
+ const sub=`<b>${nfm(g.mods)} modules</b> on horizontal single-axis trackers, <b>${nfm(g.inv)} string inverters</b>, <b>${nfm(g.mvUnits)} MV stations</b> — the plant behind the <b>${nfm(g.mwp)} MWp<sub>DC</sub></b> on the slider. `+
+  `Row pitch ${g.pitch.toFixed(2)} m at GCR ${TECH.gcr} gives <b>${nfm(g.haStd)} ha</b>. `+
+  `The dashed red square is what the same MWp needs if it is built as elevated agri-PV — <b>${nfm(g.haAgri-g.haStd)} ha more land</b>, which is the part of Adam's challenge to BE's tracker economics that is still open.`;
+ const rows=[
+  ['C','Tracker + module + inverter class','SonnenPark Tadten-Wallern (built, in the VDR): JA Solar 625/630 Wp bifacial, Huawei SUN2000-330KTL string inverters, single-axis tracker, 35-yr design life, 118.3 MWp for €43.3m and 155 GWh/yr.'],
+  ['D','Module count','ceil('+nfm(g.mwp)+' MWp × 1e6 ÷ '+TECH.modWp+' Wp) = '+nfm(g.mods)+'. Live off the capacity slider.'],
+  ['D','Inverter count','ceil('+nfm(g.mwp)+' MWp ÷ DC/AC '+TECH.dcac+' ÷ '+TECH.invKW+' kW) = '+nfm(g.inv)+' ⇒ ~'+g.strPerInv+' strings each.'],
+  ['I','GCR '+TECH.gcr+' → pitch '+g.pitch.toFixed(2)+' m','Central-European HSAT practice for this latitude. Not stated in a project document; it is the single assumption the land figure is most sensitive to.'],
+  ['I','Land '+TECH.haPerMWp+' ha/MWp','Follows from the GCR and chord. Elevated agri-PV at '+TECH.agriHaPerMWp+' ha/MWp is the upper band.'],
+  ['P','Is any of it agri-PV?','Unresolved. Tadten-Wallern is built as agri-PV, but whether the modelled '+nfm(g.mwp)+' MWp is agri-PV or plain ground-mount changes both the land take drawn here and the €'+nfm(M.solar.capexPerMW*1000)+'/kWp capex. Adam has challenged BE on the tracker economics; no answer yet.'],
+  ['I','Bifacial rear-side gain','Drawn but deliberately not credited — the '+pct(M.solar.grossCF,2)+' gross CF in the model is taken as already all-in. If BE confirm a bifacial uplift on top, the yield is conservative.'],
+  ['D','Capex cross-check','Slider €'+nfm(M.solar.capexPerMW*1000)+'/kWp vs €366/kWp actually spent on Tadten-Wallern. Recomputed live.']];
+ return rpanel('Solar — tracker geometry, collection chain and land take',sub,svg,rows,
+  lg(RC.solar,'module table at −42° (morning)')+lg(RC.steel,'torque tube / pile')+lg(RC.crop,'ground')+lg(RC.red,'agri-PV option — unconfirmed',1));
+}
+
+function bessGeom(){
+ const b=M.battery,B=computeBattery(b),mwh=b.powerMW*b.durationH;
+ const cont=Math.ceil(mwh/TECH.contMWh), pcs=Math.ceil(b.powerMW/TECH.pcsMW);
+ const blocks=Math.ceil(b.powerMW/TECH.blockMW), nb=Math.max(1,blocks);
+ const contPerBlock=Math.ceil(cont/nb), pcsPerBlock=Math.ceil(pcs/nb);
+ const hwHa=cont*TECH.contL*TECH.contW/1e4, siteHa=hwHa*3.2;
+ const floorMWh=(b.socFloor||0)*mwh, rideMin=M.dc.firmMW>0?floorMWh/M.dc.firmMW*60:0;
+ return{b,B,mwh,cont,pcs,blocks,contPerBlock,pcsPerBlock,hwHa,siteHa,floorMWh,rideMin};
+}
+function svgBessBlock(){
+ const g=bessGeom(), open=g.b.gridYear>=2099;
+ // ---------- A: one power block, detail plan ----------
+ const AX=24,AY=40,AW=520,AH=268;
+ const perRow=Math.max(1,Math.ceil(g.contPerBlock/2)), mpp=Math.min(7.2,(AW-150)/(perRow*(TECH.contW+2.2)));
+ const cw=TECH.contL*mpp*0.42, ch=TECH.contW*mpp;          // drawn plan-rotated for density
+ const bx=AX+64, by=AY+52;
+ let cells='';
+ for(let i=0;i<g.contPerBlock;i++){
+  const r=Math.floor(i/perRow), c=i%perRow;
+  const x=bx+c*(cw+3.4), y=by+r*(ch+26);
+  cells+=rct(x,y,cw,ch,RC.batt,null,{rx:1.5,op:.78});}
+ const RW=perRow*(cw+3.4);
+ const svcY=by+2*(ch+26)+8, bw1=Math.max(126,RW*0.46), bxo=Math.max(bw1+10,RW*0.50);
+ // 20-ft enclosure side elevation, filling the right of the block plan
+ const ex=AX+AW-128, es=Math.min(19,112/TECH.contL), ew2=TECH.contL*es, eh2=TECH.contH*es, egnd=AY+140;
+ let ribs='';
+ for(let i=1;i<7;i++) ribs+=ln(ex+ew2*i/7,egnd-eh2+5,ex+ew2*i/7,egnd-5,RC.ln,.8);
+ const elev=tx(ex,AY+40,'ELEVATION — one enclosure',{f:RC.tx,s:10,w:600})+
+  ln(ex-10,egnd,ex+ew2+10,egnd,RC.ln,1.2)+
+  rct(ex,egnd-eh2,ew2,eh2,RC.batt,RC.batt,{rx:2,op:.5,sw:.9})+ribs+
+  rct(ex+ew2-18,egnd-eh2-7,18,7,RC.steel,null,{rx:1.5,op:.8})+
+  tx(ex+ew2,egnd-eh2-12,'coolant skid',{a:'end',f:RC.mu,s:8.5})+
+  dimH(ex,ex+ew2,egnd+18,`${TECH.contL} m`,RC.dim,1)+
+  dimV(egnd-eh2,egnd,ex-12,`${TECH.contH} m`,RC.dim)+
+  tx(ex,egnd+52,`${TECH.contMWh} MWh per enclosure`,{f:RC.batt,s:9,m:1})+
+  wrapT(ex,egnd+66,'high-cube envelope; height is indicative, not from a named supplier',26,11,{s:8.5});
+ const A=frame(AX,AY,AW,AH,`PLAN — one ${TECH.blockMW} MW power block (×${g.blocks} on site)`)+elev+
+  rct(bx-10,by-10,RW+20,2*(ch+26)+2,RC.gr,RC.ln,{rx:4})+cells+
+  ln(bx-10,by+ch+13,bx+RW+10,by+ch+13,RC.road,7)+
+  tx(bx-10+(RW+20)/2,by+ch+16.5,'fire / maintenance aisle 3.0 m',{a:'middle',f:RC.mu,s:8.5})+
+  rct(bx-10,svcY,bw1,26,RC.gr,RC.acc,{rx:4})+
+  tx(bx-10+bw1/2,svcY+17,`${g.pcsPerBlock} × PCS ${TECH.pcsMW} MW`,{a:'middle',f:RC.acc,s:10,m:1})+
+  rct(bx-10+bxo,svcY,bw1,26,RC.gr,RC.cab,{rx:4})+
+  tx(bx-10+bxo+bw1/2,svcY+17,`${TECH.blockMW} MVA → 30 kV`,{a:'middle',f:RC.cab,s:10,m:1})+
+  dimH(bx,bx+cw,by-8,`${TECH.contL} m`,RC.dim)+dimV(by,by+ch,bx-14,`${TECH.contW} m`,RC.dim)+
+  tx(AX+14,AY+AH-14,`${g.contPerBlock} × 20-ft enclosure at ${TECH.contMWh} MWh — liquid-cooled LFP, no water consumption`,{s:9.5,m:1});
+ // ---------- B: whole site array ----------
+ const BX=560,BY=40,BW=516,BH=268;
+ const cols=Math.max(1,Math.ceil(Math.sqrt(g.blocks*1.5))), rws=Math.max(1,Math.ceil(g.blocks/cols));
+ const gw=Math.min(46,(BW-140)/cols), gh=Math.min(30,(BH-118)/rws);
+ let arr='';
+ for(let i=0;i<g.blocks;i++){const r=Math.floor(i/cols),c=i%cols;
+  arr+=rct(BX+40+c*(gw+5),BY+52+r*(gh+5),gw,gh,RC.batt,RC.batt,{rx:2,op:.32,sw:.8});}
+ const B=frame(BX,BY,BW,BH,'PLAN — full installation')+arr+
+  tx(BX+40,BY+52+rws*(gh+5)+22,`${g.blocks} blocks · ${nfm(g.cont)} enclosures · ${nfm(g.pcs)} PCS`,{f:RC.batt,s:12,w:700,m:1})+
+  tx(BX+40,BY+52+rws*(gh+5)+40,`hardware footprint ${g.hwHa.toFixed(1)} ha → site with aisles, roads and setbacks ≈ ${g.siteHa.toFixed(1)} ha`,{s:10.5})+
+  tx(BX+40,BY+52+rws*(gh+5)+58,`${nfm(g.b.powerMW)} MW`+'<tspan baseline-shift="sub" font-size="8">AC</tspan>'+` / ${nfm(g.mwh)} MWh · ${g.b.durationH} h · RTE ${pct(g.b.rte,0)}`,{s:10.5,m:1});
+ // ---------- C: energy state bar + grid access ----------
+ const CX=24,CY=322,CW=1052,CH=182;
+ const eb=CX+30, ew=CW-330, ey=CY+64, eh=44;
+ const floorW=ew*(g.b.socFloor||0);
+ const C=frame(CX,CY,CW,CH,'STATE OF CHARGE — what the reserve actually buys')+
+  rct(eb,ey,ew,eh,RC.gr,RC.ln,{rx:4})+
+  rct(eb,ey,floorW,eh,RC.acc,null,{rx:0,op:.85})+
+  rct(eb+floorW,ey,ew-floorW,eh,RC.batt,null,{op:.5})+
+  ln(eb+floorW,ey-8,eb+floorW,ey+eh+8,RC.tx,1.2,'3 2')+
+  tx(eb+floorW/2,ey+27,`${pct(g.b.socFloor||0,0)}`,{a:'middle',f:'#04120f',s:13,w:700,m:1})+
+  tx(eb+floorW+(ew-floorW)/2,ey+27,`tradeable ${nfm(g.mwh-g.floorMWh)} MWh`,{a:'middle',f:RC.tx,s:11.5,m:1})+
+  tx(eb,ey-12,`SoC floor held as outage ride-through: ${nfm(g.floorMWh)} MWh`,{f:RC.acc,s:11,w:600})+
+  tx(eb,ey+eh+22,`= <tspan font-weight="700" fill="${RC.acc}">${nfm(g.rideMin)} minutes</tspan> at the full ${nfm(M.dc.firmMW)} MW load, against ~14 min/yr unplanned SAIDI in the Netz Burgenland area and ~23 min/yr Austria (2024).`,{s:11})+
+  tx(eb,ey+eh+40,`That is N+1 on electrons. The grid tie itself stays N: UW Andau is fed through UW Zurndorf, so it adds capacity, not an independent source.`,{s:11})+
+  // grid access state
+  rct(CX+CW-278,CY+40,262,CH-56,RC.gr,open?RC.red:RC.solar,{rx:6,sw:1})+
+  tx(CX+CW-262,CY+62,open?'GRID EXPORT — NOT MODELLED':`GRID EXPORT FROM ${g.b.gridYear}`,{f:open?RC.red:RC.solar,s:11,w:700})+
+  `<g opacity="${open?1:.35}"><path d="M ${CX+CW-262} ${CY+86} l 70 0" stroke="${RC.mu}" stroke-width="2"/>`+
+   `<path d="M ${CX+CW-192} ${CY+86} l -7 -5 m 7 5 l -7 5" stroke="${RC.mu}" stroke-width="2" fill="none"/>`+
+   (open?`<path d="M ${CX+CW-233} ${CY+78} l 16 16 M ${CX+CW-217} ${CY+78} l -16 16" stroke="${RC.red}" stroke-width="2.4"/>`:'')+`</g>`+
+  tx(CX+CW-182,CY+90,'battery → grid',{s:10,f:open?RC.red:RC.mu})+
+  wrapT(CX+CW-262,CY+112,open?'BE (23 Jul): a two-way tie competes with generation for scarce capacity; they put the odds below 50/50 even after 2035.':`Export ban runs to ~${g.b.gridYear}. Charging stays behind the meter off the direct line until then.`,42,13,{s:10});
+ const svg=sv(1100,520,rct(0,0,1100,520,RC.bg)+A+B+C,600);
+ const sub=`<b>${nfm(g.cont)} enclosures</b> in <b>${g.blocks} blocks</b> for the <b>${nfm(g.b.powerMW)} MW / ${nfm(g.mwh)} MWh</b> on the sliders — about <b>${g.siteHa.toFixed(1)} ha</b>, roughly a sixth of the ${nfm(38.75)} ha of zoned Bauland. `+
+  `The green band is the ${pct(g.b.socFloor||0,0)} floor the model holds back: <b>${nfm(g.rideMin)} minutes</b> of ride-through at ${nfm(M.dc.firmMW)} MW. `+
+  (open?`No grid export is drawn because none is modelled.`:`Grid export appears from ${g.b.gridYear}.`);
+ const rows=[
+  ['C','Concept and sizing basis','VDR <i>20260310_Project Overview_battery_energy_storage.pdf</i> (#70). Power, duration, RTE, SoC floor and capex all come off this tab\'s sliders.'],
+  ['D','Enclosure count','ceil('+nfm(g.mwh)+' MWh ÷ '+TECH.contMWh+' MWh) = '+nfm(g.cont)+'. PCS: ceil('+nfm(g.b.powerMW)+' MW ÷ '+TECH.pcsMW+' MW) = '+nfm(g.pcs)+'.'],
+  ['I',TECH.contMWh+' MWh per 20-ft unit','Current liquid-cooled LFP product class. No specific supplier is named in the VDR, so no badge is drawn.'],
+  ['D','Site area','enclosure footprint '+g.hwHa.toFixed(1)+' ha × 3.2 for aisles, PCS pads, transformers, roads and setbacks ≈ '+g.siteHa.toFixed(1)+' ha.'],
+  ['D','Ride-through',''+pct(g.b.socFloor||0,0)+' × '+nfm(g.mwh)+' MWh ÷ '+nfm(M.dc.firmMW)+' MW × 60 = '+nfm(g.rideMin)+' min. Same arithmetic as the note on this tab — the bar and the number cannot drift apart.'],
+  ['C','SAIDI comparison','Netz Burgenland ~13.7 min/yr unplanned (2024, VDR #208) vs Austria 23.4 min/yr.'],
+  ['P','Where does it actually sit?','Two live answers: at the data-centre site (BE call, 23 Jul — what is drawn) or distributed "within the BE hybrid parks" (Q188). The two give different connection costs and different charging losses.'],
+  ['P','Two-way grid connection','Model default '+(open?'"Never"':g.b.gridYear)+'. BE state the export ban runs to 2035 and on 23 Jul put the odds below 50/50 even then. Nothing is drawn flowing to the grid unless the scenario allows it.'],
+  ['I','No water','Liquid-cooled, closed-loop. Drawn deliberately without evaporative plant.']];
+ return rpanel('Battery — block layout and what the reserve buys',sub,svg,rows,
+  lg(RC.batt,'battery enclosure')+lg(RC.acc,'PCS / reserved SoC')+lg(RC.cab,'MV transformer, 30 kV')+lg(RC.road,'fire and maintenance aisle'));
+}
+
+const SITE={pA:9.70,pB:23.05,pC:6.00,road:0.42,green:11.27,agri:29.48,sealPar:0.75,sealTot:0.60};
+function dcGeom(){
+ const firm=M.dc.firmMW, it=firm/TECH.pue;
+ const p1=Math.min(300,firm), p2=Math.max(0,firm-300);
+ const h1=Math.ceil(p1/TECH.pue/TECH.hallMW), h2=Math.ceil(p2/TECH.pue/TECH.hallMW);
+ const halls=h1+h2, bauland=SITE.pA+SITE.pB+SITE.pC;
+ const hallHa=halls*TECH.hallM2/1e4, sealed=hallHa+1.5+halls*0.38;
+ return{firm,it,p1,p2,h1,h2,halls,bauland,hallHa,sealed,cap:bauland*SITE.sealTot};
+}
+function svgDcCampus(){
+ const g=dcGeom();
+ const totHa=SITE.pA+SITE.pB+SITE.pC+SITE.road+SITE.green+SITE.agri;
+ const Wm=1000, Hm=totHa*1e4/Wm;                       // ~804 m true depth
+ const X=24,Y=44,W=1052,H=520;
+ const bh=500;                                          // Bauland row depth, metres
+ const roadH=SITE.road*1e4/Wm, agriTrue=SITE.agri*1e4/Wm, agriDrawn=120;
+ const s=Math.min(660/Wm,(H-118)/(roadH+bh+agriDrawn)); // agri strip drawn broken
+ const ox=X+44, oy=Y+40;
+ const wA=SITE.pA*1e4/bh, wB=SITE.pB*1e4/bh, wC=SITE.pC*1e4/bh, wG=SITE.green*1e4/bh;
+ const yRoad=oy, yBau=oy+roadH*s, yAgri=yBau+bh*s, yEnd=yAgri+agriDrawn*s;
+ const xA=ox, xB=xA+wA*s, xC=xB+wB*s, xGreen=xC+wC*s;
+ // ---------- parcels ----------
+ let parcels='';
+ [[xA,wA,'Parcel A',SITE.pA],[xB,wB,'Parcel B',SITE.pB],[xC,wC,'Parcel C',SITE.pC]].forEach(p=>{
+  parcels+=rct(p[0],yBau,p[1]*s,bh*s,RC.gr,RC.acc,{sw:1})+
+   tx(p[0]+6,yBau+14,p[2],{f:RC.acc,s:10,w:600})+tx(p[0]+6,yBau+26,`${p[3].toFixed(2)} ha`,{f:RC.mu,s:9.5,m:1});});
+ parcels+=rct(xGreen,yBau,wG*s,bh*s,'#1b2a1e',RC.nex,{sw:1,d:'5 4'})+
+  tx(xGreen+6,yBau+14,'Green separation',{f:RC.nex,s:10,w:600})+
+  tx(xGreen+6,yBau+26,`${SITE.green.toFixed(2)} ha`,{f:RC.mu,s:9.5,m:1});
+ // ---------- hall slots, generated per parcel so no hall straddles a boundary ----------
+ const hw=TECH.hallW*s, hd=TECH.hallD*s, PAR=[[xA,wA],[xB,wB],[xC,wC]];
+ const slots=[];
+ for(let r=0;r<2;r++) PAR.forEach((p,pi)=>{
+  if(r===1&&pi===2)return;                              // parcel C row 2 carries the substation
+  const n=Math.max(0,Math.floor((p[1]-24+14)/(TECH.hallW+14)));
+  if(!n)return;
+  const used=n*TECH.hallW+(n-1)*14, x0=p[0]+(p[1]-used)/2*s;
+  for(let i=0;i<n;i++) slots.push([x0+i*(TECH.hallW+14)*s, yBau+(r?280:55)*s]);});
+ let hallsSvg='',placed=0;
+ for(const sl of slots){
+  if(placed>=g.halls)break;
+  const p1=placed<g.h1;
+  hallsSvg+=rct(sl[0],sl[1],hw,hd,p1?RC.bld:'#232c38',p1?RC.wind:RC.ghost,{rx:2,sw:1,d:p1?null:'4 3'})+
+   tx(sl[0]+hw/2,sl[1]+hd/2-1,`${TECH.hallMW}`,{a:'middle',f:p1?RC.wind:RC.ghost,s:11,w:700,m:1})+
+   tx(sl[0]+hw/2,sl[1]+hd/2+11,'MW IT',{a:'middle',f:p1?RC.wind:RC.ghost,s:7.5,m:1});
+  placed++;}
+ const over=g.halls-placed;
+ // ---------- substation, south of parcel C ----------
+ const ssW=100*s, ssH=90*s, ssX=xC+(wC*s-ssW)/2, ssY=yBau+280*s;
+ const sst=rct(ssX,ssY,ssW,ssH,'#1e2733',RC.cab,{sw:1.3,rx:2})+
+  tx(ssX+ssW/2,ssY+ssH/2-8,'110 kV GIS',{a:'middle',f:RC.cab,s:9.5,w:700})+
+  tx(ssX+ssW/2,ssY+ssH/2+4,'Schaltwerk',{a:'middle',f:RC.cab,s:8.5})+
+  tx(ssX+ssW/2,ssY+ssH/2+15,'Nickelsdorf',{a:'middle',f:RC.cab,s:8.5});
+ // ---------- HV trench along the south perimeter, label below the line ----------
+ const trenchY=yAgri+10;
+ const trench=ln(ox,trenchY,ox+Wm*s,trenchY,RC.cab,2.4,'8 4')+
+  tx(ox+8,trenchY+15,'HS-Kabel Trasse RES — buried 110 kV along the south perimeter',{f:RC.cab,s:9.5});
+ // ---------- agri strip, drawn broken ----------
+ const brk=yAgri+agriDrawn*s*0.62;
+ let zig='M '+ox.toFixed(1)+' '+brk.toFixed(1);
+ for(let i=1;i<=24;i++) zig+=' L '+(ox+i*Wm*s/24).toFixed(1)+' '+(brk+(i%2?4.5:-4.5)).toFixed(1);
+ const agri=rct(ox,yAgri,Wm*s,agriDrawn*s,RC.crop,RC.ln,{d:'4 4'})+
+  rct(ox+1,brk-7,Wm*s-2,14,RC.bg)+`<path d="${zig}" fill="none" stroke="${RC.ln}" stroke-width="1.2"/>`+
+  tx(ox+Wm*s-8,brk-11,`strip broken — true depth ~${nfm(agriTrue)} m`,{a:'end',f:RC.dim,s:9})+
+  tx(ox+8,yEnd-8,`Remaining agricultural — ${SITE.agri.toFixed(2)} ha, outside the development plan`,{f:RC.mu,s:10});
+ // ---------- fibre entries ----------
+ const fib=[[ox+Wm*s*0.18,yRoad,-1],[ox+Wm*s*0.72,yRoad,-1],[ox+Wm*s*0.18,yEnd,1],[ox+Wm*s*0.72,yEnd,1]]
+  .map(f=>`<path d="M ${f[0].toFixed(1)} ${(f[1]+f[2]*20).toFixed(1)} L ${f[0].toFixed(1)} ${f[1].toFixed(1)}" stroke="${RC.solar}" stroke-width="1.6" stroke-dasharray="3 2"/>`+
+   `<circle cx="${f[0].toFixed(1)}" cy="${f[1].toFixed(1)}" r="3.4" fill="${RC.solar}"/>`).join('');
+ // ---------- right-hand information column ----------
+ const rX=ox+Wm*s+26, rW=X+W-14-rX;
+ const AR=[['Parcel A — Bauland',SITE.pA,RC.acc,0],['Parcel B — Bauland',SITE.pB,RC.acc,0],
+  ['Parcel C — Bauland',SITE.pC,RC.acc,0],['Bauland total',g.bauland,RC.tx,1],
+  ['Access road',SITE.road,RC.mu,0],['Green separation',SITE.green,RC.nex,0],
+  ['Remaining agricultural',SITE.agri,RC.mu,0],['Site total',totHa,RC.tx,1]];
+ let sched=tx(rX,Y+38,'AREA SCHEDULE',{f:RC.tx,s:10.5,w:700})+tx(rX+rW,Y+38,'ha',{a:'end',f:RC.dim,s:9.5,m:1});
+ AR.forEach((r,i)=>{const y=Y+58+i*17;
+  if(r[3])sched+=ln(rX,y-12,rX+rW,y-12,RC.ln,1);
+  sched+=tx(rX+(r[3]?0:8),y,r[0],{f:r[3]?RC.tx:RC.mu,s:10,w:r[3]?600:400})+
+   tx(rX+rW,y,r[1].toFixed(2),{a:'end',f:r[2],s:10.5,w:r[3]?700:400,m:1});});
+ const sbY=Y+228, sbW=rW, smax=Math.max(g.cap,g.sealed,1), over2=g.sealed>g.cap;
+ const capX=rX+sbW*g.cap/smax;
+ const seal=tx(rX,sbY,'SEALING ENVELOPE',{f:RC.tx,s:10.5,w:700})+
+  rct(rX,sbY+12,sbW,18,RC.gr,RC.ln,{rx:3})+
+  rct(rX,sbY+12,sbW*g.sealed/smax,18,over2?RC.red:RC.acc,null,{rx:3,op:.75})+
+  ln(capX,sbY+6,capX,sbY+36,RC.tx,1.4,'3 2')+
+  tx(rX+4,sbY+25,`${g.sealed.toFixed(1)} ha sealed`,{f:'#04120f',s:10,w:700,m:1})+
+  tx(capX+(g.cap/smax>0.8?-4:4),sbY+46,`cap ${g.cap.toFixed(1)} ha`,{a:g.cap/smax>0.8?'end':'start',f:RC.tx,s:9.5,m:1})+
+  wrapT(rX,sbY+62,over2
+   ?`Over the ${pct(SITE.sealTot,0)} overall limit — Phase 2 needs denser halls, a second storey or more parcel.`
+   :`Within the ${pct(SITE.sealTot,0)} overall limit (${pct(SITE.sealPar,0)} per parcel). Headroom ${(g.cap-g.sealed).toFixed(1)} ha.`,
+   46,13,{s:9.5,f:over2?RC.red:RC.mu});
+ const hY=Y+340;
+ const halls2=tx(rX,hY,'HALLS AND LOAD',{f:RC.tx,s:10.5,w:700})+
+  tx(rX,hY+20,`${g.h1} × Phase 1`,{f:RC.wind,s:10.5,w:600,m:1})+
+  tx(rX+rW,hY+20,`${nfm(g.p1)} MW`,{a:'end',f:RC.wind,s:10.5,m:1})+
+  tx(rX,hY+37,`${g.h2} × Phase 2`,{f:RC.ghost,s:10.5,w:600,m:1})+
+  tx(rX+rW,hY+37,`${nfm(g.p2)} MW`,{a:'end',f:RC.ghost,s:10.5,m:1})+
+  ln(rX,hY+45,rX+rW,hY+45,RC.ln,1)+
+  tx(rX,hY+59,`${g.halls} halls · ${nfm(TECH.hallM2)} m² each`,{f:RC.tx,s:10,w:600})+
+  tx(rX+rW,hY+59,`${nfm(g.it)} MW IT`,{a:'end',f:RC.tx,s:10.5,w:700,m:1})+
+  (over>0?tx(rX,hY+76,`${over} hall${over>1?'s':''} beyond what the zoning fits`,{f:RC.red,s:9.5,w:600}):
+   tx(rX,hY+76,`4 fibre entries — 2 north, 2 south`,{f:RC.solar,s:9.5}));
+ const nY=Y+436;
+ const notes=wrapT(rX,nY,'Areas are exact and from the Teilbebauungsplan. The shapes are schematic — the surveyed boundaries are in GZ 1057-A_2026_LH at 1:2500.',58,13,{s:9.5})+
+  wrapT(rX,nY+49,'Cooling drawn closed-loop and dry: no evaporative towers, no plume, no water draw. No Uptime tier is claimed anywhere in the VDR.',58,13,{s:9.5});
+ const body=frame(X,Y,W,H,'SITE PLAN — Businesspark Nickelsdorf, Mönchhofer Landesstraße')+
+  rct(ox,yRoad,Wm*s,roadH*s+2.5,RC.road)+
+  parcels+hallsSvg+sst+agri+trench+fib+
+  dimH(ox,ox+Wm*s,yEnd+22,`${nfm(Wm)} m`,RC.mu,1)+
+  dimV(yRoad,yAgri,ox-16,`${nfm(roadH+bh)} m`,RC.mu)+
+  northArrow(ox+Wm*s-22,Y+34,10,0)+scaleBar(ox,yEnd+40,s,200,'m')+
+  sched+seal+halls2+notes;
+ const svg=sv(1100,584,rct(0,0,1100,584,RC.bg)+body,640);
+ const sub=`<b>${g.halls} data halls</b> at ${TECH.hallMW} MW IT each carry the <b>${nfm(g.firm)} MW</b> firm offtake (${nfm(g.it)} MW IT at PUE ${TECH.pue}) — `+
+  `<b>${g.h1} in Phase 1</b> (solid, ${nfm(g.p1)} MW) and <b>${g.h2} in Phase 2</b> (dashed, ${nfm(g.p2)} MW). `+
+  `Building footprint <b>${g.hallHa.toFixed(1)} ha</b>; with the substation, yards and roads about <b>${g.sealed.toFixed(1)} ha</b> sealed against the <b>${g.cap.toFixed(1)} ha</b> the draft plan allows at ${pct(SITE.sealTot,0)} overall `+
+  `<span style="color:${g.sealed>g.cap?RC.red:RC.acc}">(${g.sealed>g.cap?'over — Phase 2 needs denser halls or more parcel':'within the envelope'})</span>.`+
+  (over>0?` The plan only fits <b>${placed}</b> of them at this hall size — the last ${over} are not drawn.`:'');
+ const rows=[
+  ['C','Parcel areas','Zoned Bauland in three parcels 9.70 / 23.05 / 6.00 ha = 38.75 ha, plus 0.42 ha northern access road, 11.27 ha green separation, 29.48 ha remaining agricultural. Per <i>24115_Businesspark_Teilbebauungsplan_Auflage_20250818-01.pdf</i> and <i>#166 RP Nickelsdorf TBP Businesspark BESCHLUSS</i> (formally resolved).'],
+  ['I','Parcel shapes and the broken strip','Schematic. Areas are exact; the geometry is not the surveyed plan — parcels are drawn as a 500 m deep row so the widths carry the true hectares. The agricultural strip is ~'+nfm(agriTrue)+' m deep and is drawn broken so the built area stays legible. <i>GZ 1057-A_2026_LH M 1:2500</i> and the 1:500 DWG carry the real boundaries.'],
+  ['C','Sealing limits','Draft Bebauungsplan: 75% per parcel, 60% overall ⇒ '+g.cap.toFixed(1)+' ha buildable. The bar on the right is that arithmetic, live off the load slider.'],
+  ['C','Load and phasing','500 MW firm offtake, Phase 1 300 MW / Phase 2 200 MW. PUE 1.35 ⇒ '+nfm(g.it)+' MW IT.'],
+  ['D','Hall count','ceil(phase MW ÷ 1.35 ÷ '+TECH.hallMW+' MW) per phase = '+g.h1+' + '+g.h2+'. Rescales live with the DC firm slider.'],
+  ['D','Hall placement','Slots are generated inside each parcel — '+TECH.hallW+' m wide on a '+(TECH.hallW+14)+' m pitch, two '+TECH.hallD+' m rows — so no hall straddles a boundary. '+slots.length+' slots exist at this size; anything beyond that is counted, not drawn.'],
+  ['I',TECH.hallMW+' MW hall, '+nfm(TECH.hallM2)+' m²','Current hyperscale build norm. Not a project figure — no hall design is in the VDR.'],
+  ['C','Substation on site','New 110 kV GIS switching station (Schaltwerk Nickelsdorf), Siemens Energy with Netz Burgenland, per <i>_3_SST Nickelsdof_Layout_POS_meeting-V001.pdf</i>. The general arrangement shows the HV cable trench (HS-Kabel Trasse RES) along the south perimeter — drawn here in that position, with the switchyard in parcel C.'],
+  ['C','Four fibre entries','Two north (west and east) and two south (west and east), per <i>HLD_DarkFiber_Anbindungskonzept_GDC_20251212.pdf</i>.'],
+  ['C','Foundations','Geotechnical work confirms shallow foundations are feasible — no piling drawn.'],
+  ['C','30 kV easements','<i>#163 30kV easements cables.png</i> shows existing buried MV easement routes constraining building placement. Not drawn here; check it before fixing any hall position.'],
+  ['I','Why buried, not overhead','Nothing in the register states a reason. The cost study <i>#7</i> only prices ploughing vs trenching vs drilling — all burial methods; no pylon option was ever costed. Overhead is cheaper per km, so the driver is more likely consenting and schedule than capex. Treat as an open question for BE, not a finding.']];
+ return rpanel('Data centre — site plan and sealing envelope',sub,svg,rows,
+  lg(RC.wind,'Phase 1 hall')+lg(RC.ghost,'Phase 2 hall',1)+lg(RC.cab,'110 kV GIS and buried cable trench')+lg(RC.solar,'fibre entry')+lg(RC.nex,'green separation zone')+lg(RC.crop,'agricultural'));
+}
+
+function svgSubstationSLD(){
+ const X=24,Y=44,W=1052,H=386;
+ const ss1=Y+96, ss2=Y+124, bbX=X+56, bbW=W-112;
+ const BAYS=[
+  ['Line 1','UW Zurndorf',RC.cab,'in'],['Line 2','UW Zurndorf',RC.cab,'in'],
+  ['Line 3','UW Andau',RC.mu,'in'],['Line 4','UW Andau',RC.mu,'in'],
+  ['Cust 1','GDC feeder',RC.wind,'out'],['Cust 2','GDC feeder',RC.wind,'out'],['Cust 3','GDC feeder',RC.wind,'out'],
+  ['Aux','Eigenbedarf',RC.solar,'out']];
+ const step=bbW/(BAYS.length+1);
+ function disc(x,y,c){return ln(x,y,x,y+9,c,1.4)+ln(x,y+9,x+6,y+17,c,1.4)+ln(x,y+18,x,y+26,c,1.4)+`<circle cx="${x}" cy="${y+9}" r="1.6" fill="${c}"/><circle cx="${x}" cy="${y+18}" r="1.6" fill="${c}"/>`;}
+ let bays='';
+ BAYS.forEach((b,i)=>{
+  const x=bbX+step*(i+1), c=b[2], top=ss2+10;
+  bays+=disc(x,ss1-30,c)+ln(x,ss1,x,ss1-4,c,1.4)             // SS1 isolator
+   +disc(x-14,ss2-30,c)+ln(x-14,ss2,x-14,ss2-4,c,1.4)        // SS2 isolator
+   +ln(x-14,ss2-30,x,ss1-30,c,1.4)+ln(x,top+6,x,top+24,c,1.6)
+   +rct(x-8,top+24,16,16,'none',c,{sw:1.6})                   // circuit breaker
+   +ln(x,top+40,x,top+56,c,1.6)
+   +`<circle cx="${x-5}" cy="${top+62}" r="5" fill="none" stroke="${c}" stroke-width="1.2"/><circle cx="${x+5}" cy="${top+62}" r="5" fill="none" stroke="${c}" stroke-width="1.2"/>`
+   +ln(x,top+68,x,top+84,c,1.6)+disc(x,top+84,c)
+   +ln(x,top+110,x,top+124,c,1.6)
+   +ln(x-9,top+124,x+9,top+124,c,2.6)                          // cable termination
+   +`<path d="M ${x} ${top+124} l 0 14" stroke="${c}" stroke-width="1.6" stroke-dasharray="3 2"/>`
+   +tx(x,top+152,b[0],{a:'middle',f:c,s:10,w:700})
+   +tx(x,top+164,b[1],{a:'middle',f:RC.mu,s:9})
+   +tx(x,top+176,b[3]==='in'?'▲ in':'▼ out',{a:'middle',f:RC.dim,s:8.5});});
+ // couplers
+ let coup='';
+ [1.5,4.5,6.5].forEach((p,i)=>{const x=bbX+step*p;
+  coup+=ln(x,ss1,x,ss2,RC.acc,1.6)+rct(x-7,(ss1+ss2)/2-7,14,14,RC.bg,RC.acc,{sw:1.5})+
+   tx(x,ss1-8,`K${i+1}`,{a:'middle',f:RC.acc,s:9,w:700});});
+ const body=frame(X,Y,W,H,'SINGLE LINE — 110 kV Schaltwerk Nickelsdorf (double busbar)')+
+  ln(bbX,ss1,bbX+bbW,ss1,RC.tx,3)+tx(bbX-10,ss1+4,'SS1',{a:'end',f:RC.tx,s:11,w:700,m:1})+
+  ln(bbX,ss2,bbX+bbW,ss2,RC.tx,3)+tx(bbX-10,ss2+4,'SS2',{a:'end',f:RC.tx,s:11,w:700,m:1})+
+  coup+bays+
+  tx(X+16,Y+H-40,'Kupplungen K1–K3 let any bay sit on either busbar, so a busbar can be taken out for work without dropping a feeder.',{s:10.5})+
+  tx(X+16,Y+H-22,'Three customer feeders on 3 × 3.5 km of 110 kV cable to the campus = 3N/2 on the customer side. Upstream it is N: UW Andau is fed through UW Zurndorf, not independently.',{f:RC.solar,s:10.5});
+ const svg=sv(1100,430,rct(0,0,1100,430,RC.bg)+body,470);
+ const sub=`Double busbar SS1/SS2 with three couplers, two line bays to UW Zurndorf, two to UW Andau, three customer bays and the auxiliary transformer. `+
+  `The redundancy story the drawing tells: <b>3N/2 downstream, N upstream</b>. Andau adds capacity, not an independent grid source — which is exactly why the ${pct(M.battery.socFloor||0,0)} SoC floor on the battery tab is doing the reliability work.`;
+ const rows=[
+  ['C','Topology','<i>3_110kV SLD_SST Nickelsdorf_Siemens Energy_SLD.pdf</i> (#42/#150/#178): double busbar SS1/SS2, Kupplung 1/2/3, two line bays each to UW Zurndorf and UW Andau, three customer bays.'],
+  ['C','Physical arrangement','<i>_3_SST Nickelsdof_Layout_POS_meeting-V001.pdf</i> — Siemens Energy general arrangement for the POS meeting: bay layout, busbar runs, cable routes (2 to Zurndorf, 2 to Andau), HV cable trench along the south perimeter, auxiliary transformer, control building, sliding gate, sections A-A to E-E.'],
+  ['C','Customer connection','3 × 3.5 km 110 kV feeders and bays, explicitly outside the Netz Burgenland scope — €'+nfm(M.battery.interconnect)+'m on the battery tab.'],
+  ['C','Netzzutritt','€'+nfm(M.battery.substation,2)+'m NEB estimate (26 Jun 2026), billed on actual cost, plus ~€6m Netzbereitstellungsentgelt at the 12 €/kW tariff.'],
+  ['C','Upstream is N, not 2N','UW Andau is fed through UW Zurndorf on a shared busbar. Two named substations do not make two independent feeds — the drawing shows them converging rather than as separate sources.'],
+  ['C','Process basis','Netz Burgenland connection process under §99 ElWG (full act in the VDR as of 7 Jan 2026). Slot reservation: Reugeld at 40% of expected connection cost, 12-month use-it-or-lose-it, queue rank by deposit timestamp.'],
+  ['I','Symbol detail','Isolators, breaker, CTs, earth switches and cable sealing ends drawn to IEC convention at schematic level. Protection, metering and busbar-protection zones are on the Siemens sheet, not reproduced here.']];
+ return rpanel('Grid connection — 110 kV single line',sub,svg,rows,
+  lg(RC.cab,'incoming, UW Zurndorf')+lg(RC.mu,'incoming, UW Andau (via Zurndorf)')+lg(RC.wind,'customer feeder to campus')+lg(RC.acc,'busbar coupler'));
+}
+
+function availYear(s){const m=/(20\d{2})/.exec(s||'');if(m)return +m[1];const q=/'(\d{2})/.exec(s||'');return q?2000+ +q[1]:2099;}
+function svgSystemSchematic(){
+ const X=24,Y=44,W=1052,H=524;
+ const wOn=M.wind.on!==false,sOn=M.solar.on!==false,bOn=M.battery.on!==false;
+ const wp=PROJECTS.filter(p=>p.t==='wind'),sp=PROJECTS.filter(p=>p.t==='solar');
+ const wTot=wp.reduce((s,p)=>s+p.mw,0)||1,sTot=sp.reduce((s,p)=>s+p.mw,0)||1;
+ const kw=wOn?M.wind.mw/wTot:0, ks=sOn?M.solar.mw/sTot:0;
+ const RH=25, top=Y+62;
+ // ---------- park columns ----------
+ function column(cx,cw,list,col,sf,on,head){
+  const mx=Math.max(...list.map(p=>p.mw))||1;
+  let s=tx(cx,Y+46,head,{f:col,s:10.5,w:700});
+  list.forEach((p,i)=>{
+   const ry=top+i*RH, mw=p.mw*sf, early=availYear(p.av)<=2029;
+   s+=rct(cx,ry,cw,RH-4,RC.gr,on?col:RC.ghost,{rx:3,sw:.8,op:on?1:.4})
+    +rct(cx,ry,cw*(p.mw/mx),RH-4,on?col:RC.ghost,null,{rx:3,op:on?.17:.07})
+    +`<circle cx="${cx+10}" cy="${ry+11}" r="3.2" fill="${early?RC.acc:RC.solar}" opacity="${on?.95:.3}"/>`
+    +tx(cx+20,ry+15,p.n,{f:on?RC.tx:RC.ghost,s:9.5})
+    +tx(cx+cw-44,ry+15,nfm(mw),{a:'end',f:on?col:RC.ghost,s:10,w:700,m:1})
+    +tx(cx+cw-6,ry+15,p.d+' km',{a:'end',f:RC.dim,s:8.5,m:1})
+    +ln(cx+cw,ry+11,cx+cw+12,ry+11,on?RC.cab:RC.ghost,.9);});
+  const y0=top+11,y1=top+(list.length-1)*RH+11;
+  s+=ln(cx+cw+12,y0,cx+cw+12,y1,on?RC.cab:RC.ghost,1.4);
+  return {svg:s,busX:cx+cw+12,y0,y1,mid:(y0+y1)/2};
+ }
+ const WX=X+14,SX=X+286,CW=244;
+ const wc=column(WX,CW,wp,RC.wind,kw,wOn,`WIND — ${nfm(M.wind.mw)} MW across ${wp.length} parks`);
+ const sc=column(SX,CW,sp,RC.solar,ks,sOn,`SOLAR — ${nfm(M.solar.mw)} MWp across ${sp.length} parks`);
+ const colBot=Math.max(wc.y1,sc.y1);
+ // ---------- campus, placed below both columns so no trunk crosses a park row ----------
+ const tX=596, cX=700, cW=180, cH=76, cY=colBot+26, cMid=cY+cH/2;
+ const arw=(x,y,c,op)=>`<path d="M ${x} ${y} l -8 -4.5 m 8 4.5 l -8 4.5" stroke="${c}" stroke-width="2" fill="none" opacity="${op}"/>`;
+ const trunk=`<path d="M ${wc.busX} ${wc.y1} L ${wc.busX} ${cMid-14} L ${cX} ${cMid-14}" fill="none" stroke="${wOn?RC.cab:RC.ghost}" stroke-width="${wOn?2.2:1}" stroke-dasharray="7 4" opacity="${wOn?.85:.3}"/>`+
+  arw(cX,cMid-14,wOn?RC.cab:RC.ghost,wOn?.85:.3)+
+  `<path d="M ${sc.busX} ${sc.y1} L ${sc.busX} ${cMid+2} L ${cX} ${cMid+2}" fill="none" stroke="${sOn?RC.cab:RC.ghost}" stroke-width="${sOn?2.2:1}" stroke-dasharray="7 4" opacity="${sOn?.85:.3}"/>`+
+  arw(cX,cMid+2,sOn?RC.cab:RC.ghost,sOn?.85:.3)+
+  tx(tX+4,cMid-20,'buried 110 kV',{f:RC.cab,s:9.5,w:700})+
+  tx(tX+4,cMid+22,'direct lines',{f:RC.cab,s:9.5,w:700})+
+  tx(tX+4,cMid+34,'~1–27 km · ~€70m',{f:RC.dim,s:8.5,m:1});
+ // ---------- campus ----------
+ const camp=rct(cX,cY,cW,cH,'#171f29',RC.tx,{rx:6,sw:1.6})+
+  tx(cX+cW/2,cY+26,'GDC Nickelsdorf',{a:'middle',f:RC.tx,s:12.5,w:700})+
+  tx(cX+cW/2,cY+44,`${nfm(M.dc.firmMW)} MW firm · ${nfm(M.dc.firmMW/TECH.pue)} MW IT`,{a:'middle',f:RC.mu,s:10,m:1})+
+  tx(cX+cW/2,cY+60,`38.75 ha Bauland, Nickelsdorf`,{a:'middle',f:RC.dim,s:9});
+ // ---------- grid column ----------
+ const gX=910, gW=152, zY=Y+72, aY=zY+66;
+ const nb=(x,y,w,h,label,sub2,c)=>rct(x,y,w,h,'#151d26',c,{rx:5,sw:1.4})+
+  tx(x+w/2,y+h/2-2,label,{a:'middle',f:c,s:10.5,w:700})+tx(x+w/2,y+h/2+12,sub2,{a:'middle',f:RC.mu,s:8.5});
+ const grid=
+  `<path d="M ${gX+gW/2} ${Y+36} L ${gX+gW/2} ${zY}" stroke="${RC.red}" stroke-width="2.4"/>`+
+  `<path d="M ${gX+gW/2} ${zY} l -5 -8 m 5 8 l 5 -8" stroke="${RC.red}" stroke-width="2.4" fill="none"/>`+
+  tx(gX+gW/2,Y+20,'APG 380 kV',{a:'middle',f:RC.red,s:10,w:700})+
+  tx(gX+gW/2,Y+31,'Netzverstärkung Ost',{a:'middle',f:RC.red,s:8.5})+
+  nb(gX,zY,gW,44,'UW Zurndorf','APG / NEB shared',RC.red)+
+  ln(gX+gW/2,zY+44,gX+gW/2,aY,RC.red,1.6)+
+  nb(gX,aY,gW,44,'UW Andau','fed through Zurndorf',RC.ghost)+
+  tx(gX+gW/2,aY+60,'one effective source',{a:'middle',f:RC.red,s:8.5,w:600})+
+  tx(gX+gW/2,aY+71,'→ N upstream',{a:'middle',f:RC.red,s:8.5,w:600});
+ // three customer cables Zurndorf → campus
+ let cust='';
+ for(let i=0;i<3;i++){const yy=cY+18+i*20;
+  cust+=`<path d="M ${gX+8} ${zY+22} Q ${gX-26} ${yy} ${cX+cW} ${yy}" fill="none" stroke="${RC.acc}" stroke-width="1.6"/>`+
+   `<path d="M ${cX+cW} ${yy} l 8 -4 m -8 4 l 8 4" stroke="${RC.acc}" stroke-width="1.4" fill="none"/>`;}
+ const custLab=tx(cX+cW,cY-24,'3 × 3.5 km 110 kV',{a:'end',f:RC.acc,s:9.5,w:700})+
+  tx(cX+cW,cY-12,'customer feeders → 3N/2',{a:'end',f:RC.acc,s:8.5});
+ // ---------- battery ----------
+ const bY=cY+cH+40, bW=cW+40, bX=cX-20;
+ const open=M.battery.gridYear>=2099;
+ const batt=bOn?(ln(cX+cW/2,cY+cH,cX+cW/2,bY,RC.batt,1.8)+
+  rct(bX,bY,bW,50,'#1b1526',RC.batt,{rx:6,sw:1.4})+
+  tx(bX+bW/2,bY+20,`BESS ${nfm(M.battery.powerMW)} MW`,{a:'middle',f:RC.batt,s:11.5,w:700})+
+  tx(bX+bW/2,bY+36,`${nfm(M.battery.powerMW*M.battery.durationH)} MWh · ${M.battery.durationH} h · RTE ${pct(M.battery.rte,0)}`,{a:'middle',f:RC.mu,s:9,m:1})+
+  `<g><path d="M ${bX+bW} ${bY+25} l 30 0" stroke="${open?RC.ghost:RC.mu}" stroke-width="1.6" stroke-dasharray="4 3"/>`+
+   (open?`<path d="M ${bX+bW+8} ${bY+18} l 14 14 M ${bX+bW+22} ${bY+18} l -14 14" stroke="${RC.red}" stroke-width="2"/>`:'')+`</g>`+
+  tx(bX+bW+36,bY+21,open?'no grid export':`grid export`,{f:open?RC.red:RC.mu,s:9,w:600})+
+  tx(bX+bW+36,bY+32,open?'modelled':`from ${M.battery.gridYear}`,{f:open?RC.red:RC.mu,s:8.5})):'';
+ // ---------- availability block, fills the space under the park columns ----------
+ const avX=X+14,avY=cY+56,avW=500,avH=112;
+ function split(list,sf){let e=0,l=0;list.forEach(p=>{(availYear(p.av)<=2029?(e+=p.mw*sf):(l+=p.mw*sf));});return{e,l};}
+ const swd=split(wp,kw),ssd=split(sp,ks);
+ const avMax=Math.max(swd.e+swd.l,ssd.e+ssd.l,1),avBW=avW-150;
+ function avrow(y,lab,d,col){
+  const we=avBW*d.e/avMax,wl=avBW*d.l/avMax;
+  return tx(avX+12,y+13,lab,{f:col,s:10,w:700})+
+   rct(avX+66,y,we,17,RC.acc,null,{rx:2,op:.8})+
+   rct(avX+66+we,y,wl,17,RC.solar,null,{rx:2,op:.55})+
+   tx(avX+66+we+wl+8,y+13,`${nfm(d.e)} MW by 2029 · ${nfm(d.l)} MW after`,{f:RC.mu,s:9,m:1});
+ }
+ const totE=swd.e+ssd.e,totL=swd.l+ssd.l;
+ const avail=rct(avX,avY,avW,avH,'#111922',RC.ln,{rx:5})+
+  tx(avX+12,avY+20,'AVAILABILITY — when the modelled MW actually turn up',{f:RC.tx,s:10.5,w:700})+
+  avrow(avY+30,'wind',swd,RC.wind)+avrow(avY+53,'solar',ssd,RC.solar)+
+  tx(avX+12,avY+88,`${nfm(totE)} MW of the ${nfm(totE+totL)} MW modelled portfolio is available by 2029; ${nfm(totL)} MW lands 2030–32.`,{s:9.5})+
+  tx(avX+12,avY+102,`The data centre is contracted from first power, so that back half is the merchant / PPA gap the model has to bridge.`,{s:9.5,f:RC.dim});
+ // ---------- self-supply ribbon ----------
+ const resMW=(wOn?M.wind.mw*effCF(M.wind):0)+(sOn?M.solar.mw*effCF(M.solar):0);
+ const selfP=M.dc.firmMW>0?Math.min(1,resMW/M.dc.firmMW):0;
+ const rbX=X+14,rbY=Y+H-58,rbW=W-28,rbH=28;
+ const ribbon=tx(rbX,rbY-8,`Baseload-equivalent generation against the ${nfm(M.dc.firmMW)} MW load — the same arithmetic as the SPV table above`,{s:9.5})+
+  rct(rbX,rbY,rbW,rbH,RC.gr,RC.ln,{rx:4})+
+  rct(rbX,rbY,rbW*selfP,rbH,RC.acc,null,{rx:0,op:.8})+
+  tx(rbX+rbW*selfP/2,rbY+19,`self-supply ${nfm(resMW)} MW = ${(selfP*100).toFixed(1)}%`,{a:'middle',f:'#04120f',s:11,w:700,m:1})+
+  (selfP<0.97?tx(rbX+rbW*selfP+(rbW*(1-selfP))/2,rbY+19,`balance from grid ${((1-selfP)*100).toFixed(1)}%`,{a:'middle',f:RC.mu,s:11,m:1}):'');
+ const body=frame(X,Y,W,H,'SYSTEM — every park, the direct lines, the grid and the battery on one sheet')+
+  wc.svg+sc.svg+trunk+grid+cust+camp+custLab+batt+avail+ribbon+
+  tx(X+14,Y+H-16,'Capacity per park is the BE list (10 Jul 2026) rescaled by the sliders, so the drawn portfolio always sums to the modelled MW. Distances are BE\'s stated direct-line km to UW Zurndorf.',{s:9});
+ const svg=sv(1100,Y+H+12,rct(0,0,1100,Y+H+12,RC.bg)+body,620);
+ const early=PROJECTS.filter(p=>availYear(p.av)<=2029).length;
+ const sub=`The one thing every other drawing depends on: <b>the generation is not on the data-centre site</b>. `+
+  `It sits across ${PROJECTS.length} parks, <b>~1–27 km</b> out in the Seewinkel, and reaches the campus on <b>buried 110 kV direct lines</b> — not through the public grid. `+
+  `Grid backup arrives separately on <b>three 3.5 km customer cables from UW Zurndorf</b>. `+
+  `<b>${early} of ${PROJECTS.length} parks</b> are available by 2029 (green dots); the rest land 2030–32, which is the gap the merchant/PPA split has to cover.`;
+ const rows=[
+  ['C','Park list, capacity, distance, availability','BE renewable projects overview, 10 Jul 2026 (<i>260710_Overview_Renewable_Projects_GDC_Nickelsdorf.pdf</i>) — the same list driving the map and the SPV timing note. Names, MW, km and availability dates are read straight off it.'],
+  ['C','Direct-line supply','<i>#9 260520_Overview_Hybrid_Park_Projects_V3.pdf</i>: >300 MW available via direct line at 10 c/kWh non-indexed pay-as-produced, 344 MWp PV + 80 MW wind by 2027-28, >500 MW cumulative by 2029.'],
+  ['C','Lines are buried cable','The Siemens Energy general arrangement shows cable routes and an HV cable trench (<i>HS-Kabel Trasse RES</i>), and the cost study <i>#7 direct-line_initial-cost-estimations_variations.pdf</i> prices ploughed / trenched / drilled variants — three burial methods. No overhead option appears anywhere in the register.'],
+  ['I','Why buried, not overhead','Not stated in any document. Overhead is materially cheaper per km than burial, so the earlier framing — that overhead was rejected on cost — was wrong and has been removed. Consenting and schedule against a 2028/29 COD are the likelier drivers. Open question for BE.'],
+  ['C','Andau feeds through Zurndorf','Shared busbar upstream — two named substations, one effective source. This is why the diagram hangs Andau off Zurndorf rather than off APG, and why upstream is N.'],
+  ['C','APG corridor','Netzverstärkung Ost 380 kV: UW Wien Südost → Sarasdorf → Parndorf → Neusiedl → UW Zurndorf.'],
+  ['D','Capacity scaling','Each park is scaled by the ratio of the slider capacity to the BE list total, so the drawn portfolio always sums to the modelled '+nfm(M.wind.mw)+' MW wind and '+nfm(M.solar.mw)+' MWp solar.'],
+  ['D','Self-supply ribbon','wind '+nfm(M.wind.mw)+' MW × '+pct(effCF(M.wind),1)+' + solar '+nfm(M.solar.mw)+' MWp × '+pct(effCF(M.solar),1)+' = '+nfm(resMW)+' MW baseload-equivalent ÷ '+nfm(M.dc.firmMW)+' MW load.'],
+  ['D','Availability split','Green where the BE availability date is 2029 or earlier, amber after. '+nfm(totE)+' MW by 2029, '+nfm(totL)+' MW 2030–32, across '+early+' of '+PROJECTS.length+' parks green.'],
+  ['P','Battery siting','Drawn at the campus per the 23 Jul call. The alternative — distributed inside the BE hybrid parks (Q188) — would move the box onto the park rows and change the charging losses. Unresolved.'],
+  ['I','Route geometry','This is a connectivity diagram, not a map — the geographic view with real coordinates is on the asset tabs. Real cable routing follows field boundaries and roads, so built length exceeds the straight-line km shown, part of why the €70m lump sum and the per-km arithmetic have not reconciled.']];
+ return rpanel('Integrated view — how the portfolio, the lines and the grid actually connect',sub,svg,rows,
+  lg(RC.wind,'wind park')+lg(RC.solar,'solar park')+lg(RC.acc,'available ≤2029')+lg(RC.solar,'available 2030+')+
+  lg(RC.cab,'buried 110 kV direct line',1)+lg(RC.acc,'110 kV customer cable, Zurndorf → campus')+lg(RC.red,'public grid')+lg(RC.batt,'battery'));
+}
+function renderBlock(which){
+ try{
+  if(which==='wind')return svgWindPark();
+  if(which==='solar')return svgSolarArray();
+  if(which==='battery')return svgBessBlock();
+  if(which==='dc')return svgSystemSchematic()+svgDcCampus()+svgSubstationSLD();
+ }catch(e){return `<div class="warn" style="margin-top:12px">Rendering unavailable: ${e.message}</div>`;}
+ return '';
+}
+
 function render(){
  const m=document.getElementById('main');
  if(active==='wind')m.innerHTML=assetPage('wind');
