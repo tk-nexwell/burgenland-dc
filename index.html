@@ -156,7 +156,7 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
 </header>
 <nav id="nav"></nav>
 <main id="main"></main>
-<footer>Directional model for discussion · Burgenland DC · Nexwell Power. Not investment advice. - build 2026-08-05 17:02</footer>
+<footer>Directional model for discussion · Burgenland DC · Nexwell Power. Not investment advice. - build 2026-08-05 18:11</footer>
 <script>
 const PROFILES={
  meta:{wind_cf:0.4519,solar_cf:0.1376},
@@ -691,7 +691,7 @@ function lay(title,opts){return Object.assign({
   legend:{orientation:'h',y:-0.22,yanchor:'top',x:0.5,xanchor:'center',font:{size:10.5}},showlegend:false
 },opts||{});}
 function HT(unit,dec){return '%{y:,.'+(dec==null?1:dec)+'f} '+unit+'<extra></extra>';}
-const TABS=[['wind','Wind'],['solar','Solar'],['battery','Battery'],['summary','SPV'],['measured','BE data'],['prices','Prices'],['profiles','Production']];
+const TABS=[['wind','Wind'],['solar','Solar'],['battery','Battery'],['summary','SPV'],['prices','Prices'],['profiles','Production']];
 let active='wind';
 function buildNav(){document.getElementById('nav').innerHTML=TABS.map(t=>`<button class="${t[0]===active?'on':''}" onclick="go('${t[0]}')">${t[1]}${gateLocked(t[0])?'<span class="lockDot">&#128274;</span>':''}</button>`).join('');}
 function go(t){active=t;buildNav();render();}
@@ -1160,15 +1160,19 @@ function drawSpvCashflow(){
 }
 let profView='heat', profAsset='wind';
 function profilesPage(){
- setTimeout(drawProfiles,0);
- return `<div class="panel" style="margin-bottom:14px"><div class="seg">
+ const seg=`<div class="panel" style="margin-bottom:14px"><div class="seg">
    <button class="${profView==='heat'?'on':''}" onclick="profView='heat';render()">Heatmap</button>
    <button class="${profView==='surf'?'on':''}" onclick="profView='surf';render()">3D surface</button>
    <button class="${profView==='shape'?'on':''}" onclick="profView='shape';render()">Shape</button>
    <button class="${profView==='risk'?'on':''}" onclick="profView='risk';render()">Supply</button>
-   <button class="${profView==='mix'?'on':''}" onclick="profView='mix';render()">Austria grid mix</button></div>
-   <span class="muted" style="margin-left:10px">Heatmap and 3D show wind, solar and combined stacked. CF axis fixed 0-${CFMAX} for comparability.</span></div>
-  <div class="chart tall" id="pmain"></div><div id="pstats"></div>`;
+   <button class="${profView==='mix'?'on':''}" onclick="profView='mix';render()">Austria grid mix</button>
+   <button class="${profView==='bedata'?'on':''}" onclick="profView='bedata';render()">BE data</button></div>
+   <span class="muted" style="margin-left:10px">${profView==='bedata'
+     ?'Metered generation from BE, aggregated to monthly and seasonal-hourly.'
+     :`Heatmap and 3D show wind, solar and combined stacked. CF axis fixed 0-${CFMAX} for comparability.`}</span></div>`;
+ if(profView==='bedata'){ setTimeout(drawBE,0); return seg+measuredPage(); }
+ setTimeout(drawProfiles,0);
+ return seg+`<div class="chart tall" id="pmain"></div><div id="pstats"></div>`;
 }
 function mat(asset){return asset==='solar'?PROFILES.solarMonthHour:PROFILES.windMonthHour;}
 function drawProfiles(){
@@ -1963,7 +1967,6 @@ function render(){
  else if(active==='solar'){m.innerHTML=assetPage('solar');if(M.v3.solar)setTimeout(()=>start3d('solar'),0);}
  else if(active==='battery'){m.innerHTML=batteryPage();if(M.v3.battery)setTimeout(()=>start3d('battery'),0);}
  else if(active==='summary'){m.innerHTML=summaryPage();setTimeout(drawSummaryBalance,0);setTimeout(drawSpvEcon,0);setTimeout(drawSpvCashflow,0);}
- else if(active==='measured'){m.innerHTML=measuredPage();setTimeout(drawBE,0);}
  else if(active==='prices')m.innerHTML=pricesPage();
  else if(active==='profiles')m.innerHTML=profilesPage();
 }
