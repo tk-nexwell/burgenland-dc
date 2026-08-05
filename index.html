@@ -156,7 +156,7 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
 </header>
 <nav id="nav"></nav>
 <main id="main"></main>
-<footer>Directional model for discussion · Burgenland DC · Nexwell Power. Not investment advice. - build 2026-08-05 16:53</footer>
+<footer>Directional model for discussion · Burgenland DC · Nexwell Power. Not investment advice. - build 2026-08-05 17:02</footer>
 <script>
 const PROFILES={
  meta:{wind_cf:0.4519,solar_cf:0.1376},
@@ -811,51 +811,43 @@ const SITES=[{n:'UW Zurndorf (grid connection)',lat:47.966,lon:17.006},{n:'UW An
 function drawMap(){
  if(!document.getElementById('c_map'))return;
  const UWZ=SITES[0], UWA=SITES[1], GDC=SITES[2];
- const COL={wind:'#6cc0ff', solar:'#ffc65c'};
- const GLY={wind:'✳', solar:'▦'};                    // rotor · panel
+ const COL={wind:'#5cb3ff', solar:'#ffbe4d'};
  const mk=t=>PROJECTS.filter(p=>p.t===t);
  const node=p=>/Andau/i.test(p.n)?UWA:UWZ;
  const hov=p=>`<b>${p.n}</b><br>${p.mw} MW${p.t==='solar'?'p':''} ${p.t}<br>Status: ${p.s}<br>Available: ${p.av}<br>Direct line to ${node(p).n.split(' (')[0]}: ${p.d} km`;
- // schematic direct-line routes
  const routes=t=>{const la=[],lo=[];
-  mk(t).forEach(p=>{const nd=node(p); la.push(p.lat,nd.lat,null); lo.push(p.lon,nd.lon,null);});
-  return {type:'scattermap',lat:la,lon:lo,mode:'lines',
-    line:{color:COL[t],width:1.3},opacity:0.32,hoverinfo:'skip',showlegend:false};};
+  mk(t).forEach(p=>{const nd=node(p);la.push(p.lat,nd.lat,null);lo.push(p.lon,nd.lon,null);});
+  return {type:'scattermap',lat:la,lon:lo,mode:'lines',line:{color:COL[t],width:1.3},
+    opacity:0.34,hoverinfo:'skip',showlegend:false};};
  const feed={type:'scattermap',lat:[UWA.lat,UWZ.lat],lon:[UWA.lon,UWZ.lon],mode:'lines',
    name:'UW Andau feeds through Zurndorf',line:{color:'#93a8bd',width:2},opacity:0.8,hoverinfo:'skip'};
  const trunk={type:'scattermap',lat:[UWZ.lat,GDC.lat],lon:[UWZ.lon,GDC.lon],mode:'lines',
    name:'Grid connection to the campus',line:{color:'#45b85d',width:3.6},opacity:0.95,hoverinfo:'skip'};
- // icons sized by capacity: textfont.size is a scalar per trace, so bucket the projects
- const BUCK=[{max:30,size:15},{max:60,size:21},{max:1e9,size:29}];
- const icons=[];
- ['wind','solar'].forEach(t=>{
-  BUCK.forEach((bk,i)=>{
-   const lo=i?BUCK[i-1].max:0;
-   const set=mk(t).filter(p=>p.mw>lo&&p.mw<=bk.max);
-   if(!set.length)return;
-   icons.push({type:'scattermap',lat:set.map(p=>p.lat),lon:set.map(p=>p.lon),mode:'text',
-     text:set.map(()=>GLY[t]),textfont:{size:bk.size,color:COL[t]},
-     name:t==='wind'?'Wind projects':'Solar projects',showlegend:i===0,
-     legendgroup:t,customdata:set.map(hov),hovertemplate:'%{customdata}<extra></extra>'});
-  });
- });
- const batt={type:'scattermap',lat:[GDC.lat],lon:[GDC.lon],mode:'text',text:['▮'],
-   textfont:{size:19,color:'#c39bf0'},name:'Battery',
-   customdata:[`<b>Battery</b><br>${fmt(M.battery.powerMW,0)} MW / ${fmt(M.battery.powerMW*M.battery.durationH,0)} MWh<br>At the campus per the 23 Jul call`],
-   hovertemplate:'%{customdata}<extra></extra>'};
- const dc={type:'scattermap',lat:[GDC.lat],lon:[GDC.lon],mode:'text+markers',
-   text:['☰'],textfont:{size:26,color:'#eaf2f8'},textposition:'middle center',
-   marker:{size:1,color:'rgba(0,0,0,0)'},name:'Data centre',
-   customdata:[GDC.n],hovertemplate:'%{customdata}<extra></extra>'};
- const subs=[UWZ,UWA];
- const sub={type:'scattermap',lat:subs.map(x=>x.lat),lon:subs.map(x=>x.lon),mode:'text',
-   text:subs.map(()=>'⚡'),textfont:{size:20,color:'#ffd98a'},name:'Substations',
-   customdata:subs.map(x=>x.n),hovertemplate:'%{customdata}<extra></extra>'};
- const names={type:'scattermap',lat:SITES.map(x=>x.lat),lon:SITES.map(x=>x.lon),mode:'text',
-   text:SITES.map(x=>'  '+x.n.split(' (')[0]),textposition:'middle right',
-   textfont:{size:11,color:'rgba(232,242,248,.9)'},hoverinfo:'skip',showlegend:false};
- Plotly.react('c_map',[routes('wind'),routes('solar'),feed,trunk].concat(icons,[batt,sub,dc,names]),
-  Object.assign(lay('Dedicated RES projects · BE list 10 Jul 2026<br><span style="font-size:10px">icon size = capacity · lines are schematic direct-line routes, not surveyed · hover for status, availability and distance</span>',
+ // Plain circles: the Carto raster basemap has no glyph endpoint, so no text or symbol
+ // marker can render on it. Node TYPE is carried by colour and by a ring (a dark inner
+ // disc over a light outer disc); node SIZE is capacity.
+ const sz=p=>Math.max(15,Math.sqrt(p.mw)*4.6);
+ const plants=t=>({type:'scattermap',lat:mk(t).map(p=>p.lat),lon:mk(t).map(p=>p.lon),mode:'markers',
+   name:t==='wind'?'Wind projects':'Solar projects',
+   marker:{size:mk(t).map(sz),color:COL[t],opacity:0.92},
+   customdata:mk(t).map(hov),hovertemplate:'%{customdata}<extra></extra>'});
+ const core=t=>({type:'scattermap',lat:mk(t).map(p=>p.lat),lon:mk(t).map(p=>p.lon),mode:'markers',
+   marker:{size:mk(t).map(p=>sz(p)*0.42),color:'#0b1119',opacity:0.95},
+   hoverinfo:'skip',showlegend:false});
+ const ring=(pts,col,outer,name,hovs)=>[
+  {type:'scattermap',lat:pts.map(p=>p.lat),lon:pts.map(p=>p.lon),mode:'markers',name,
+   marker:{size:outer,color:col,opacity:0.96},
+   customdata:hovs,hovertemplate:'%{customdata}<extra></extra>'},
+  {type:'scattermap',lat:pts.map(p=>p.lat),lon:pts.map(p=>p.lon),mode:'markers',
+   marker:{size:outer*0.45,color:'#0b1119',opacity:1},hoverinfo:'skip',showlegend:false}];
+ const subs=ring([UWZ,UWA],'#ffd98a',21,'Substations',[UWZ.n,UWA.n]);
+ const dcm =ring([GDC],'#eaf2f8',27,'Data centre',[GDC.n]);
+ const bat =ring([{lat:GDC.lat-0.010,lon:GDC.lon+0.013}],'#c39bf0',19,'Battery',
+   [`<b>Battery</b><br>${fmt(M.battery.powerMW,0)} MW / ${fmt(M.battery.powerMW*M.battery.durationH,0)} MWh<br>At the campus per the 23 Jul call`]);
+ Plotly.react('c_map',
+  [routes('wind'),routes('solar'),feed,trunk,
+   plants('wind'),core('wind'),plants('solar'),core('solar')].concat(bat,subs,dcm),
+  Object.assign(lay('Dedicated RES projects · BE list 10 Jul 2026<br><span style="font-size:10px">marker size = capacity · ringed markers are substations, the campus and the battery · lines are schematic direct-line routes, not surveyed · hover for detail</span>',
    {showlegend:true,legend:{orientation:'h',y:-0.04,yanchor:'top',x:0.5,xanchor:'center',font:{size:10}}}),
   {map:{style:'carto-darkmatter',center:{lat:47.872,lon:17.00},zoom:9.9},hovermode:'closest',
    margin:{l:8,r:8,t:76,b:46}}),CFG);
