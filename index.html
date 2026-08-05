@@ -156,7 +156,7 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
 </header>
 <nav id="nav"></nav>
 <main id="main"></main>
-<footer>Directional model for discussion · Burgenland DC · Nexwell Power. Not investment advice. - build 2026-08-05 18:11</footer>
+<footer>Directional model for discussion · Burgenland DC · Nexwell Power. Not investment advice. - build 2026-08-05 19:31</footer>
 <script>
 const PROFILES={
  meta:{wind_cf:0.4519,solar_cf:0.1376},
@@ -200,81 +200,7 @@ const CAP7=(function(){const ys=['2019','2020','2021','2023','2024','2025'];cons
 /* ---- BE measured generation, 15-min metering aggregated to monthly and seasonal-hourly.
    Source: BE via Julius 31 Jul 2026 (confidential). Only aggregates are carried here;
    no 15-minute series is published. ---- */
-const BEDATA={"windNick":{"label":"Wind Nickelsdorf 1","tech":"wind","mw":37.12,"note":"12 turbines, in operation","from":"2023-07","to":"2026-07","monthly":{"2023-07":119.8,"2023-08":141.1,"2023-09":134.2,"2023-10":186.4,"2023-11":244.0,"2023-12":175.2,"2024-01":308.3,"2024-02":248.0,"2024-03":276.2,"2024-04":241.4,"2024-05":136.6,"2024-06":110.4,"2024-07":149.3,"2024-08":129.3,"2024-09":231.8,"2024-10":194.6,"2024-11":192.3,"2024-12":280.2,"2025-01":194.1,"2025-02":153.5,"2025-03":259.6,"2025-04":262.8,"2025-05":148.2,"2025-06":133.0,"2025-07":216.4,"2025-08":144.8,"2025-09":141.4,"2025-10":257.2,"2025-11":196.9,"2025-12":149.2,"2026-01":156.4,"2026-02":157.6,"2026-03":240.4,"2026-04":238.2,"2026-05":204.7,"2026-06":122.2},"diurnal":{"winter":[29.9,30.0,29.4,28.4,28.0,28.3,28.5,27.5,26.2,24.2,23.9,24.3,25.5,26.4,26.9,26.5,26.7,28.7,29.8,29.7,30.5,31.5,31.0,30.6],"spring":[35.4,34.8,33.5,32.6,32.7,33.6,34.0,31.0,26.6,24.7,23.9,24.3,24.2,23.2,24.0,26.7,30.1,30.9,31.4,31.9,33.4,34.7,35.0,35.2],"summer":[24.0,24.1,24.2,23.0,22.7,22.5,22.2,19.9,16.5,15.8,15.0,14.3,14.4,14.2,13.7,14.3,15.9,17.0,18.6,18.3,19.2,21.0,23.7,24.3],"autumn":[30.5,29.7,28.7,28.9,28.4,28.7,28.5,28.1,26.5,23.1,21.2,21.5,22.5,24.0,24.5,24.7,25.1,25.5,26.6,29.8,30.9,31.9,32.0,30.4]},"fullYears":{"2024":2498,"2025":2257},"rolling12":[{"from":"2023-08","flh":2351},{"from":"2023-09","flh":2339},{"from":"2023-10","flh":2437},{"from":"2023-11","flh":2445},{"from":"2023-12","flh":2393},{"from":"2024-01","flh":2498},{"from":"2024-02","flh":2384},{"from":"2024-03","flh":2290},{"from":"2024-04","flh":2273},{"from":"2024-05","flh":2294},{"from":"2024-06","flh":2306},{"from":"2024-07","flh":2328},{"from":"2024-08","flh":2396},{"from":"2024-09","flh":2411},{"from":"2024-10","flh":2321},{"from":"2024-11","flh":2383},{"from":"2024-12","flh":2388},{"from":"2025-01","flh":2257},{"from":"2025-02","flh":2219},{"from":"2025-03","flh":2223},{"from":"2025-04","flh":2204},{"from":"2025-05","flh":2180},{"from":"2025-06","flh":2236},{"from":"2025-07","flh":2225}]},"pvNord":{"label":"PV Nickelsdorf Nord","tech":"solar","mw":41.82,"note":"fixed tilt","from":"2024-04","to":"2026-07","monthly":{"2024-04":72.7,"2024-05":106.7,"2024-06":127.2,"2024-07":123.0,"2024-08":119.0,"2024-09":82.4,"2024-10":60.1,"2024-11":34.0,"2024-12":18.1,"2025-01":21.6,"2025-02":51.6,"2025-03":79.8,"2025-04":83.6,"2025-05":107.1,"2025-06":105.6,"2025-07":117.6,"2025-08":103.7,"2025-09":83.1,"2025-10":54.9,"2025-11":28.3,"2025-12":11.3,"2026-01":19.0,"2026-02":33.9,"2026-03":83.8,"2026-04":85.8,"2026-05":107.9,"2026-06":135.6},"diurnal":{"winter":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.3,2.8,8.7,13.7,16.4,17.0,12.6,9.0,4.4,1.3,0.1,0.0,0.0,0.0,0.0,0.0,0.0],"spring":[0.0,0.0,0.0,0.0,0.0,0.1,1.7,5.6,13.8,26.2,34.5,36.4,34.4,31.6,27.7,26.3,23.9,19.5,11.5,3.5,0.3,0.0,0.0,0.0],"summer":[0.0,0.0,0.0,0.0,0.0,0.5,2.9,6.8,14.9,26.8,35.0,39.1,41.0,41.3,40.6,40.2,37.7,30.8,20.7,8.8,1.5,0.0,0.0,0.0],"autumn":[0.0,0.0,0.0,0.0,0.0,0.0,0.1,1.4,6.1,15.2,23.9,28.3,29.4,27.6,22.2,17.1,10.9,4.9,1.2,0.1,0.0,0.0,0.0,0.0]},"fullYears":{"2025":848},"rolling12":[{"from":"2024-05","flh":907},{"from":"2024-06","flh":907},{"from":"2024-07","flh":886},{"from":"2024-08","flh":880},{"from":"2024-09","flh":865},{"from":"2024-10","flh":866},{"from":"2024-11","flh":861},{"from":"2024-12","flh":855},{"from":"2025-01","flh":848},{"from":"2025-02","flh":846},{"from":"2025-03","flh":828},{"from":"2025-04","flh":832},{"from":"2025-05","flh":834},{"from":"2025-06","flh":835},{"from":"2025-07","flh":865}]},"pvSued":{"label":"PV Nickelsdorf Sued","tech":"solar","mw":76.28,"note":"fixed tilt","from":"2024-06","to":"2026-07","monthly":{"2024-07":11.2,"2024-08":98.6,"2024-09":61.6,"2024-10":59.7,"2024-11":39.0,"2024-12":22.5,"2025-01":25.0,"2025-02":52.6,"2025-03":78.3,"2025-04":84.1,"2025-05":102.3,"2025-06":100.9,"2025-07":103.4,"2025-08":110.3,"2025-09":92.7,"2025-10":61.3,"2025-11":33.7,"2025-12":14.5,"2026-01":23.4,"2026-02":37.2,"2026-03":89.8,"2026-04":98.3,"2026-05":123.3,"2026-06":125.4},"diurnal":{"winter":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.3,3.0,8.9,13.9,17.0,18.1,15.7,12.1,6.4,2.0,0.2,0.0,0.0,0.0,0.0,0.0,0.0],"spring":[0.0,0.0,0.0,0.0,0.0,0.1,1.5,5.5,14.0,26.2,34.3,37.7,38.2,36.8,33.1,29.5,24.3,17.9,10.4,3.3,0.3,0.0,0.0,0.0],"summer":[0.0,0.0,0.0,0.0,0.0,0.3,2.0,4.9,11.2,20.2,25.4,27.9,30.0,29.7,29.3,28.7,26.8,22.8,14.5,5.8,0.9,0.0,0.0,0.0],"autumn":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.3,6.2,14.9,23.3,27.1,28.9,27.8,23.6,18.3,12.1,5.9,1.7,0.1,0.0,0.0,0.0,0.0]},"fullYears":{"2025":859},"rolling12":[{"from":"2024-07","flh":736},{"from":"2024-08","flh":828},{"from":"2024-09","flh":840},{"from":"2024-10","flh":871},{"from":"2024-11","flh":873},{"from":"2024-12","flh":867},{"from":"2025-01","flh":859},{"from":"2025-02","flh":858},{"from":"2025-03","flh":842},{"from":"2025-04","flh":854},{"from":"2025-05","flh":868},{"from":"2025-06","flh":889},{"from":"2025-07","flh":913}]},"pvWallern":{"label":"PV Wallern-Tadten","tech":"solar","mw":119.79,"note":"Agri-PV / tracker","from":"2026-01","to":"2026-07","monthly":{"2026-01":22.4,"2026-06":172.6},"diurnal":{"winter":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.2,2.3,6.4,10.6,13.1,14.5,14.6,11.8,6.5,1.7,0.1,0.0,0.0,0.0,0.0,0.0,0.0],"spring":[0.0,0.0,0.0,0.0,0.0,0.1,2.4,12.4,26.3,34.4,38.0,41.1,42.2,39.2,36.2,31.1,23.3,16.0,8.4,2.0,0.1,0.0,0.0,0.0],"summer":[0.0,0.0,0.0,0.0,0.0,1.5,11.0,26.6,42.4,48.9,49.8,52.9,57.1,56.9,53.2,49.6,43.3,37.4,27.6,14.4,2.7,0.0,0.0,0.0]},"fullYears":{},"rolling12":[]}};
-function beStats(){
- const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
- const w=BEDATA.windNick.rolling12.map(x=>x.flh);
- const fixed=['pvNord','pvSued'].flatMap(k=>BEDATA[k].rolling12.map(x=>x.flh));
- return {wMean:mean(w),wMin:Math.min(...w),wMax:Math.max(...w),wN:w.length,
-         sMean:mean(fixed),sMin:Math.min(...fixed),sMax:Math.max(...fixed),sN:fixed.length};
-}
-function modelFLH(sec){return M[sec].grossCF*(1-M[sec].loss)*8760;}
-function applyCal(){
- if(!M.cal||!M.cal.on) return; const b=beStats();
- M.wind.grossCF =(b.wMean*M.cal.windF )/8760/(1-M.wind.loss);
- M.solar.grossCF=(b.sMean*M.cal.solarUp)/8760/(1-M.solar.loss);
-}
-function calToggle(){
- M.cal.on=!M.cal.on;
- if(M.cal.on){const b=beStats();
-  M.cal._w=M.wind.grossCF; M.cal._s=M.solar.grossCF;      // remember the model's own yields
-  M.cal.windF  =+(modelFLH('wind') /b.wMean).toFixed(3);
-  M.cal.solarUp=+(modelFLH('solar')/b.sMean).toFixed(3);}
- else{ if(M.cal._w!=null)M.wind.grossCF=M.cal._w; if(M.cal._s!=null)M.solar.grossCF=M.cal._s; }
- render();
-}
-function measuredPage(){
- const b=beStats(), on=M.cal.on;
- const wModel=modelFLH('wind'), sModel=modelFLH('solar');
- const wRatio=wModel/b.wMean, sRatio=sModel/b.sMean;
- const controls=`<div class="panel"><h3>Calibrate the model to BE&#39;s meters</h3>
-  <div class="inp"><label>Drive yields from measured data</label><div class="seg">
-   <button class="${on?'':'on'}" onclick="if(M.cal.on)calToggle()">Off</button>
-   <button class="${on?'on':''}" onclick="if(!M.cal.on)calToggle()">On</button></div></div>
-  ${on?sliderHTML('cal','windF','Wind yield vs BE measured',0.8,1.25,0.005,'×'):''}
-  ${on?sliderHTML('cal','solarUp','Solar uplift over BE fixed tilt',1.0,1.7,0.005,'×'):''}
-  <div class="info">${on
-   ?'Wind and solar capacity factors are now derived from the metered fleet. Move the multipliers to test a different machine class or a tracker uplift; every tab follows.'
-   :'Off means the model keeps its own capacity factors and the meters are shown for comparison only. Switching on adopts the measured yields at the multipliers currently implied, so nothing jumps.'}</div></div>`;
- const kp=`<div class="panel"><h3>Measured against model</h3><table class="tbl"><tbody>
-  <tr><th></th><th style="text-align:right">BE measured</th><th style="text-align:right">Model</th><th style="text-align:right">Model vs measured</th></tr>
-  <tr><td>Wind, FLH/yr at the meter</td><td style="text-align:right">${fmt(b.wMean,0)}</td><td style="text-align:right">${fmt(wModel,0)}</td>
-      <td style="text-align:right;color:${wRatio>1.02?'#e0603e':'#46b45a'}">${(wRatio*100-100).toFixed(1)}%</td></tr>
-  <tr><td>Solar fixed tilt, FLH/yr</td><td style="text-align:right">${fmt(b.sMean,0)}</td><td style="text-align:right">${fmt(sModel,0)}</td>
-      <td style="text-align:right;color:${sRatio>1.15?'#e0603e':'#46b45a'}">${(sRatio*100-100).toFixed(1)}%</td></tr>
-  </tbody></table>
-  <div class="muted" style="margin-top:8px">Wind is ${b.wN} rolling twelve-month windows, ${fmt(b.wMin,0)} to ${fmt(b.wMax,0)} FLH. Solar fixed tilt is ${b.sN} windows across Nickelsdorf Nord and Sued, ${fmt(b.sMin,0)} to ${fmt(b.sMax,0)} FLH.</div>
-  <div class="warn" style="margin-top:10px"><b>The solar gap is the open question with BE.</b> On 23 July BE said fixed tilt runs about 1,100 FLH and trackers 1,300 to 1,400, an uplift of roughly 10%. Their own fixed-tilt meters average ${fmt(b.sMean,0)} FLH, so the model&#39;s ${fmt(sModel,0)} implies a <b>${(sRatio*100-100).toFixed(0)}% uplift</b> over what they actually measure. Wallern-Tadten, the one Agri-PV site, ran 173 FLH in June 2026 against 125 and 136 at the two fixed-tilt parks, so an uplift is real, but June 2026 is the only month where all three parks report in full.</div></div>`;
- return `<div class="grid cols">${controls}<div class="grid">${kp}
-  <div class="chart tall" id="beRoll"></div><div class="chart tall" id="beMon"></div><div class="chart tall" id="beDiur"></div></div></div>`;
-}
-function drawBE(){
- if(typeof Plotly==='undefined')return;
- const W=BEDATA.windNick, R=W.rolling12;
- Plotly.react('beRoll',[
-  {x:R.map(r=>r.from),y:R.map(r=>r.flh),type:'scatter',mode:'lines+markers',name:'measured',
-   line:{color:'#4aa8ff',width:2},hovertemplate:HT('FLH',0)},
-  {x:R.map(r=>r.from),y:R.map(()=>modelFLH('wind')),type:'scatter',mode:'lines',name:'model',
-   line:{color:'#94a2b1',dash:'dot'},hovertemplate:HT('FLH',0)}
- ],lay('Wind, rolling twelve-month yield<br><span style="font-size:10px">'+W.label+', '+W.mw+' MW, window start on the axis</span>',
-   {showlegend:true,yaxis:{title:{text:'FLH/yr',font:{size:10}},gridcolor:'#1c2531'},xaxis:{gridcolor:'#1c2531'}}),CFG);
- const keys=['pvNord','pvSued','pvWallern'],cols=['#ffb23e','#e08a2e','#46b45a'];
- const months=[...new Set(keys.flatMap(k=>Object.keys(BEDATA[k].monthly)))].sort().slice(-27);
- Plotly.react('beMon',keys.map((k,i)=>({x:months,y:months.map(m=>BEDATA[k].monthly[m]??null),type:'bar',
-   name:BEDATA[k].label.replace('PV ','')+' ('+BEDATA[k].mw+' MWp)',marker:{color:cols[i]},hovertemplate:HT('FLH',0)})),
-  lay('Solar, monthly yield by park<br><span style="font-size:10px">full months only; Wallern-Tadten is the Agri-PV site</span>',
-   {barmode:'group',showlegend:true,yaxis:{title:{text:'FLH/month',font:{size:10}},gridcolor:'#1c2531'},xaxis:{gridcolor:'#1c2531'}}),CFG);
- const H=[...Array(24).keys()], tr=[];
- [['pvSued','#ffb23e','Solar fixed tilt'],['pvWallern','#46b45a','Solar Agri-PV'],['windNick','#4aa8ff','Wind']].forEach(function(a){
-  const k=a[0],c=a[1],lb=a[2];
-  const d=BEDATA[k].diurnal.summer; if(d) tr.push({x:H,y:d,type:'scatter',mode:'lines',name:lb+', summer',
-    line:{color:c,width:2},hovertemplate:HT('% of rated',1)});
-  const w=BEDATA[k].diurnal.winter; if(w) tr.push({x:H,y:w,type:'scatter',mode:'lines',name:lb+', winter',
-    line:{color:c,width:1.4,dash:'dot'},hovertemplate:HT('% of rated',1)});});
- Plotly.react('beDiur',tr,lay('Average day, measured<br><span style="font-size:10px">mean output by hour as % of rated capacity</span>',
-   {showlegend:true,yaxis:{title:{text:'% of rated',font:{size:10}},gridcolor:'#1c2531'},xaxis:{title:{text:'hour',font:{size:10}},gridcolor:'#1c2531',dtick:3}}),CFG);
-}
-
+const BEDATA={"windNick":{"label":"Wind Nickelsdorf","tech":"wind","mw":37.12,"from":"2023-07","to":"2026-07","mh":[[32.3,32.8,33.0,30.9,29.8,30.3,29.2,28.4,26.9,26.4,25.0,26.6,27.3,28.1,28.7,26.6,27.0,28.9,30.1,29.6,31.4,32.6,32.9,33.4],[30.2,29.1,28.3,27.5,26.6,26.2,27.2,26.5,23.9,19.7,20.9,22.1,24.1,24.7,24.9,27.0,27.7,29.8,30.9,33.0,32.7,32.8,31.6,30.2],[38.4,38.1,34.3,32.9,33.7,35.9,36.1,33.9,30.2,27.5,27.2,28.8,31.0,31.5,32.5,34.3,36.6,36.8,36.3,38.9,39.9,40.9,39.7,40.2],[40.0,40.3,39.7,38.4,38.4,40.0,42.1,38.9,32.3,30.7,29.3,28.0,25.7,22.6,24.0,27.3,32.0,34.7,34.0,34.2,36.1,38.0,39.7,38.7],[28.1,26.3,26.9,26.6,26.3,24.9,24.2,20.4,17.4,16.1,15.5,16.3,16.0,15.4,15.5,18.5,21.8,21.4,23.9,22.7,24.3,25.3,25.6,26.9],[20.3,20.3,20.0,18.2,17.7,18.5,20.2,17.4,14.1,13.7,13.2,12.7,12.4,11.1,10.6,11.8,15.4,18.1,18.8,17.6,17.8,19.5,22.9,23.8],[27.2,27.1,26.7,26.5,27.2,26.8,25.3,22.4,19.5,18.6,16.7,16.9,17.6,18.7,17.9,17.5,17.3,17.3,20.2,20.2,20.6,23.1,24.4,26.3],[24.4,24.9,25.6,24.1,23.0,22.0,21.0,19.7,15.8,15.2,15.0,13.4,13.2,12.7,12.5,13.6,15.0,15.7,16.7,17.0,19.1,20.5,23.6,22.7],[25.8,24.7,25.0,24.8,24.7,23.9,25.5,25.4,23.6,20.1,18.2,18.2,18.8,20.2,21.1,20.5,22.2,22.8,22.0,24.9,27.7,29.3,27.8,26.5],[33.2,32.9,31.5,31.9,32.0,32.0,31.0,29.2,26.4,22.8,20.9,20.3,21.6,22.9,24.3,25.6,25.7,25.9,29.1,32.7,33.4,33.8,33.8,33.4],[32.2,31.4,29.5,29.9,28.3,30.0,28.9,29.7,29.4,26.6,24.6,25.9,27.1,29.0,28.1,28.0,27.3,27.7,28.7,31.7,31.7,32.5,34.2,31.3],[27.2,27.8,26.8,26.7,27.5,28.3,28.9,27.6,27.7,26.1,25.4,24.2,25.0,26.3,27.0,26.0,25.6,27.6,28.5,26.8,27.5,29.1,28.6,27.9]],"monthly":{"2023-07":[119.8,100],"2023-08":[141.1,100],"2023-09":[134.2,100],"2023-10":[186.4,100],"2023-11":[244.0,100],"2023-12":[175.2,100],"2024-01":[308.3,100],"2024-02":[248.0,100],"2024-03":[276.2,100],"2024-04":[241.4,100],"2024-05":[136.6,100],"2024-06":[110.4,100],"2024-07":[149.3,100],"2024-08":[129.3,100],"2024-09":[231.8,100],"2024-10":[194.6,100],"2024-11":[192.3,100],"2024-12":[280.2,100],"2025-01":[194.1,100],"2025-02":[153.5,100],"2025-03":[259.6,100],"2025-04":[262.8,100],"2025-05":[148.2,100],"2025-06":[133.0,100],"2025-07":[216.4,100],"2025-08":[144.8,100],"2025-09":[141.4,100],"2025-10":[257.2,100],"2025-11":[196.9,100],"2025-12":[149.2,100],"2026-01":[156.4,100],"2026-02":[157.6,100],"2026-03":[240.4,100],"2026-04":[238.2,100],"2026-05":[204.7,100],"2026-06":[122.2,100]},"rolling12":[{"from":"2023-08","flh":2351},{"from":"2023-09","flh":2339},{"from":"2023-10","flh":2437},{"from":"2023-11","flh":2445},{"from":"2023-12","flh":2393},{"from":"2024-01","flh":2498},{"from":"2024-02","flh":2384},{"from":"2024-03","flh":2290},{"from":"2024-04","flh":2273},{"from":"2024-05","flh":2294},{"from":"2024-06","flh":2306},{"from":"2024-07","flh":2328},{"from":"2024-08","flh":2396},{"from":"2024-09","flh":2411},{"from":"2024-10","flh":2321},{"from":"2024-11","flh":2383},{"from":"2024-12","flh":2388},{"from":"2025-01","flh":2257},{"from":"2025-02","flh":2219},{"from":"2025-03","flh":2223},{"from":"2025-04","flh":2204},{"from":"2025-05","flh":2180},{"from":"2025-06","flh":2236},{"from":"2025-07","flh":2225}]},"pvNord":{"label":"PV Nickelsdorf Nord","tech":"solar","mw":41.82,"from":"2024-04","to":"2026-07","mh":[[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.6,6.6,11.1,12.6,13.2,10.5,6.3,2.9,0.6,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,5.6,15.1,22.9,27.0,27.5,22.5,17.9,9.2,3.5,0.5,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.7,4.4,13.2,26.0,35.0,40.6,40.6,38.6,29.5,21.7,10.1,3.2,0.3,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.8,4.3,11.1,22.6,31.6,31.6,29.0,26.9,25.2,26.6,26.5,20.2,10.5,2.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.3,3.1,7.6,16.7,29.9,36.9,38.2,35.4,31.5,29.0,29.1,30.6,29.7,19.9,7.2,0.8,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.8,4.1,8.4,17.8,29.5,36.7,40.0,40.4,41.8,40.1,38.7,37.5,33.0,25.7,12.4,2.4,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.3,2.8,6.3,13.8,25.6,35.7,39.8,41.3,40.2,41.9,41.1,37.8,31.0,20.2,8.6,1.6,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,1.3,5.0,11.8,24.2,31.8,37.2,41.5,41.6,40.1,41.6,37.8,27.6,13.9,3.6,0.2,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.1,2.2,7.3,16.8,27.5,34.7,38.8,38.1,37.2,32.7,24.3,12.1,3.5,0.3,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,5.5,14.9,23.6,29.4,31.7,30.2,22.8,15.5,8.1,2.6,0.2,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,5.7,14.1,20.6,20.6,17.5,14.5,6.5,3.1,0.4,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.5,5.1,8.0,10.6,11.2,5.8,3.6,1.4,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"monthly":{"2024-04":[72.7,100],"2024-05":[106.7,100],"2024-06":[127.2,100],"2024-07":[123.0,100],"2024-08":[119.0,100],"2024-09":[82.4,100],"2024-10":[60.1,100],"2024-11":[34.0,100],"2024-12":[18.1,100],"2025-01":[21.6,100],"2025-02":[51.6,100],"2025-03":[79.8,100],"2025-04":[83.6,100],"2025-05":[107.1,100],"2025-06":[105.6,100],"2025-07":[117.6,100],"2025-08":[103.7,100],"2025-09":[83.1,100],"2025-10":[54.9,100],"2025-11":[28.3,100],"2025-12":[11.3,100],"2026-01":[19.0,100],"2026-02":[33.9,100],"2026-03":[83.8,100],"2026-04":[85.8,100],"2026-05":[107.9,100],"2026-06":[135.6,100]},"rolling12":[{"from":"2024-05","flh":907},{"from":"2024-06","flh":907},{"from":"2024-07","flh":886},{"from":"2024-08","flh":880},{"from":"2024-09","flh":865},{"from":"2024-10","flh":866},{"from":"2024-11","flh":861},{"from":"2024-12","flh":855},{"from":"2025-01","flh":848},{"from":"2025-02","flh":846},{"from":"2025-03","flh":828},{"from":"2025-04","flh":832},{"from":"2025-05","flh":834},{"from":"2025-06","flh":835},{"from":"2025-07","flh":865}]},"pvSued":{"label":"PV Nickelsdorf Sued","tech":"solar","mw":76.28,"from":"2024-06","to":"2026-07","mh":[[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.8,6.9,11.4,14.2,15.1,13.7,9.9,4.5,0.7,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,5.9,15.2,22.4,26.0,26.9,23.8,20.3,13.1,5.4,0.6,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.7,4.7,13.6,25.5,33.9,39.0,38.7,39.1,32.2,24.1,14.6,4.7,0.3,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.9,4.4,11.7,23.7,33.3,36.1,35.6,32.9,31.4,31.0,27.3,20.9,12.2,2.6,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.3,3.0,7.5,16.7,29.3,35.5,37.9,40.2,38.3,35.6,33.6,31.2,28.2,18.7,7.1,0.8,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.6,3.1,6.5,14.2,23.0,28.5,30.2,32.2,33.1,31.5,28.7,27.6,25.7,18.6,9.0,1.7,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.2,1.4,3.0,7.0,12.9,15.7,18.0,19.5,18.7,20.3,20.5,18.2,15.3,9.6,3.9,0.7,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,1.2,4.9,12.0,24.2,31.4,35.3,37.8,36.9,36.0,36.9,34.5,26.9,14.7,4.0,0.2,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.1,2.1,7.1,15.9,24.9,30.9,35.0,34.1,33.0,30.3,24.7,14.2,4.8,0.3,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,5.5,14.8,23.7,28.8,31.4,30.5,25.4,19.1,11.0,3.7,0.2,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,6.0,14.2,21.2,21.7,20.1,18.8,12.3,5.4,0.5,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.5,5.1,8.7,11.7,13.1,10.5,6.8,2.2,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"monthly":{"2024-07":[11.2,100],"2024-08":[98.6,100],"2024-09":[61.6,100],"2024-10":[59.7,100],"2024-11":[39.0,100],"2024-12":[22.5,100],"2025-01":[25.0,100],"2025-02":[52.6,100],"2025-03":[78.3,100],"2025-04":[84.1,100],"2025-05":[102.3,100],"2025-06":[100.9,100],"2025-07":[103.4,100],"2025-08":[110.3,100],"2025-09":[92.7,100],"2025-10":[61.3,100],"2025-11":[33.7,100],"2025-12":[14.5,100],"2026-01":[23.4,100],"2026-02":[37.2,100],"2026-03":[89.8,100],"2026-04":[98.3,100],"2026-05":[123.3,100],"2026-06":[125.4,100]},"rolling12":[{"from":"2024-07","flh":736},{"from":"2024-08","flh":828},{"from":"2024-09","flh":840},{"from":"2024-10","flh":871},{"from":"2024-11","flh":873},{"from":"2024-12","flh":867},{"from":"2025-01","flh":859},{"from":"2025-02","flh":858},{"from":"2025-03","flh":842},{"from":"2025-04","flh":854},{"from":"2025-05","flh":868},{"from":"2025-06","flh":889},{"from":"2025-07","flh":913}]},"pvWallern":{"label":"PV Wallern-Tadten (Agri)","tech":"solar","mw":119.79,"from":"2026-01","to":"2026-07","mh":[[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.2,5.2,9.5,13.0,14.8,14.6,9.4,4.1,0.6,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.5,3.8,8.1,12.2,13.4,14.1,14.6,15.1,9.9,3.4,0.3,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,1.0,8.9,22.0,29.6,37.7,46.7,47.4,43.6,42.1,33.7,17.5,4.6,0.1,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.7,8.9,22.9,31.6,33.2,33.6,33.0,29.5,26.7,24.8,22.9,19.7,11.2,1.4,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.2,6.1,21.3,36.2,44.4,43.8,41.5,45.1,43.8,38.6,34.6,31.8,27.6,17.0,5.5,0.4,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,1.5,11.0,26.6,42.4,48.9,49.8,52.9,57.1,56.9,53.2,49.6,43.3,37.4,27.6,14.4,2.7,0.0,0.0,0.0],[0.0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]],"monthly":{"2026-01":[22.4,100],"2026-02":[21.0,79],"2026-03":[89.6,86],"2026-04":[62.7,69],"2026-05":[83.2,62],"2026-06":[172.6,100]},"rolling12":[]},"all":{"label":"All plants (wind + fixed-tilt PV)","tech":"mix","mw":155.22,"from":"2024-07","to":"2026-06","note":"Wind Nickelsdorf + PV Nord + PV Sued over their common window; Wallern-Tadten excluded (H1 2026 only, gaps)","mh":[[5.9,6.2,6.2,5.8,5.2,5.6,5.7,5.7,6.6,10.2,13.2,15.5,16.1,14.9,12.0,8.2,5.8,5.8,6.0,5.6,6.0,6.4,6.4,6.3],[6.0,5.9,6.1,6.0,5.8,5.8,6.2,6.8,9.9,16.1,22.0,25.0,25.8,22.8,19.7,14.1,8.5,5.9,5.5,5.7,5.6,5.7,5.9,5.7],[9.1,8.8,7.7,7.3,7.6,8.1,8.6,11.3,17.4,26.1,32.7,36.9,37.1,37.2,31.4,25.3,17.7,11.2,8.6,9.0,9.3,9.7,9.6,9.7],[9.4,9.3,9.3,9.3,9.0,8.9,10.2,12.4,16.4,25.3,32.2,33.0,32.1,29.8,29.1,29.9,29.1,24.6,17.6,10.5,9.1,9.5,9.8,9.4],[6.7,6.2,6.3,6.2,6.5,6.4,8.5,10.8,17.0,27.2,31.8,33.5,33.8,31.6,29.4,29.6,29.9,28.0,21.2,11.5,6.6,6.3,6.5,6.8],[4.9,4.7,4.5,4.3,3.9,4.5,7.4,9.9,16.3,24.6,29.9,31.4,32.6,33.3,31.8,30.2,30.4,29.5,23.5,13.6,6.6,5.5,6.1,6.0],[7.3,7.4,7.3,7.3,7.3,7.3,8.6,9.5,12.6,18.1,21.9,24.1,25.3,25.0,26.0,25.8,23.5,20.4,15.6,10.0,6.7,6.3,6.3,6.9],[5.8,5.8,6.1,5.9,5.4,5.4,6.3,8.7,12.8,21.9,27.5,30.5,32.7,32.2,31.4,32.6,30.7,24.3,14.9,6.7,4.5,4.9,5.6,5.3],[7.1,6.8,6.7,6.8,6.9,6.5,7.1,8.5,11.7,17.6,24.5,29.2,32.2,31.7,31.2,28.6,24.2,15.9,9.0,6.8,7.5,8.0,7.7,7.3],[8.3,8.2,8.2,8.4,8.4,8.4,8.1,8.4,11.1,17.3,23.5,27.3,29.5,28.9,25.0,20.0,13.9,9.0,7.2,8.0,8.3,8.3,8.1,8.2],[7.2,7.6,7.0,7.0,6.6,6.8,6.8,7.3,10.7,16.6,21.1,21.7,20.4,19.1,13.4,9.0,6.0,5.8,6.1,6.8,7.1,7.5,7.7,7.1],[7.2,7.4,7.0,7.0,7.1,7.4,7.6,7.5,8.4,10.6,12.7,14.5,15.5,13.1,10.8,7.7,6.3,6.7,7.1,6.7,6.9,7.3,7.4,7.5]],"monthly":{"2024-07":[74.3,100],"2024-08":[111.4,100],"2024-09":[107.9,100],"2024-10":[92.0,100],"2024-11":[74.3,100],"2024-12":[82.9,100],"2025-01":[64.5,100],"2025-02":[76.5,100],"2025-03":[122.0,100],"2025-04":[126.7,100],"2025-05":[114.6,100],"2025-06":[109.8,100],"2025-07":[134.3,100],"2025-08":[116.8,100],"2025-09":[101.8,100],"2025-10":[106.4,100],"2025-11":[71.3,100],"2025-12":[45.9,100],"2026-01":[54.0,100],"2026-02":[65.1,100],"2026-03":[124.2,100],"2026-04":[128.4,100],"2026-05":[138.7,100],"2026-06":[127.4,100]},"rolling12":[{"from":"2024-08","flh":1217},{"from":"2024-09","flh":1222},{"from":"2024-10","flh":1216},{"from":"2024-11","flh":1231},{"from":"2024-12","flh":1228},{"from":"2025-01","flh":1191},{"from":"2025-02","flh":1180},{"from":"2025-03","flh":1169},{"from":"2025-04","flh":1171},{"from":"2025-05","flh":1173},{"from":"2025-06","flh":1197},{"from":"2025-07","flh":1214}]},"dist":{"thresholds":[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100],"window":"Jul 2024 to Jun 2026, 15-minute intervals","wind":[100.0,65.99,54.84,47.09,41.36,36.74,32.65,29.03,25.91,23.14,20.58,18.38,16.38,14.53,12.77,11.2,9.67,7.88,6.21,4.02,0.0],"solar":[100.0,33.85,26.37,21.9,18.33,15.4,12.95,10.86,8.94,7.04,5.44,3.97,2.63,1.43,0.62,0.2,0.04,0.0,0.0,0.0,0.0],"combined":[100.0,63.88,48.43,36.89,27.79,16.87,12.39,9.17,6.19,3.8,1.79,0.59,0.12,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"windMW":37.12,"solarMW":118.1,"combinedMW":155.22}};
 /* ---------- access gate for the SPV and battery tabs ----------
    Client-side only. It keeps casual viewers out of the commercial tabs; it is not
    protection against anyone willing to read the page source. Real confidentiality
@@ -560,7 +486,6 @@ const M={
  view:'INT',
  macro:{infl:0.02,tax:0.23,gearing:0.70,merchReal:100,tenor:20,allInRate:0.047,ppaTermY:20,amort:'annuity'},
  v3:{wind:false,solar:false,battery:false},
- cal:{on:false,windF:1,solarUp:1.5},
  wind:{on:true,mw:320,capexPerMW:1.45,grossCF:0.290636,loss:0.02,lineLoss:0.045,opexPerMW:0.04,gridFee:0,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2029},
  solar:{on:true,mw:357,capexPerMW:0.60,grossCF:0.1566,loss:0.02,lineLoss:0.033,opexPerMW:0.032,gridFee:0,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2030},
  battery:{on:true,powerMW:500,durationH:8,capexPerKWh:130,rte:0.87,opexPct:0.02,degr:0.015,socFloor:0.10,gridYear:2035,priceYear:'2025',captureFactor:1.0,cyclesDay:1,ancPerMW:20,capChargeMWyr:40,compression:0.02,gearing:0.60,debtRate:0.05,substation:24.25,interconnect:17,gridCapFee:0,gridEnergyFee:0,btmCharge:0,lifeY:25}, // defaults: 8h · behind-the-meter charging via direct line → grid fees 0 (sliders remain) · DC reliability charge 40 k€/MW/yr
@@ -993,7 +918,14 @@ function drawBatteryCharts(){
    {x:fyrs,y:fr.map(r=>r.fcfe),name:'Equity cash flow',type:'bar',marker:{color:fr.map(r=>r.fcfe>=0?'#43c079':'#ff6b6b')},hovertemplate:HT('€m')}
  ],lay('Battery equity cash flow<br><span style="font-size:10px">capex '+COD+' · costs from '+(COD+1)+' · merchant from '+b.gridYear+' · IRR '+(isNaN(F.irr)?'n/m':fmt(F.irr*100,1)+'%')+' on €'+fmt(F.equity,0)+'m equity</span>',{barmode:'relative',showlegend:true,yaxis:{range:[Zb.fcfeMin,Zb.fcfeMax],title:{text:'€m',font:{size:10}},gridcolor:'#2b3644'}}),CFG);
 }
+let spvView='fin';
 function summaryPage(){
+ const seg=`<div class="panel" style="margin-bottom:14px"><div class="seg">
+   <button class="${spvView==='fin'?'on':''}" onclick="spvView='fin';render()">Financial model</button>
+   <button class="${spvView==='tech'?'on':''}" onclick="spvView='tech';render()">Technical layout</button>
+   <button class="${spvView==='supply'?'on':''}" onclick="spvView='supply';render()">Supply</button></div></div>`;
+ if(spvView==='tech')return seg+renderBlock('dc');
+ if(spvView==='supply')return seg+`<div class="chart tall" id="pmain"></div><div id="pstats"></div>`;
  const W=computeAsset(M.wind),S=computeAsset(M.solar),B=computeBattery(M.battery);
  const wOn=M.wind.on!==false, sOn=M.solar.on!==false, bOn=M.battery.on!==false;
  const line=((wOn?M.wind.mw:0)+(sOn?M.solar.mw:0))*M.conn.directPer100/100;
@@ -1077,7 +1009,7 @@ function summaryPage(){
    <tr class="tot"><td>Total SPV equity</td><td>${fmt(totEqLCOE,0)}</td><td>${fmt(totEqPPA,0)}</td></tr>
    </tbody></table><div class="muted" style="margin-top:8px">LCOE case: the SPV owns wind, solar, battery and the line. PPA case: only the battery and line (renewables bought at €${fmt(ppaUnit,0)}), a far smaller equity check. Wind, solar and line levered ${pct(M.macro.gearing,0)}; battery ${pct(M.battery.gearing,0)}.</div>
    <div class="warn" style="margin-top:10px"><b>Interconnection burden (€${fmt(line+M.battery.substation+M.battery.interconnect,0)}m + €6m Netzbereitstellung):</b> private tie-lines €${fmt(line,0)}m (€7.5m per 100 MW × ${fmt(M.wind.mw+M.solar.mw,0)} MW - all new-build, no double count) + NEB Netzzutritt €${fmt(M.battery.substation,1)}m (new 110-kV switching station at UW Zurndorf; NEB estimate 26-Jun-26, <b>billed on actual costs</b>) + customer-side DC connection €${fmt(M.battery.interconnect,0)}m (3×3.5 km 110-kV feeders + bays, explicitly outside NEB scope) + Netzbereitstellungsentgelt €6m (12 €/kW tariff). <b>Distance-weighted check:</b> BE cluster distances × #7 unit cost (€7.54m/100MW/10km) ⇒ ~€${fmt(dwLine,0)}m for the private tie-lines vs €${fmt(line,0)}m on the slider. Far clusters (Frauenkirchen ~19 km, Tadten-Wallern ~27 km) push above the flat €7.5m/100MW unless a shared trunk is used.</div></div>`;
- return `<div class="grid cols">${masters}<div class="grid">${table}${spvBlock}${equityBuild}<div class="chart tall" id="spvEcon"></div><div class="chart tall" id="spvcf"></div><div class="chart" id="sbal"></div></div></div>`+renderBlock('dc');
+ return seg+`<div class="grid cols">${masters}<div class="grid">${table}${spvBlock}${equityBuild}<div class="chart tall" id="spvEcon"></div><div class="chart tall" id="spvcf"></div><div class="chart" id="sbal"></div></div></div>`;
 }
 function drawSummaryBalance(){
  const W=computeAsset(M.wind),S=computeAsset(M.solar),dcLoad=M.dc.firmMW*8760/1e6;
@@ -1158,54 +1090,69 @@ function drawSpvCashflow(){
    {x:yrs,y:ops.map(r=>r.fcfe),name:'Dividends (equity CF)',type:'scatter',line:{color:'#b98cff',width:3},hovertemplate:HT('€m')}
  ],lay('SPV cash-flow build<br><span style="font-size:10px">equity IRR '+(isNaN(SP.irr)?'n/m':fmt(SP.irr*100,1)+'%')+' on €'+fmt(SP.equity,0)+'m equity · Rev − grid/opex − financing − tax = dividends</span>',{barmode:'relative',showlegend:true,yaxis:{title:{text:'€m',font:{size:10}},gridcolor:'#2b3644'}}),CFG);
 }
-let profView='heat', profAsset='wind';
+let profView='heat', beSel='windNick';
+const BEPL=[['windNick','Wind'],['pvNord','PV Nord'],['pvSued','PV S\u00fcd'],['pvWallern','PV Wallern'],['all','All plants']];
 function profilesPage(){
- const seg=`<div class="panel" style="margin-bottom:14px"><div class="seg">
+ const showSel=(profView==='heat'||profView==='surf'||profView==='shape');
+ const p=BEDATA[beSel];
+ const hint= profView==='mix'
+   ? 'Ember generation data and EPEX capture ratios.'
+   : profView==='dist'
+   ? 'Share of time output exceeds each level, from the 15-minute metering, '+BEDATA.dist.window+'.'
+   : 'BE 15-minute metering aggregated by month and hour of day \u00b7 '+p.label+', '+fmt(p.mw,2)+' MW \u00b7 '+p.from+' to '+p.to+'.';
+ const sel=showSel?`<div class="seg" style="margin-left:10px">${BEPL.map(q=>`<button class="${beSel===q[0]?'on':''}" onclick="beSel='${q[0]}';render()">${q[1]}</button>`).join('')}</div>`:'';
+ const seg=`<div class="panel" style="margin-bottom:14px"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px"><div class="seg">
    <button class="${profView==='heat'?'on':''}" onclick="profView='heat';render()">Heatmap</button>
    <button class="${profView==='surf'?'on':''}" onclick="profView='surf';render()">3D surface</button>
    <button class="${profView==='shape'?'on':''}" onclick="profView='shape';render()">Shape</button>
-   <button class="${profView==='risk'?'on':''}" onclick="profView='risk';render()">Supply</button>
-   <button class="${profView==='mix'?'on':''}" onclick="profView='mix';render()">Austria grid mix</button>
-   <button class="${profView==='bedata'?'on':''}" onclick="profView='bedata';render()">BE data</button></div>
-   <span class="muted" style="margin-left:10px">${profView==='bedata'
-     ?'Metered generation from BE, aggregated to monthly and seasonal-hourly.'
-     :`Heatmap and 3D show wind, solar and combined stacked. CF axis fixed 0-${CFMAX} for comparability.`}</span></div>`;
- if(profView==='bedata'){ setTimeout(drawBE,0); return seg+measuredPage(); }
+   <button class="${profView==='dist'?'on':''}" onclick="profView='dist';render()">Distribution</button>
+   <button class="${profView==='mix'?'on':''}" onclick="profView='mix';render()">Austria grid mix</button></div>${sel}</div>
+   <div class="muted" style="margin-top:7px">${hint}</div></div>`;
  setTimeout(drawProfiles,0);
  return seg+`<div class="chart tall" id="pmain"></div><div id="pstats"></div>`;
 }
-function mat(asset){return asset==='solar'?PROFILES.solarMonthHour:PROFILES.windMonthHour;}
+function beTitle(p,txt){return p.label+' \u00b7 '+txt+'<br><span style="font-size:10px">'+fmt(p.mw,2)+' MW \u00b7 '+p.from+' to '+p.to+' \u00b7 measured, % of rated capacity</span>';}
+function beCol(p){return p.tech==='wind'?'#4aa8ff':p.tech==='solar'?'#ffb23e':'#46b45a';}
 function drawProfiles(){
  const el='pmain'; document.getElementById('pstats').innerHTML='';
+ const p=BEDATA[beSel], H=[...Array(24).keys()];
  if(profView==='heat'){
-  const zc=()=>PROFILES.windMonthHour.map((r,m)=>r.map((v,h)=>v*M.wind.mw+PROFILES.solarMonthHour[m][h]*M.solar.mw));
-  const hm=(elid,asset)=>{const comb=asset==='combined';const z=comb?zc():mat(asset);
-    const tr={z,x:[...Array(24).keys()],y:MONTHS,type:'heatmap',colorscale:GREEN,hovertemplate:(comb?'%{y}, %{x}:00 → %{z:,.0f} MW':'%{y}, %{x}:00 → CF %{z:.2f}')+'<extra></extra>'};
-    if(!comb){tr.zmin=0;tr.zmax=CFMAX;tr.colorbar={title:'CF'};}else{tr.zmin=0;tr.colorbar={title:'MW'};}
-    Plotly.react(elid,[tr],lay((comb?'Combined output (MW)':(asset==='wind'?'Wind':'Solar')+' capacity factor')+' - month × hour',{hovermode:'closest',yaxis:{autorange:'reversed'},xaxis:{title:'hour of day'}}),CFG);};
-  document.getElementById('pstats').innerHTML=`<div class="chart tall" id="ph2" style="margin-top:14px"></div><div class="chart tall" id="ph3" style="margin-top:14px"></div>`;
-  hm('pmain','wind');setTimeout(()=>{hm('ph2','solar');hm('ph3','combined');},0);
+  Plotly.react(el,[{z:p.mh,x:H,y:MONTHS,type:'heatmap',colorscale:GREEN,zmin:0,
+    colorbar:{title:{text:'% rated',font:{size:9}}},
+    hovertemplate:'%{y}, %{x}:00 \u2192 %{z:.1f}% of rated<extra></extra>'}],
+   lay(beTitle(p,'mean output by month and hour'),
+    {hovermode:'closest',yaxis:{autorange:'reversed'},xaxis:{title:'hour of day',dtick:2}}),CFG);
+  if(p.note)document.getElementById('pstats').innerHTML=`<div class="muted" style="margin-top:8px">${p.note}.</div>`;
  }else if(profView==='surf'){
-  const zc=()=>PROFILES.windMonthHour.map((r,m)=>r.map((v,h)=>v*M.wind.mw+PROFILES.solarMonthHour[m][h]*M.solar.mw));
-  const sf=(elid,asset)=>{const comb=asset==='combined';const z=comb?zc():mat(asset);
-    const tr={z,x:[...Array(24).keys()],y:MONTHS,type:'surface',colorscale:GREEN,showscale:false,hovertemplate:'%{y}, %{x}:00 → '+(comb?'%{z:,.0f} MW':'CF %{z:.2f}')+'<extra></extra>'};
-    if(!comb){tr.cmin=0;tr.cmax=CFMAX;}
-    const sc={xaxis:{title:'hour'},yaxis:{title:'month'},zaxis:{title:comb?'MW':'CF'}};if(!comb)sc.zaxis.range=[0,CFMAX];
-    Plotly.react(elid,[tr],lay((comb?'Combined':(asset==='wind'?'Wind':'Solar'))+' - 3D shape',{hovermode:'closest',scene:sc}),CFG);};
-  document.getElementById('pstats').innerHTML=`<div class="chart tall" id="ph2" style="margin-top:14px"></div><div class="chart tall" id="ph3" style="margin-top:14px"></div>`;
-  sf('pmain','wind');setTimeout(()=>{sf('ph2','solar');sf('ph3','combined');},0);
+  Plotly.react(el,[{z:p.mh,x:H,y:MONTHS,type:'surface',colorscale:GREEN,showscale:false,cmin:0,
+    hovertemplate:'%{y}, %{x}:00 \u2192 %{z:.1f}% of rated<extra></extra>'}],
+   lay(beTitle(p,'output surface'),
+    {hovermode:'closest',scene:{xaxis:{title:'hour'},yaxis:{title:'month'},zaxis:{title:'% rated'}}}),CFG);
  }else if(profView==='shape'){
+  const mk=Object.keys(p.monthly), col=beCol(p);
+  Plotly.react(el,[{x:mk,y:mk.map(k=>p.monthly[k][0]),type:'bar',
+    marker:{color:col,opacity:mk.map(k=>p.monthly[k][1]<95?0.45:0.9)},
+    customdata:mk.map(k=>p.monthly[k][1]),
+    hovertemplate:'%{x}: %{y:,.0f} FLH \u00b7 %{customdata}% of the month recorded<extra></extra>'}],
+   lay(beTitle(p,'monthly yield, full-load hours'),
+    {showlegend:false,yaxis:{title:{text:'FLH/month',font:{size:10}},gridcolor:'#1c2531'},xaxis:{gridcolor:'#1c2531'}}),CFG);
+  const R12=p.rolling12||[];
+  if(R12.length){document.getElementById('pstats').innerHTML=`<div class="chart tall" id="pshape2" style="margin-top:14px"></div>`;
+   setTimeout(()=>Plotly.react('pshape2',[{x:R12.map(r=>r.from),y:R12.map(r=>r.flh),mode:'lines+markers',
+     line:{color:col,width:2},hovertemplate:'window from %{x}: %{y:,.0f} FLH/yr<extra></extra>'}],
+    lay(p.label+' \u00b7 rolling twelve-month yield<br><span style="font-size:10px">window start on the axis \u00b7 FLH per year</span>',
+     {showlegend:false,yaxis:{title:{text:'FLH/yr',font:{size:10}},gridcolor:'#1c2531'},xaxis:{gridcolor:'#1c2531'}}),CFG),0);}
+  else document.getElementById('pstats').innerHTML=`<div class="muted" style="margin-top:8px">No complete twelve-month window yet. Bars in lighter shade cover months where part of the metering is missing.</div>`;
+ }else if(profView==='dist'){
+  const D=BEDATA.dist;
   Plotly.react(el,[
-    {x:MONTHS,y:PROFILES.windMonthlyCF,name:'Wind profile',type:'bar',marker:{color:'#4aa8ff'},text:PROFILES.windMonthlyCF.map(v=>fmt(v*100,0)+'%'),textposition:'outside',textfont:{size:9,color:'#94a2b1'},hovertemplate:'Wind %{y:.1%}<extra></extra>'},
-    {x:MONTHS,y:PROFILES.solarMonthlyCF,name:'Solar profile',type:'bar',marker:{color:'#ffb23e'},text:PROFILES.solarMonthlyCF.map(v=>fmt(v*100,0)+'%'),textposition:'outside',textfont:{size:9,color:'#94a2b1'},hovertemplate:'Solar %{y:.1%}<extra></extra>'}
-  ],lay('Yearly shape<br><span style="font-size:10px">monthly profile · winter wind vs summer solar</span>',{barmode:'group',showlegend:true,xaxis:{gridcolor:'#1c2531'},yaxis:{range:[0,CFMAX],tickformat:'.0%',gridcolor:'#1c2531'}}),CFG);
-  const w=[...Array(24).keys()].map(h=>avg(PROFILES.windMonthHour.map(r=>r[h])));
-  const s=[...Array(24).keys()].map(h=>avg(PROFILES.solarMonthHour.map(r=>r[h])));
-  document.getElementById('pstats').innerHTML=`<div class="chart tall" id="pdaily" style="margin-top:14px"></div><div class="info" style="margin-top:12px"><b>Complementarity:</b> wind peaks in winter (Jan 55.6%) when solar bottoms (Jan 6.8%); solar peaks midday in summer. Stacking the two smooths the shape delivered to the DC.</div>`;
-  setTimeout(()=>Plotly.react('pdaily',[
-   {x:[...Array(24).keys()],y:w,name:'Wind profile',mode:'lines',fill:'tozeroy',line:{color:'#4aa8ff',width:2},fillcolor:'rgba(74,168,255,0.14)',hovertemplate:'Wind %{y:.2f}<extra></extra>'},
-   {x:[...Array(24).keys()],y:s,name:'Solar profile',mode:'lines',fill:'tozeroy',line:{color:'#ffb23e',width:2},fillcolor:'rgba(255,178,62,0.18)',hovertemplate:'Solar %{y:.2f}<extra></extra>'}
-  ],lay('Daily shape<br><span style="font-size:10px">average profile by hour of day</span>',{showlegend:true,yaxis:{range:[0,CFMAX],gridcolor:'#1c2531'},xaxis:{title:'hour of day',dtick:2,gridcolor:'#1c2531'}}),CFG),0);
+    {x:D.thresholds,y:D.wind,name:'Wind ('+D.windMW+' MW)',mode:'lines+markers',line:{color:'#4aa8ff',width:2},hovertemplate:'\u2265%{x}% of rated: %{y:.1f}% of the time<extra></extra>'},
+    {x:D.thresholds,y:D.solar,name:'Solar, Nord+S\u00fcd ('+D.solarMW+' MWp)',mode:'lines+markers',line:{color:'#ffb23e',width:2},hovertemplate:'\u2265%{x}% of rated: %{y:.1f}% of the time<extra></extra>'},
+    {x:D.thresholds,y:D.combined,name:'Combined ('+D.combinedMW+' MW)',mode:'lines+markers',line:{color:'#46b45a',width:2.4},hovertemplate:'\u2265%{x}% of rated: %{y:.1f}% of the time<extra></extra>'}
+  ],lay('How often output exceeds each level<br><span style="font-size:10px">'+D.window+' \u00b7 share of time at or above each % of rated capacity</span>',
+    {showlegend:true,yaxis:{title:{text:'% of time',font:{size:10}},range:[0,101],gridcolor:'#1c2531'},
+     xaxis:{title:{text:'% of rated capacity',font:{size:10}},dtick:10,gridcolor:'#1c2531'}}),CFG);
+  document.getElementById('pstats').innerHTML=`<div class="info" style="margin-top:12px">Read: the combined fleet runs at or above 25% of rated ${fmt(D.combined[5],1)}% of the time, wind alone ${fmt(D.wind[5],1)}%. Wallern-Tadten is excluded; its record starts January 2026.</div>`;
  }else if(profView==='mix'){
   Plotly.react('pmain',[
     {x:EMBER.years,y:EMBER.solar,name:'Solar generation',type:'bar',marker:{color:'#ffb23e'},hovertemplate:'%{y} TWh<extra></extra>'},
@@ -1214,7 +1161,7 @@ function drawProfiles(){
     {x:EMBER.years,y:EMBER.years.map(y=>PRICES.per_year[y]?PRICES.per_year[y].wind/PRICES.per_year[y].baseload*100:null),name:'Wind capture',type:'scatter',yaxis:'y2',line:{color:'#4aa8ff',width:2.5,dash:'dot'},hovertemplate:'%{y:.0f}% of baseload<extra></extra>'}
   ],lay('Austria grid mix<br><span style="font-size:10px">solar & wind generation (TWh) vs capture ratios (% of baseload)</span>',{barmode:'group',showlegend:true,yaxis:{title:{text:'TWh/yr',font:{size:9}}},yaxis2:{overlaying:'y',side:'right',range:[0,110],title:{text:'% of baseload',font:{size:9}},gridcolor:'transparent'}}),CFG);
   document.getElementById('pstats').innerHTML=`<div class="info" style="margin-top:12px"><b>The cannibalisation driver.</b> Austrian solar generation grew from ${EMBER.solar[0]} TWh (2015) to ${EMBER.solar[EMBER.solar.length-1]} TWh (2025), roughly 10x, while wind grew far less (${EMBER.wind[0]} to ${EMBER.wind[EMBER.wind.length-1]} TWh). As the red line shows, solar's capture price fell as its volume rose, the same decoupling seen across Germany and Spain. Source: Ember monthly electricity data.</div>`;
- }else if(profView==='risk'){ drawRisk(); }
+ }
 }
 function drawRisk(){
  const T=typicalYear(),load=M.dc.firmMW,n=T.w.length;
@@ -1962,11 +1909,10 @@ function renderBlock(which){
 function render(){
  const m=document.getElementById('main');
  if(gateLocked(active)){m.innerHTML=gatePage(active);setTimeout(gateAnimate,0);setTimeout(()=>{const e=document.getElementById('gatePw');if(e)e.focus();},60);return;}
- applyCal();
  if(active==='wind'){m.innerHTML=assetPage('wind');if(M.v3.wind)setTimeout(()=>start3d('wind'),0);}
  else if(active==='solar'){m.innerHTML=assetPage('solar');if(M.v3.solar)setTimeout(()=>start3d('solar'),0);}
  else if(active==='battery'){m.innerHTML=batteryPage();if(M.v3.battery)setTimeout(()=>start3d('battery'),0);}
- else if(active==='summary'){m.innerHTML=summaryPage();setTimeout(drawSummaryBalance,0);setTimeout(drawSpvEcon,0);setTimeout(drawSpvCashflow,0);}
+ else if(active==='summary'){m.innerHTML=summaryPage();if(spvView==='fin'){setTimeout(drawSummaryBalance,0);setTimeout(drawSpvEcon,0);setTimeout(drawSpvCashflow,0);}else if(spvView==='supply')setTimeout(drawRisk,0);}
  else if(active==='prices')m.innerHTML=pricesPage();
  else if(active==='profiles')m.innerHTML=profilesPage();
 }
