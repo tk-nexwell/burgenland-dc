@@ -46,7 +46,7 @@ main{padding:18px 22px;max-width:1560px;margin:0 auto}
 .inp input[type=range]{width:100%;accent-color:var(--acc);height:4px}
 .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px;align-content:start}
 .chart{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;height:305px}
-.chart.sq{height:auto;aspect-ratio:1/1;max-height:740px;min-height:520px}
+.chart.sq{height:620px}
 .chart.tall{height:430px}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 th,td{padding:7px 9px;text-align:right;border-bottom:1px solid var(--line)}
@@ -87,6 +87,12 @@ thead th{color:var(--mut);font-weight:600;text-transform:uppercase;font-size:10.
 @keyframes gshake{0%,100%{transform:translate(-50%,-50%)}25%{transform:translate(calc(-50% - 8px),-50%)}75%{transform:translate(calc(-50% + 8px),-50%)}}
 .lockDot{font-size:9px;opacity:.75;margin-left:5px}
 
+.d3wrap{position:relative;border-radius:10px;overflow:hidden;background:#0a1119;border:1px solid var(--line);height:470px}
+.d3cv{width:100%;height:100%;display:block}
+.rhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.d3seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:0 0 auto}
+.d3seg button{background:transparent;border:0;color:var(--mut);font:600 10.5px ui-sans-serif,system-ui;padding:5px 11px;cursor:pointer;letter-spacing:.4px}
+.d3seg button.on{background:#45b85d;color:#06130b}
 .tip{position:relative;display:inline-block;width:13px;height:13px;line-height:12px;margin-left:5px;border:1px solid rgba(127,179,230,.55);border-radius:50%;color:#8fc0ec;font-size:10px;font-weight:600;text-align:center;cursor:help;vertical-align:middle}
 .tip:hover{background:rgba(127,179,230,.16);color:#dceafa}
 .tipbox{visibility:hidden;opacity:0;position:absolute;z-index:120;left:-6px;top:20px;width:356px;max-height:68vh;overflow-y:auto;background:#0d141d;border:1px solid rgba(127,179,230,.34);border-radius:9px;padding:11px 13px;box-shadow:0 10px 30px rgba(0,0,0,.62);font-size:11px;font-weight:400;line-height:1.38;color:#cfe2f5;text-align:left;transition:opacity .12s ease;pointer-events:auto}
@@ -150,7 +156,7 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
 </header>
 <nav id="nav"></nav>
 <main id="main"></main>
-<footer>Directional model for discussion · Burgenland DC · Nexwell Power. Not investment advice. - build 2026-08-05 14:00</footer>
+<footer>Directional model for discussion · Burgenland DC · Nexwell Power. Not investment advice. - build 2026-08-05 16:53</footer>
 <script>
 const PROFILES={
  meta:{wind_cf:0.4519,solar_cf:0.1376},
@@ -367,10 +373,193 @@ function gateAnimate(){
   ctx.fillStyle='rgba(235,255,242,0.95)'; ctx.beginPath(); ctx.arc(cx,cy,pulse,0,7); ctx.fill();
  })(0);
 }
+/* ============================================================
+   3D scenes for the wind, solar and battery geometry panels.
+   Software renderer: perspective projection + painter's algorithm
+   on a 2D canvas. No external library, so it works offline and
+   degrades to the 2D drawings when the toggle is off.
+   ============================================================ */
+function mk3d(cvId,opt){
+ const cv=document.getElementById(cvId); if(!cv)return null;
+ const ctx=cv.getContext('2d'); let W=0,H=0,dpr=Math.min(devicePixelRatio||1,2);
+ const size=()=>{const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);};
+ size(); const onR=()=>size(); addEventListener('resize',onR);
+ const NEAR=10;
+ const cam={yaw:opt.yaw||0,pitch:opt.pitch||0.3,dist:opt.dist||300,fov:opt.fov||1000,tgt:opt.tgt||[0,0,0],skyAt:opt.skyAt==null?0.40:opt.skyAt};
+ const anchor=()=>cam.skyAt*H+cam.fov*Math.tan(cam.pitch);   // put the horizon at skyAt of the canvas
+ function view(p){
+  const cy=Math.cos(cam.yaw),sy=Math.sin(cam.yaw),cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
+  const x=p[0]-cam.tgt[0],y=p[1]-cam.tgt[1],z=p[2]-cam.tgt[2];
+  const X=x*cy-z*sy, Z1=x*sy+z*cy;
+  return [X, y*cp+Z1*sp, -y*sp+Z1*cp+cam.dist];
+ }
+ function proj(p){const v=view(p);const s=cam.fov/Math.max(NEAR,v[2]);
+  return {x:W/2+v[0]*s, y:anchor()-v[1]*s, z:v[2]};}
+ const LIGHT=[0.40,0.82,0.34];
+ function shade(pts){const a=pts[0],b=pts[1],c=pts[2];
+  const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]];
+  const n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];
+  const L=Math.hypot(n[0],n[1],n[2])||1;
+  return 0.44+0.56*Math.abs((n[0]*LIGHT[0]+n[1]*LIGHT[1]+n[2]*LIGHT[2])/L);}
+ const Q=[];
+ const push=(pts,rgb,o)=>{o=o||{};
+  const V=pts.map(view); let zmin=1e9,zs=0;
+  for(const v of V){if(v[2]<zmin)zmin=v[2];zs+=v[2];}
+  if(zmin<NEAR)return;                                   // cull anything at or behind the camera
+  Q.push({pts,V,rgb,o,k:zs/V.length+(o.bias||0)});};
+ function paint(sky){const g=ctx.createLinearGradient(0,0,0,H);
+  (sky||[[0,'#0a1622'],[1,'#0b1a12']]).forEach(s=>g.addColorStop(s[0],s[1]));
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
+ function flush(){
+  Q.sort((a,b)=>b.k-a.k);
+  for(const f of Q){
+   const s0=cam.fov;
+   const A=anchor();
+   const P=f.V.map(v=>{const s=s0/v[2];return {x:W/2+v[0]*s,y:A-v[1]*s};});
+   const sh=f.o.flat?1:shade(f.pts);
+   const r=Math.min(255,Math.round(f.rgb[0]*sh)),g2=Math.min(255,Math.round(f.rgb[1]*sh)),b=Math.min(255,Math.round(f.rgb[2]*sh));
+   ctx.beginPath();ctx.moveTo(P[0].x,P[0].y);
+   for(let i=1;i<P.length;i++)ctx.lineTo(P[i].x,P[i].y);
+   ctx.closePath();
+   ctx.fillStyle=`rgba(${r},${g2},${b},${f.o.a==null?1:f.o.a})`;ctx.fill();
+   if(f.o.stroke){ctx.strokeStyle=f.o.stroke;ctx.lineWidth=f.o.lw||1;ctx.stroke();}
+  }
+  Q.length=0;}
+ function dot(p,rad,col,glow){const v=view(p);if(v[2]<NEAR)return;
+  const q=proj(p);const rr=Math.max(0.7,rad*cam.fov/v[2]);
+  if(glow){const g=ctx.createRadialGradient(q.x,q.y,0,q.x,q.y,rr*4.5);
+   g.addColorStop(0,glow);g.addColorStop(1,'rgba(0,0,0,0)');
+   ctx.fillStyle=g;ctx.beginPath();ctx.arc(q.x,q.y,rr*4.5,0,7);ctx.fill();}
+  ctx.fillStyle=col;ctx.beginPath();ctx.arc(q.x,q.y,rr,0,7);ctx.fill();}
+ function seg(p1,p2,col,w){const a=view(p1),b=view(p2);if(a[2]<NEAR||b[2]<NEAR)return;
+  const A=proj(p1),B=proj(p2);ctx.strokeStyle=col;ctx.lineWidth=w||1;
+  ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.stroke();}
+ function foot(txt){ctx.fillStyle='rgba(186,203,219,.78)';ctx.font='11.5px ui-sans-serif,system-ui';
+  ctx.textAlign='left';ctx.fillText(txt,14,H-14);}
+ return {cv,ctx,cam,proj,view,push,flush,paint,dot,seg,foot,NEAR,
+  get W(){return W},get H(){return H}};
+}
+function box3(S,cx,cy,cz,w,h,d,rgb,o){
+ const x0=cx-w/2,x1=cx+w/2,y0=cy,y1=cy+h,z0=cz-d/2,z1=cz+d/2;
+ const V=[[x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0],[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]];
+ [[4,5,6,7],[0,1,2,3],[1,5,6,2],[0,4,7,3],[3,2,6,7]].forEach(f=>S.push(f.map(i=>V[i]),rgb,o));
+}
+/* tiled ground so tiles behind the camera cull individually */
+function ground3(S,half,rgb,alt,tiles){
+ const n=tiles||12, step=(half*2)/n;
+ for(let i=0;i<n;i++)for(let j=0;j<n;j++){
+  const x0=-half+i*step, z0=-half+j*step;
+  const c=((i+j)%2 && alt)?alt:rgb;
+  S.push([[x0,0,z0],[x0+step,0,z0],[x0+step,0,z0+step],[x0,0,z0+step]],c,{flat:true,bias:3e5});
+ }
+}
+/* ---------------- WIND: 4 x 3 machines at IEC spacing, 1 unit = 1 m ---------------- */
+function scene3dWind(){
+ const S=mk3d('d3_wind',{pitch:0.130,dist:900,fov:1870,tgt:[0,0,0],skyAt:0.36}); if(!S)return;
+ const NX=3,NZ=2,SX=243,SZ=405,HUB=55,R=27;   // 1 unit = 3 m: rotor 162 m = 54 u, 4.5 D = 243 u, 7.5 D = 405 u
+ const gust=[]; for(let i=0;i<90;i++)gust.push({x:-470+Math.random()*940,y:10+Math.random()*180,z:-420+Math.random()*840,v:70+Math.random()*90});
+ let t=0;
+ (function f(){
+  const id=requestAnimationFrame(f); if(!document.getElementById('d3_wind'))return cancelAnimationFrame(id);
+  t+=0.016; S.cam.yaw=0.26+Math.sin(t*0.045)*0.26;
+  S.paint([[0,'#08131f'],[0.42,'#123049'],[0.66,'#2a5570'],[0.74,'#3d6a52'],[1,'#16301b']]);
+  ground3(S,1500,[38,70,42],[44,78,46],22);
+  for(let ix=0;ix<NX;ix++)for(let iz=0;iz<NZ;iz++){
+   const cx=(ix-(NX-1)/2)*SX, cz=(iz-(NZ-1)/2)*SZ;
+   box3(S,cx,0,cz,4.6,HUB,4.6,[198,208,220],{});
+   box3(S,cx,HUB-2.6,cz,5.4,5.2,9,[220,228,236],{});
+   const sp=t*0.62+ix*0.8+iz*1.5;
+   for(let bl=0;bl<3;bl++){
+    const a=sp+bl*2.0944, ca=Math.cos(a), sa=Math.sin(a);
+    // rotor sweeps in the vertical X-Y plane; root chord is perpendicular to the blade
+    S.push([[cx-sa*2.2,HUB+ca*2.2,cz],[cx+sa*2.2,HUB-ca*2.2,cz],[cx+ca*R,HUB+sa*R,cz]],
+      [232,238,244],{a:.95,flat:true});
+   }
+   S.dot([cx,HUB,cz],2.4,'rgba(255,255,255,.92)');
+  }
+  S.flush();
+  for(const g of gust){ g.x+=g.v*0.016; if(g.x>480){g.x=-480;g.z=-420+Math.random()*840;}
+   S.seg([g.x,g.y,g.z],[g.x-46,g.y,g.z],'rgba(178,220,255,.22)',1);}
+  S.foot(NX*NZ+' machines at IEC spacing · 4.5 D across, 7.5 D downwind · rotor 162 m, hub 166 m, to scale');
+ })();
+}
+/* ---------------- SOLAR: tracker rows following the sun ---------------- */
+function scene3dSolar(){
+ const S=mk3d('d3_solar',{pitch:0.100,dist:220,fov:2100,tgt:[0,0,0],skyAt:0.34}); if(!S)return;
+ const ROWS=7,PER=6,PITCH=11,TL=9,HW=5.4,POST=2.6;
+ let t=0;
+ (function f(){
+  const id=requestAnimationFrame(f); if(!document.getElementById('d3_solar'))return cancelAnimationFrame(id);
+  t+=0.016; S.cam.yaw=-0.30+Math.sin(t*0.042)*0.24;
+  const day=Math.sin(t*0.085);                 // -1 dawn .. +1 dusk
+  const tilt=day*0.95, warm=Math.max(0,1-Math.abs(day));
+  S.paint([[0,'#0a1424'],[0.40,`rgb(${28+Math.round(46*warm)},${44+Math.round(34*warm)},${68+Math.round(16*warm)})`],
+           [0.62,`rgb(${72+Math.round(120*warm)},${80+Math.round(70*warm)},${88+Math.round(24*warm)})`],[0.70,'#3c6647'],[1,'#173219']]);
+  const sunV=[day*160,95+80*(1-Math.abs(day)),620];
+  const sp=S.proj(sunV);
+  if(isFinite(sp.x)){const g=S.ctx.createRadialGradient(sp.x,sp.y,0,sp.x,sp.y,110);
+   g.addColorStop(0,'rgba(255,244,196,.98)');g.addColorStop(.18,'rgba(255,214,120,.55)');g.addColorStop(1,'rgba(255,196,90,0)');
+   S.ctx.fillStyle=g;S.ctx.beginPath();S.ctx.arc(sp.x,sp.y,110,0,7);S.ctx.fill();}
+  ground3(S,620,[42,78,44],[50,88,50],24);
+  for(let r=0;r<ROWS;r++)for(let c=0;c<PER;c++){
+   const cx=(c-(PER-1)/2)*13.0, cz=(r-(ROWS-1)/2)*PITCH;
+   box3(S,cx,0,cz,0.45,POST,0.45,[126,136,150],{});
+   const ca=Math.cos(tilt),sa=Math.sin(tilt);
+   const top=[[cx-HW*ca,POST+HW*sa,cz-TL/2],[cx+HW*ca,POST-HW*sa,cz-TL/2],
+              [cx+HW*ca,POST-HW*sa,cz+TL/2],[cx-HW*ca,POST+HW*sa,cz+TL/2]];
+   const facing=Math.max(0,1-Math.abs(day)*0.55);
+   S.push(top,[Math.round(24+52*facing),Math.round(56+104*facing),Math.round(104+126*facing)],
+     {stroke:'rgba(160,200,235,.30)'});
+   S.push(top.map(v=>[v[0],v[1]-0.22,v[2]]),[64,72,84],{});
+  }
+  S.flush();
+  S.foot('single-axis trackers following the sun · row pitch '+PITCH+' m · tilt '+(tilt*57.3).toFixed(0)+'° · fields stay in cultivation between rows');
+ })();
+}
+/* ---------------- BATTERY: enclosure blocks charging and discharging ---------------- */
+function scene3dBatt(){
+ const S=mk3d('d3_batt',{pitch:0.110,dist:200,fov:2300,tgt:[0,0,0],skyAt:0.30}); if(!S)return;
+ const NX=6,NZ=4,BW=6.1,BD=2.44,GX=9.4,GZ=7.6,BH=2.9,BUS=(NZ-1)/2*GZ+5.4;
+ const el=[]; for(let i=0;i<22;i++)el.push({p:Math.random(),lane:Math.floor(Math.random()*NZ),sp:0.07+Math.random()*0.05});
+ let t=0;
+ (function f(){
+  const id=requestAnimationFrame(f); if(!document.getElementById('d3_batt'))return cancelAnimationFrame(id);
+  t+=0.016; S.cam.yaw=0.48+Math.sin(t*0.042)*0.26;
+  const soc=0.5+0.42*Math.sin(t*0.13), chg=Math.cos(t*0.13)>0;
+  S.paint([[0,'#0b1622'],[0.26,'#1a3040'],[0.34,'#2f4a50'],[1,'#1b2420']]);
+  ground3(S,560,[56,62,72],[61,68,79],24);
+  for(let iz=0;iz<NZ;iz++){const cz=(iz-(NZ-1)/2)*GZ;
+   S.push([[-32,0.06,cz-0.55],[32,0.06,cz-0.55],[32,0.06,cz+0.55],[-32,0.06,cz+0.55]],[92,100,114],{flat:true,bias:1.5e5});}
+  for(let ix=0;ix<NX;ix++)for(let iz=0;iz<NZ;iz++){
+   const cx=(ix-(NX-1)/2)*GX, cz=(iz-(NZ-1)/2)*GZ;
+   // the whole bank tints with state of charge, so it reads from any camera angle
+   const gl=chg?[74,204,116]:[250,180,78], base=[104,120,142], k=soc*0.62;
+   const body=base.map((v,i)=>Math.round(v+(gl[i]-v)*k));
+   box3(S,cx,0,cz,BW,BH,BD,body,{stroke:'rgba(186,206,232,.34)'});
+   const fh=Math.max(0.14,BH*soc);
+   [[0,BD/2+0.03],[0,-BD/2-0.03]].forEach(o=>
+    S.push([[cx-BW/2+0.08,0.08,cz+o[1]],[cx+BW/2-0.08,0.08,cz+o[1]],
+            [cx+BW/2-0.08,fh,cz+o[1]],[cx-BW/2+0.08,fh,cz+o[1]]],gl,{flat:true,a:.88}));
+  }
+  box3(S,0,0,BUS,8,4.4,3.6,[138,152,172],{stroke:'rgba(190,208,230,.32)'});
+  S.flush();
+  for(const e of el){ e.p+=e.sp*0.016*(chg?1:-1); if(e.p>1)e.p=0; if(e.p<0)e.p=1;
+   const cz=(e.lane-(NZ-1)/2)*GZ;
+   S.dot([-32+e.p*64,0.62,cz],0.5,chg?'rgba(190,255,215,.95)':'rgba(255,230,175,.95)',
+     chg?'rgba(80,225,135,.16)':'rgba(255,196,96,.16)');}
+  S.foot((chg?'charging':'discharging')+' · state of charge '+Math.round(soc*100)+'% · '+(NX*NZ)+' enclosures, 20 ft, drawn to scale');
+  const bw=170,bx=S.W-bw-16,by=S.H-26;
+  S.ctx.fillStyle='rgba(255,255,255,.10)';S.ctx.fillRect(bx,by,bw,9);
+  S.ctx.fillStyle=chg?'rgba(74,204,116,.92)':'rgba(250,180,78,.92)';S.ctx.fillRect(bx,by,bw*soc,9);
+ })();
+}
+function start3d(sec){const m={wind:scene3dWind,solar:scene3dSolar,battery:scene3dBatt};if(m[sec])m[sec]();}
+function v3Toggle(sec){ M.v3[sec]=!M.v3[sec]; render(); }
 
 const M={
  view:'INT',
  macro:{infl:0.02,tax:0.23,gearing:0.70,merchReal:100,tenor:20,allInRate:0.047,ppaTermY:20,amort:'annuity'},
+ v3:{wind:false,solar:false,battery:false},
  cal:{on:false,windF:1,solarUp:1.5},
  wind:{on:true,mw:320,capexPerMW:1.45,grossCF:0.290636,loss:0.02,lineLoss:0.045,opexPerMW:0.04,gridFee:0,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2029},
  solar:{on:true,mw:357,capexPerMW:0.60,grossCF:0.1566,loss:0.02,lineLoss:0.033,opexPerMW:0.032,gridFee:0,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2030},
@@ -622,41 +811,55 @@ const SITES=[{n:'UW Zurndorf (grid connection)',lat:47.966,lon:17.006},{n:'UW An
 function drawMap(){
  if(!document.getElementById('c_map'))return;
  const UWZ=SITES[0], UWA=SITES[1], GDC=SITES[2];
- const GLY={wind:'✳', solar:'▦'};          // rotor / panel grid
- const COL={wind:'#4aa8ff', solar:'#ffb23e'};
+ const COL={wind:'#6cc0ff', solar:'#ffc65c'};
+ const GLY={wind:'✳', solar:'▦'};                    // rotor · panel
  const mk=t=>PROJECTS.filter(p=>p.t===t);
- const node=p=>/Andau/i.test(p.n)?UWA:UWZ;           // Andau II routes via UW Andau, the rest via Zurndorf
- // schematic direct-line routes, park to its connection node
+ const node=p=>/Andau/i.test(p.n)?UWA:UWZ;
+ const hov=p=>`<b>${p.n}</b><br>${p.mw} MW${p.t==='solar'?'p':''} ${p.t}<br>Status: ${p.s}<br>Available: ${p.av}<br>Direct line to ${node(p).n.split(' (')[0]}: ${p.d} km`;
+ // schematic direct-line routes
  const routes=t=>{const la=[],lo=[];
   mk(t).forEach(p=>{const nd=node(p); la.push(p.lat,nd.lat,null); lo.push(p.lon,nd.lon,null);});
   return {type:'scattermap',lat:la,lon:lo,mode:'lines',
-    line:{color:COL[t],width:1.2},opacity:0.34,hoverinfo:'skip',showlegend:false};};
+    line:{color:COL[t],width:1.3},opacity:0.32,hoverinfo:'skip',showlegend:false};};
  const feed={type:'scattermap',lat:[UWA.lat,UWZ.lat],lon:[UWA.lon,UWZ.lon],mode:'lines',
-   name:'UW Andau feeds through Zurndorf',line:{color:'#8ea4b8',width:2},opacity:0.75,hoverinfo:'skip'};
+   name:'UW Andau feeds through Zurndorf',line:{color:'#93a8bd',width:2},opacity:0.8,hoverinfo:'skip'};
  const trunk={type:'scattermap',lat:[UWZ.lat,GDC.lat],lon:[UWZ.lon,GDC.lon],mode:'lines',
-   name:'Grid connection to the campus',line:{color:'#45b85d',width:3.4},opacity:0.95,hoverinfo:'skip'};
- const disc=(t,name)=>({type:'scattermap',lat:mk(t).map(p=>p.lat),lon:mk(t).map(p=>p.lon),name,
-   mode:'markers+text',
-   marker:{size:mk(t).map(p=>Math.max(20,Math.sqrt(p.mw)*4.4)),color:COL[t],opacity:0.92},
-   text:mk(t).map(()=>GLY[t]),textposition:'middle center',
-   textfont:{size:13,color:'#0a1119'},
-   customdata:mk(t).map(p=>`<b>${p.n}</b><br>${p.mw} MW${t==='solar'?'p':''} ${t}<br>Status: ${p.s}<br>Available: ${p.av}<br>Direct line to ${node(p).n.split(' (')[0]}: ${p.d} km`),
-   hovertemplate:'%{customdata}<extra></extra>'});
- const batt={type:'scattermap',lat:[GDC.lat],lon:[GDC.lon],name:'Battery at the campus',mode:'markers+text',
-   marker:{size:26,color:'#a06cd5',opacity:0.95},text:['▮'],textposition:'middle center',
-   textfont:{size:13,color:'#0a1119'},
-   customdata:[`<b>Battery</b><br>${fmt(M.battery.powerMW,0)} MW / ${fmt(M.battery.powerMW*M.battery.durationH,0)} MWh<br>Sited at the campus per the 23 Jul call`],
+   name:'Grid connection to the campus',line:{color:'#45b85d',width:3.6},opacity:0.95,hoverinfo:'skip'};
+ // icons sized by capacity: textfont.size is a scalar per trace, so bucket the projects
+ const BUCK=[{max:30,size:15},{max:60,size:21},{max:1e9,size:29}];
+ const icons=[];
+ ['wind','solar'].forEach(t=>{
+  BUCK.forEach((bk,i)=>{
+   const lo=i?BUCK[i-1].max:0;
+   const set=mk(t).filter(p=>p.mw>lo&&p.mw<=bk.max);
+   if(!set.length)return;
+   icons.push({type:'scattermap',lat:set.map(p=>p.lat),lon:set.map(p=>p.lon),mode:'text',
+     text:set.map(()=>GLY[t]),textfont:{size:bk.size,color:COL[t]},
+     name:t==='wind'?'Wind projects':'Solar projects',showlegend:i===0,
+     legendgroup:t,customdata:set.map(hov),hovertemplate:'%{customdata}<extra></extra>'});
+  });
+ });
+ const batt={type:'scattermap',lat:[GDC.lat],lon:[GDC.lon],mode:'text',text:['▮'],
+   textfont:{size:19,color:'#c39bf0'},name:'Battery',
+   customdata:[`<b>Battery</b><br>${fmt(M.battery.powerMW,0)} MW / ${fmt(M.battery.powerMW*M.battery.durationH,0)} MWh<br>At the campus per the 23 Jul call`],
    hovertemplate:'%{customdata}<extra></extra>'};
- const st={type:'scattermap',lat:SITES.map(s=>s.lat),lon:SITES.map(s=>s.lon),name:'Substations and campus',
-   mode:'markers+text',marker:{size:15,color:'#e8eef3'},
-   text:SITES.map(s=>' '+s.n.split(' (')[0]),textposition:'middle right',
-   textfont:{size:11,color:'#e8eef3'},
-   customdata:SITES.map(s=>s.n),hovertemplate:'%{customdata}<extra></extra>'};
- Plotly.react('c_map',[routes('wind'),routes('solar'),feed,trunk,disc('wind','Wind projects'),disc('solar','Solar projects'),batt,st],
-  Object.assign(lay('Dedicated RES projects · BE list 10 Jul 2026<br><span style="font-size:10px">marker size = capacity · lines are schematic direct-line routes, not surveyed · hover for status, availability and distance</span>',
-   {showlegend:true,legend:{orientation:'h',y:-0.06,yanchor:'top',x:0.5,xanchor:'center',font:{size:10}}}),
+ const dc={type:'scattermap',lat:[GDC.lat],lon:[GDC.lon],mode:'text+markers',
+   text:['☰'],textfont:{size:26,color:'#eaf2f8'},textposition:'middle center',
+   marker:{size:1,color:'rgba(0,0,0,0)'},name:'Data centre',
+   customdata:[GDC.n],hovertemplate:'%{customdata}<extra></extra>'};
+ const subs=[UWZ,UWA];
+ const sub={type:'scattermap',lat:subs.map(x=>x.lat),lon:subs.map(x=>x.lon),mode:'text',
+   text:subs.map(()=>'⚡'),textfont:{size:20,color:'#ffd98a'},name:'Substations',
+   customdata:subs.map(x=>x.n),hovertemplate:'%{customdata}<extra></extra>'};
+ const names={type:'scattermap',lat:SITES.map(x=>x.lat),lon:SITES.map(x=>x.lon),mode:'text',
+   text:SITES.map(x=>'  '+x.n.split(' (')[0]),textposition:'middle right',
+   textfont:{size:11,color:'rgba(232,242,248,.9)'},hoverinfo:'skip',showlegend:false};
+ Plotly.react('c_map',[routes('wind'),routes('solar'),feed,trunk].concat(icons,[batt,sub,dc,names]),
+  Object.assign(lay('Dedicated RES projects · BE list 10 Jul 2026<br><span style="font-size:10px">icon size = capacity · lines are schematic direct-line routes, not surveyed · hover for status, availability and distance</span>',
+   {showlegend:true,legend:{orientation:'h',y:-0.04,yanchor:'top',x:0.5,xanchor:'center',font:{size:10}}}),
   {map:{style:'carto-darkmatter',center:{lat:47.872,lon:17.00},zoom:9.9},hovermode:'closest',
-   margin:{l:8,r:8,t:78,b:54}}),CFG);
+   margin:{l:8,r:8,t:76,b:46}}),CFG);
+ setTimeout(()=>{try{Plotly.Plots.resize(document.getElementById('c_map'));}catch(e){}},80);
 }
 
 function drawAssetCharts(R,col){
@@ -1127,9 +1330,14 @@ function sane(s){return String(s).replace(/="[^"]*"/g,m=>/NaN|Infinity/.test(m)?
 function cfPill(k){const c=CONF[k]||CONF.I;return `<span class="cf" style="background:${c[1]}1f;color:${c[1]};border:1px solid ${c[1]}55">${c[0]}</span>`;}
 function reg(rows){return `<details class="rreg"><summary>Source register &amp; derivation · ${rows.length} entries</summary><table><tbody>${rows.map(r=>`<tr><td>${cfPill(r[0])}</td><td><b>${r[1]}</b></td><td>${r[2]}</td></tr>`).join('')}</tbody></table></details>`;}
 function lg(c,t,d){return `<span><i style="background:${d?'transparent':c};${d?'border-bottom:2px dashed '+c+';height:0':''}"></i>${t}</span>`;}
-function rpanel(title,sub,svg,rows,legend){
- return `<div class="panel rpanel" style="margin-top:12px"><h3>${title}</h3><div class="rsub">${sub}</div>${svg}`+
-  `${legend?`<div class="rlegend">${legend}</div>`:''}${reg(rows)}</div>`;}
+function rpanel3(sec,title,sub,svg,rows,legend){return rpanel(title,sub,svg,rows,legend,sec);}
+function rpanel(title,sub,svg,rows,legend,sec){
+ const on=sec&&M.v3&&M.v3[sec];
+ const tog=sec?`<span class="d3seg"><button class="${on?'':'on'}" onclick="if(M.v3['${sec}'])v3Toggle('${sec}')">2D</button>`+
+  `<button class="${on?'on':''}" onclick="if(!M.v3['${sec}'])v3Toggle('${sec}')">3D</button></span>`:'';
+ const body=on?`<div class="d3wrap"><canvas class="d3cv" id="d3_${sec==='battery'?'batt':sec}"></canvas></div>`:svg;
+ return `<div class="panel rpanel" style="margin-top:12px"><div class="rhead"><h3>${title}</h3>${tog}</div><div class="rsub">${sub}</div>${body}`+
+  `${on?'':(legend?`<div class="rlegend">${legend}</div>`:'')}${reg(rows)}</div>`;}
 function sv(w,h,body,mh){return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"${mh?` style="max-height:${mh}px"`:''}>${sane(body)}</svg>`;}
 function tx(x,y,s,o){o=o||{};x=fin(x);y=fin(y);return `<text x="${x}" y="${y}" fill="${o.f||RC.mu}" font-size="${o.s||11}" text-anchor="${o.a||'start'}"`+
  `${o.w?' font-weight="'+o.w+'"':''}${o.m?' class="mono"':''}${o.r!=null?` transform="rotate(${o.r} ${x} ${y})"`:''}${o.o!=null?` opacity="${o.o}"`:''}>${s}</text>`;}
@@ -1242,7 +1450,7 @@ function svgWindPark(){
   ['D','Array envelope','cols × '+nfm(g.sx)+' m by rows × '+nfm(g.sy)+' m = '+nfm(g.envHa)+' ha gross.'],
   ['I','Permanent take '+TECH.padHa+' ha/turbine','Foundation, crane hardstand and access spur. Austrian consenting practice; not from a project document.'],
   ['C','Impact studies are in the VDR','<i>#28 Wirkfaktor Schattenwurf</i> (shadow flicker), <i>#28 Wirkfaktor Eisabfall</i> (ice throw), <i>#28 Wirkfaktor Schall Betriebsphase</i> (operational noise), <i>#50 D.03.10.00-00 Fachbeitrag Landschaft</i> (48 pp of photomontage and viewshed). Setback rings are not drawn here; they come from those studies, not from a rule of thumb.']];
- return rpanel('Wind · array geometry and machine scale',sub,svg,rows,
+ return rpanel3('wind','Wind · array geometry and machine scale',sub,svg,rows,
   lg(RC.wind,'rotor swept circle (true scale)')+lg(RC.wind,'wake shadow, first row')+lg(RC.crop,'land remaining in cultivation')+lg(RC.steel,'machine'));
 }
 
@@ -1328,7 +1536,7 @@ function svgSolarArray(){
   ['P','Is any of it agri-PV?','Unresolved. Tadten-Wallern is built as agri-PV, but whether the modelled '+nfm(g.mwp)+' MWp is agri-PV or plain ground-mount changes both the land take drawn here and the €'+nfm(M.solar.capexPerMW*1000)+'/kWp capex. Adam has challenged BE on the tracker economics; no answer yet.'],
   ['I','Bifacial rear-side gain','Drawn but not credited. The '+pct(M.solar.grossCF,2)+' gross CF in the model is taken as all-in. If BE confirm a bifacial uplift on top, the yield is conservative.'],
   ['D','Capex cross-check','Slider €'+nfm(M.solar.capexPerMW*1000)+'/kWp vs €366/kWp spent on Tadten-Wallern. Recomputed live.']];
- return rpanel('Solar · tracker geometry, collection chain and land take',sub,svg,rows,
+ return rpanel3('solar','Solar · tracker geometry, collection chain and land take',sub,svg,rows,
   lg(RC.solar,'module table at −42° (morning)')+lg(RC.steel,'torque tube / pile')+lg(RC.crop,'ground')+lg(RC.red,'agri-PV option, unconfirmed',1));
 }
 
@@ -1425,7 +1633,7 @@ function svgBessBlock(){
   ['P','Where does it sit?','Two live answers: at the data-centre site (BE call, 23 Jul, which is what is drawn) or distributed "within the BE hybrid parks" (Q188). The two give different connection costs and different charging losses.'],
   ['P','Two-way grid connection','Model default '+(open?'"Never"':g.b.gridYear)+'. BE state the export ban runs to 2035 and on 23 Jul put the odds below 50/50 even then. Nothing is drawn flowing to the grid unless the scenario allows it.'],
   ['I','No water','Liquid-cooled, closed-loop. Drawn deliberately without evaporative plant.']];
- return rpanel('Battery · block layout and reserve',sub,svg,rows,
+ return rpanel3('battery','Battery · block layout and reserve',sub,svg,rows,
   lg(RC.batt,'battery enclosure')+lg(RC.acc,'PCS / reserved SoC')+lg(RC.cab,'MV transformer, 30 kV')+lg(RC.road,'fire and maintenance aisle'));
 }
 
@@ -1759,9 +1967,9 @@ function render(){
  const m=document.getElementById('main');
  if(gateLocked(active)){m.innerHTML=gatePage(active);setTimeout(gateAnimate,0);setTimeout(()=>{const e=document.getElementById('gatePw');if(e)e.focus();},60);return;}
  applyCal();
- if(active==='wind')m.innerHTML=assetPage('wind');
- else if(active==='solar')m.innerHTML=assetPage('solar');
- else if(active==='battery')m.innerHTML=batteryPage();
+ if(active==='wind'){m.innerHTML=assetPage('wind');if(M.v3.wind)setTimeout(()=>start3d('wind'),0);}
+ else if(active==='solar'){m.innerHTML=assetPage('solar');if(M.v3.solar)setTimeout(()=>start3d('solar'),0);}
+ else if(active==='battery'){m.innerHTML=batteryPage();if(M.v3.battery)setTimeout(()=>start3d('battery'),0);}
  else if(active==='summary'){m.innerHTML=summaryPage();setTimeout(drawSummaryBalance,0);setTimeout(drawSpvEcon,0);setTimeout(drawSpvCashflow,0);}
  else if(active==='measured'){m.innerHTML=measuredPage();setTimeout(drawBE,0);}
  else if(active==='prices')m.innerHTML=pricesPage();
