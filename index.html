@@ -109,6 +109,10 @@ thead th{color:var(--mut);font-weight:600;text-transform:uppercase;font-size:10.
 .rxChk label{display:flex;gap:5px;align-items:center;cursor:pointer}
 .rxCnt{color:var(--mut);font-size:12px;margin-left:auto}
 .rxCnt b{color:var(--txt)}
+/* ---- per-chart numbers toolbar ---- */
+.ctBar{display:flex;gap:6px;justify-content:flex-end;align-items:center;margin:6px 0 2px;opacity:.85}
+.ctBar span{color:var(--mut);font-size:10.5px;margin-right:auto}
+.ctPanel{margin:8px 0 4px}
 @keyframes gshake{0%,100%{transform:translate(-50%,-50%)}25%{transform:translate(calc(-50% - 8px),-50%)}75%{transform:translate(calc(-50% + 8px),-50%)}}
 .lockDot{font-size:9px;opacity:.75;margin-left:5px}
 
@@ -2063,6 +2067,86 @@ function render(){
  else if(active==='prices')m.innerHTML=pricesPage();
  else if(active==='profiles')m.innerHTML=profilesPage();
 }
+/* ---------- universal chart numbers: table view + downloads for every chart ----------
+   Plotly.react is wrapped so each chart's plotted series are recorded as drawn.
+   The Table, TXT, CSV and Copy controls under a chart run off that record, so the
+   numbers shown and exported are exactly the numbers plotted. Excluded: the map,
+   and the BE production views that carry their own richer table pipeline. */
+const CT={};
+function ctSkipId(id){
+ if(id==='c_map'||id==='pshape2'||id==='pcdf')return true;           // map; BE charts with their own richer tables
+ if(id==='pmain')return active==='profiles'&&profView!=='mix';       // BE views keep their own pipeline; grid mix and SPV supply get the toolbar
+ return false;
+}
+function ctInstall(){
+ if(!window.Plotly||Plotly.__ct)return;
+ const orig=Plotly.react.bind(Plotly);
+ Plotly.__ct=true;
+ Plotly.react=function(el,data,layout,cfg){
+  const id=typeof el==='string'?el:(el&&el.id);
+  try{if(id){CT[id]={data:data||[]};setTimeout(()=>ctEnsure(id),0);}}catch(e){}
+  return orig(el,data,layout,cfg);
+ };
+}
+(function ctPoll(){window.Plotly?ctInstall():setTimeout(ctPoll,80);})();
+function ctEnsure(id){
+ if(ctSkipId(id))return;
+ const div=document.getElementById(id); if(!div||document.getElementById('ct_'+id))return;
+ const bar=document.createElement('div');
+ bar.id='ct_'+id; bar.className='ctBar';
+ bar.innerHTML=`<span>numbers</span>
+  <button class="chip" style="cursor:pointer" onclick="ctToggle('${id}')">Table</button>
+  <button class="chip" style="cursor:pointer" onclick="ctDl('${id}','txt')">TXT</button>
+  <button class="chip" style="cursor:pointer" onclick="ctDl('${id}','csv')">CSV</button>
+  <button class="chip" style="cursor:pointer" onclick="ctCopy(this,'${id}')">Copy</button>`;
+ div.insertAdjacentElement('afterend',bar);
+ const panel=document.createElement('div'); panel.id='ctp_'+id; panel.className='ctPanel'; panel.style.display='none';
+ bar.insertAdjacentElement('afterend',panel);
+}
+function ctMatrix(id){
+ const rec=CT[id]; if(!rec)return null;
+ const D=rec.data;
+ if(D.length&&D[0].z){                                   // heatmap or surface: matrix
+  const t=D[0], xs=t.x||t.z[0].map((_,i)=>i);
+  return {cols:['row \\ col'].concat(xs.map(String)),
+          rows:t.z.map((r,ri)=>[(t.y&&t.y[ri]!=null?t.y[ri]:ri)].concat(r))};
+ }
+ if(D.length&&D[0].labels)                               // pie
+  return {cols:['label','value'],rows:D[0].labels.map((l,i)=>[l,D[0].values[i]])};
+ const xs=[], seen=new Set();                            // xy series: union of x
+ D.forEach(t=>(t.x||[]).forEach(x=>{const k=String(x);if(!seen.has(k)){seen.add(k);xs.push(x);}}));
+ const maps=D.map(t=>{const m=new Map();(t.x||[]).forEach((x,i)=>m.set(String(x),t.y?t.y[i]:''));return m;});
+ return {cols:['x'].concat(D.map((t,i)=>t.name||('series '+(i+1)))),
+         rows:xs.map(x=>[x].concat(maps.map(m=>{const v=m.get(String(x));return v===undefined?'':v;})))};
+}
+function ctText(id,sep){
+ const m=ctMatrix(id); if(!m)return'';
+ return [m.cols.join(sep)].concat(m.rows.map(r=>r.map(v=>sep===','&&String(v).includes(',')?'"'+v+'"':v).join(sep))).join('\r\n');
+}
+function ctDl(id,fmt){
+ const t=ctText(id,fmt==='csv'?',':'\t'); if(!t)return;
+ const b=new Blob([t],{type:'text/plain;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='burgenland_'+id+'.'+fmt;a.click();
+ setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+function ctCopy(btn,id){
+ const t=ctText(id,'\t'); if(!t)return;
+ const done=()=>{const o=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=o,1200);};
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done,done); else done();
+}
+function ctToggle(id){
+ const p=document.getElementById('ctp_'+id); if(!p)return;
+ if(p.style.display==='none'){
+  const m=ctMatrix(id); if(!m)return;
+  p.innerHTML='<div style="max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:8px"><table style="width:100%;border-collapse:collapse;font-size:11.5px;font-variant-numeric:tabular-nums"><thead style="position:sticky;top:0;background:#16202c"><tr>'+
+   m.cols.map(c=>'<th style="text-align:left;padding:4px 9px">'+c+'</th>').join('')+
+   '</tr></thead><tbody>'+
+   m.rows.map(r=>'<tr>'+r.map(v=>'<td style="padding:2px 9px;border-top:1px solid #1c2531;text-align:'+(typeof v==='number'?'right':'left')+'">'+v+'</td>').join('')+'</tr>').join('')+
+   '</tbody></table></div>';
+  p.style.display='block';
+ }else{p.style.display='none';p.innerHTML='';}
+}
+
 /* ---------- raw 15-minute data explorer (Production > Raw data) ----------
    The full series ships only as bedata_enc.bin: gzip then AES-256-GCM, key derived
    from the access code with PBKDF2 (SHA-256, 310k rounds). Decrypted in the browser,
