@@ -84,6 +84,31 @@ thead th{color:var(--mut);font-weight:600;text-transform:uppercase;font-size:10.
 .gateMsg{margin-top:13px;font-size:11.5px;min-height:16px;color:#8ea4b8}
 .gateMsg.bad{color:#ff8a6a}
 .gateShake{animation:gshake .34s}
+
+/* ---- raw data explorer (Production > Raw data, decrypted client-side) ---- */
+#rxHdr{display:grid;background:#16202c;border-bottom:1px solid var(--line);font-weight:600;font-size:11.5px}
+#rxHdr div{padding:7px 9px;border-right:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rxWrap{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+#rxVp{height:520px;overflow:auto;position:relative;background:#0d141d}
+#rxSp{position:relative}
+.rxr{display:grid;position:absolute;left:0;right:0;height:24px;font-size:11.5px;font-variant-numeric:tabular-nums}
+.rxr>div{padding:2px 9px;border-right:1px solid #1a2430;white-space:nowrap;overflow:hidden}
+.rxr:nth-child(odd){background:#101a26}
+.rxr .num{text-align:right}
+.rxr .miss{color:#ff8a6a}
+.rxq{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:10px;margin:0 0 12px}
+.rxqc{background:#0d1520;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:11.5px}
+.rxqc b{display:block;margin-bottom:3px}
+.rxqc td{padding:1px 8px 1px 0;color:var(--mut)}
+.rxqc td+td{color:var(--txt);text-align:right}
+.rxRow{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:10px}
+.rxF{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--mut)}
+.rxRow input,.rxRow select{background:#0d1520;border:1px solid var(--line);border-radius:7px;color:var(--txt);padding:5px 8px;font:12px inherit}
+.rxRow input[type=date]{color-scheme:dark}
+.rxChk{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:12px;margin-bottom:10px}
+.rxChk label{display:flex;gap:5px;align-items:center;cursor:pointer}
+.rxCnt{color:var(--mut);font-size:12px;margin-left:auto}
+.rxCnt b{color:var(--txt)}
 @keyframes gshake{0%,100%{transform:translate(-50%,-50%)}25%{transform:translate(calc(-50% - 8px),-50%)}75%{transform:translate(calc(-50% + 8px),-50%)}}
 .lockDot{font-size:9px;opacity:.75;margin-left:5px}
 
@@ -136,7 +161,7 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
 </head>
 <body>
 <header>
-  <div class="brand" title="Nexwell Power">
+  <div class="brand" title="Nexwell">
     <img class="logo nx" src="data:image/png;base64,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" alt="Nexwell"/><span class="wm"><b>nexwell</b></span>
     <span class="bx">×</span>
     <svg class="logo" style="height:34px;width:auto" viewBox="0 0 196 32" xmlns="http://www.w3.org/2000/svg" aria-label="Burgenland Energie">
@@ -156,7 +181,7 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
 </header>
 <nav id="nav"></nav>
 <main id="main"></main>
-<footer>Directional model for discussion · Burgenland DC · Nexwell Power. Not investment advice. - build 2026-08-05 19:59</footer>
+<footer>Directional model for discussion · Burgenland DC · Nexwell. Not investment advice.</footer>
 <script>
 const PROFILES={
  meta:{wind_cf:0.4519,solar_cf:0.1376},
@@ -198,14 +223,17 @@ const EMBER={years:['2015','2016','2017','2018','2019','2020','2021','2022','202
 const CAP7=(function(){const ys=['2019','2020','2021','2023','2024','2025'];const a=k=>ys.reduce((s,y)=>s+PRICES.per_year[y][k],0)/ys.length;return{wind:a('wind'),solar:a('solar')};})();
 
 /* ---- BE measured generation, 15-min metering aggregated to monthly and seasonal-hourly.
-   Source: BE via Julius 31 Jul 2026 (confidential). Only aggregates are carried here;
-   no 15-minute series is published. ---- */
-const BEDATA={"windNick":{"label":"Wind Nickelsdorf","tech":"wind","mw":37.12,"from":"2023-07","to":"2026-07","mh":[[32.3,32.8,33.0,30.9,29.8,30.3,29.2,28.4,26.9,26.4,25.0,26.6,27.3,28.1,28.7,26.6,27.0,28.9,30.1,29.6,31.4,32.6,32.9,33.4],[30.2,29.1,28.3,27.5,26.6,26.2,27.2,26.5,23.9,19.7,20.9,22.1,24.1,24.7,24.9,27.0,27.7,29.8,30.9,33.0,32.7,32.8,31.6,30.2],[38.4,38.1,34.3,32.9,33.7,35.9,36.1,33.9,30.2,27.5,27.2,28.8,31.0,31.5,32.5,34.3,36.6,36.8,36.3,38.9,39.9,40.9,39.7,40.2],[40.0,40.3,39.7,38.4,38.4,40.0,42.1,38.9,32.3,30.7,29.3,28.0,25.7,22.6,24.0,27.3,32.0,34.7,34.0,34.2,36.1,38.0,39.7,38.7],[28.1,26.3,26.9,26.6,26.3,24.9,24.2,20.4,17.4,16.1,15.5,16.3,16.0,15.4,15.5,18.5,21.8,21.4,23.9,22.7,24.3,25.3,25.6,26.9],[20.3,20.3,20.0,18.2,17.7,18.5,20.2,17.4,14.1,13.7,13.2,12.7,12.4,11.1,10.6,11.8,15.4,18.1,18.8,17.6,17.8,19.5,22.9,23.8],[27.2,27.1,26.7,26.5,27.2,26.8,25.3,22.4,19.5,18.6,16.7,16.9,17.6,18.7,17.9,17.5,17.3,17.3,20.2,20.2,20.6,23.1,24.4,26.3],[24.4,24.9,25.6,24.1,23.0,22.0,21.0,19.7,15.8,15.2,15.0,13.4,13.2,12.7,12.5,13.6,15.0,15.7,16.7,17.0,19.1,20.5,23.6,22.7],[25.8,24.7,25.0,24.8,24.7,23.9,25.5,25.4,23.6,20.1,18.2,18.2,18.8,20.2,21.1,20.5,22.2,22.8,22.0,24.9,27.7,29.3,27.8,26.5],[33.2,32.9,31.5,31.9,32.0,32.0,31.0,29.2,26.4,22.8,20.9,20.3,21.6,22.9,24.3,25.6,25.7,25.9,29.1,32.7,33.4,33.8,33.8,33.4],[32.2,31.4,29.5,29.9,28.3,30.0,28.9,29.7,29.4,26.6,24.6,25.9,27.1,29.0,28.1,28.0,27.3,27.7,28.7,31.7,31.7,32.5,34.2,31.3],[27.2,27.8,26.8,26.7,27.5,28.3,28.9,27.6,27.7,26.1,25.4,24.2,25.0,26.3,27.0,26.0,25.6,27.6,28.5,26.8,27.5,29.1,28.6,27.9]],"monthly":{"2023-07":[119.8,100],"2023-08":[141.1,100],"2023-09":[134.2,100],"2023-10":[186.4,100],"2023-11":[244.0,100],"2023-12":[175.2,100],"2024-01":[308.3,100],"2024-02":[248.0,100],"2024-03":[276.2,100],"2024-04":[241.4,100],"2024-05":[136.6,100],"2024-06":[110.4,100],"2024-07":[149.3,100],"2024-08":[129.3,100],"2024-09":[231.8,100],"2024-10":[194.6,100],"2024-11":[192.3,100],"2024-12":[280.2,100],"2025-01":[194.1,100],"2025-02":[153.5,100],"2025-03":[259.6,100],"2025-04":[262.8,100],"2025-05":[148.2,100],"2025-06":[133.0,100],"2025-07":[216.4,100],"2025-08":[144.8,100],"2025-09":[141.4,100],"2025-10":[257.2,100],"2025-11":[196.9,100],"2025-12":[149.2,100],"2026-01":[156.4,100],"2026-02":[157.6,100],"2026-03":[240.4,100],"2026-04":[238.2,100],"2026-05":[204.7,100],"2026-06":[122.2,100]},"rolling12":[{"from":"2023-08","flh":2351},{"from":"2023-09","flh":2339},{"from":"2023-10","flh":2437},{"from":"2023-11","flh":2445},{"from":"2023-12","flh":2393},{"from":"2024-01","flh":2498},{"from":"2024-02","flh":2384},{"from":"2024-03","flh":2290},{"from":"2024-04","flh":2273},{"from":"2024-05","flh":2294},{"from":"2024-06","flh":2306},{"from":"2024-07","flh":2328},{"from":"2024-08","flh":2396},{"from":"2024-09","flh":2411},{"from":"2024-10","flh":2321},{"from":"2024-11","flh":2383},{"from":"2024-12","flh":2388},{"from":"2025-01","flh":2257},{"from":"2025-02","flh":2219},{"from":"2025-03","flh":2223},{"from":"2025-04","flh":2204},{"from":"2025-05","flh":2180},{"from":"2025-06","flh":2236},{"from":"2025-07","flh":2225}]},"pvNord":{"label":"PV Nickelsdorf Nord","tech":"solar","mw":41.82,"from":"2024-04","to":"2026-07","mh":[[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.6,6.6,11.1,12.6,13.2,10.5,6.3,2.9,0.6,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,5.6,15.1,22.9,27.0,27.5,22.5,17.9,9.2,3.5,0.5,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.7,4.4,13.2,26.0,35.0,40.6,40.6,38.6,29.5,21.7,10.1,3.2,0.3,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.8,4.3,11.1,22.6,31.6,31.6,29.0,26.9,25.2,26.6,26.5,20.2,10.5,2.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.3,3.1,7.6,16.7,29.9,36.9,38.2,35.4,31.5,29.0,29.1,30.6,29.7,19.9,7.2,0.8,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.8,4.1,8.4,17.8,29.5,36.7,40.0,40.4,41.8,40.1,38.7,37.5,33.0,25.7,12.4,2.4,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.3,2.8,6.3,13.8,25.6,35.7,39.8,41.3,40.2,41.9,41.1,37.8,31.0,20.2,8.6,1.6,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,1.3,5.0,11.8,24.2,31.8,37.2,41.5,41.6,40.1,41.6,37.8,27.6,13.9,3.6,0.2,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.1,2.2,7.3,16.8,27.5,34.7,38.8,38.1,37.2,32.7,24.3,12.1,3.5,0.3,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,5.5,14.9,23.6,29.4,31.7,30.2,22.8,15.5,8.1,2.6,0.2,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,5.7,14.1,20.6,20.6,17.5,14.5,6.5,3.1,0.4,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.5,5.1,8.0,10.6,11.2,5.8,3.6,1.4,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"monthly":{"2024-04":[72.7,100],"2024-05":[106.7,100],"2024-06":[127.2,100],"2024-07":[123.0,100],"2024-08":[119.0,100],"2024-09":[82.4,100],"2024-10":[60.1,100],"2024-11":[34.0,100],"2024-12":[18.1,100],"2025-01":[21.6,100],"2025-02":[51.6,100],"2025-03":[79.8,100],"2025-04":[83.6,100],"2025-05":[107.1,100],"2025-06":[105.6,100],"2025-07":[117.6,100],"2025-08":[103.7,100],"2025-09":[83.1,100],"2025-10":[54.9,100],"2025-11":[28.3,100],"2025-12":[11.3,100],"2026-01":[19.0,100],"2026-02":[33.9,100],"2026-03":[83.8,100],"2026-04":[85.8,100],"2026-05":[107.9,100],"2026-06":[135.6,100]},"rolling12":[{"from":"2024-05","flh":907},{"from":"2024-06","flh":907},{"from":"2024-07","flh":886},{"from":"2024-08","flh":880},{"from":"2024-09","flh":865},{"from":"2024-10","flh":866},{"from":"2024-11","flh":861},{"from":"2024-12","flh":855},{"from":"2025-01","flh":848},{"from":"2025-02","flh":846},{"from":"2025-03","flh":828},{"from":"2025-04","flh":832},{"from":"2025-05","flh":834},{"from":"2025-06","flh":835},{"from":"2025-07","flh":865}]},"pvSued":{"label":"PV Nickelsdorf Sued","tech":"solar","mw":76.28,"from":"2024-06","to":"2026-07","mh":[[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.8,6.9,11.4,14.2,15.1,13.7,9.9,4.5,0.7,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,5.9,15.2,22.4,26.0,26.9,23.8,20.3,13.1,5.4,0.6,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.7,4.7,13.6,25.5,33.9,39.0,38.7,39.1,32.2,24.1,14.6,4.7,0.3,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.9,4.4,11.7,23.7,33.3,36.1,35.6,32.9,31.4,31.0,27.3,20.9,12.2,2.6,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.3,3.0,7.5,16.7,29.3,35.5,37.9,40.2,38.3,35.6,33.6,31.2,28.2,18.7,7.1,0.8,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.6,3.1,6.5,14.2,23.0,28.5,30.2,32.2,33.1,31.5,28.7,27.6,25.7,18.6,9.0,1.7,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.2,1.4,3.0,7.0,12.9,15.7,18.0,19.5,18.7,20.3,20.5,18.2,15.3,9.6,3.9,0.7,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,1.2,4.9,12.0,24.2,31.4,35.3,37.8,36.9,36.0,36.9,34.5,26.9,14.7,4.0,0.2,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.1,2.1,7.1,15.9,24.9,30.9,35.0,34.1,33.0,30.3,24.7,14.2,4.8,0.3,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,5.5,14.8,23.7,28.8,31.4,30.5,25.4,19.1,11.0,3.7,0.2,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,6.0,14.2,21.2,21.7,20.1,18.8,12.3,5.4,0.5,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.5,5.1,8.7,11.7,13.1,10.5,6.8,2.2,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"monthly":{"2024-07":[11.2,100],"2024-08":[98.6,100],"2024-09":[61.6,100],"2024-10":[59.7,100],"2024-11":[39.0,100],"2024-12":[22.5,100],"2025-01":[25.0,100],"2025-02":[52.6,100],"2025-03":[78.3,100],"2025-04":[84.1,100],"2025-05":[102.3,100],"2025-06":[100.9,100],"2025-07":[103.4,100],"2025-08":[110.3,100],"2025-09":[92.7,100],"2025-10":[61.3,100],"2025-11":[33.7,100],"2025-12":[14.5,100],"2026-01":[23.4,100],"2026-02":[37.2,100],"2026-03":[89.8,100],"2026-04":[98.3,100],"2026-05":[123.3,100],"2026-06":[125.4,100]},"rolling12":[{"from":"2024-07","flh":736},{"from":"2024-08","flh":828},{"from":"2024-09","flh":840},{"from":"2024-10","flh":871},{"from":"2024-11","flh":873},{"from":"2024-12","flh":867},{"from":"2025-01","flh":859},{"from":"2025-02","flh":858},{"from":"2025-03","flh":842},{"from":"2025-04","flh":854},{"from":"2025-05","flh":868},{"from":"2025-06","flh":889},{"from":"2025-07","flh":913}]},"pvWallern":{"label":"PV Wallern-Tadten (Agri)","tech":"solar","mw":119.79,"from":"2026-01","to":"2026-07","mh":[[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.2,5.2,9.5,13.0,14.8,14.6,9.4,4.1,0.6,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.5,3.8,8.1,12.2,13.4,14.1,14.6,15.1,9.9,3.4,0.3,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,1.0,8.9,22.0,29.6,37.7,46.7,47.4,43.6,42.1,33.7,17.5,4.6,0.1,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.7,8.9,22.9,31.6,33.2,33.6,33.0,29.5,26.7,24.8,22.9,19.7,11.2,1.4,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.2,6.1,21.3,36.2,44.4,43.8,41.5,45.1,43.8,38.6,34.6,31.8,27.6,17.0,5.5,0.4,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,1.5,11.0,26.6,42.4,48.9,49.8,52.9,57.1,56.9,53.2,49.6,43.3,37.4,27.6,14.4,2.7,0.0,0.0,0.0],[0.0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]],"monthly":{"2026-01":[22.4,100],"2026-02":[21.0,79],"2026-03":[89.6,86],"2026-04":[62.7,69],"2026-05":[83.2,62],"2026-06":[172.6,100]},"rolling12":[]},"all":{"label":"All plants (wind + fixed-tilt PV)","tech":"mix","mw":155.22,"from":"2024-07","to":"2026-06","note":"Wind Nickelsdorf + PV Nord + PV Sued over their common window; Wallern-Tadten excluded (H1 2026 only, gaps)","mh":[[5.9,6.2,6.2,5.8,5.2,5.6,5.7,5.7,6.6,10.2,13.2,15.5,16.1,14.9,12.0,8.2,5.8,5.8,6.0,5.6,6.0,6.4,6.4,6.3],[6.0,5.9,6.1,6.0,5.8,5.8,6.2,6.8,9.9,16.1,22.0,25.0,25.8,22.8,19.7,14.1,8.5,5.9,5.5,5.7,5.6,5.7,5.9,5.7],[9.1,8.8,7.7,7.3,7.6,8.1,8.6,11.3,17.4,26.1,32.7,36.9,37.1,37.2,31.4,25.3,17.7,11.2,8.6,9.0,9.3,9.7,9.6,9.7],[9.4,9.3,9.3,9.3,9.0,8.9,10.2,12.4,16.4,25.3,32.2,33.0,32.1,29.8,29.1,29.9,29.1,24.6,17.6,10.5,9.1,9.5,9.8,9.4],[6.7,6.2,6.3,6.2,6.5,6.4,8.5,10.8,17.0,27.2,31.8,33.5,33.8,31.6,29.4,29.6,29.9,28.0,21.2,11.5,6.6,6.3,6.5,6.8],[4.9,4.7,4.5,4.3,3.9,4.5,7.4,9.9,16.3,24.6,29.9,31.4,32.6,33.3,31.8,30.2,30.4,29.5,23.5,13.6,6.6,5.5,6.1,6.0],[7.3,7.4,7.3,7.3,7.3,7.3,8.6,9.5,12.6,18.1,21.9,24.1,25.3,25.0,26.0,25.8,23.5,20.4,15.6,10.0,6.7,6.3,6.3,6.9],[5.8,5.8,6.1,5.9,5.4,5.4,6.3,8.7,12.8,21.9,27.5,30.5,32.7,32.2,31.4,32.6,30.7,24.3,14.9,6.7,4.5,4.9,5.6,5.3],[7.1,6.8,6.7,6.8,6.9,6.5,7.1,8.5,11.7,17.6,24.5,29.2,32.2,31.7,31.2,28.6,24.2,15.9,9.0,6.8,7.5,8.0,7.7,7.3],[8.3,8.2,8.2,8.4,8.4,8.4,8.1,8.4,11.1,17.3,23.5,27.3,29.5,28.9,25.0,20.0,13.9,9.0,7.2,8.0,8.3,8.3,8.1,8.2],[7.2,7.6,7.0,7.0,6.6,6.8,6.8,7.3,10.7,16.6,21.1,21.7,20.4,19.1,13.4,9.0,6.0,5.8,6.1,6.8,7.1,7.5,7.7,7.1],[7.2,7.4,7.0,7.0,7.1,7.4,7.6,7.5,8.4,10.6,12.7,14.5,15.5,13.1,10.8,7.7,6.3,6.7,7.1,6.7,6.9,7.3,7.4,7.5]],"monthly":{"2024-07":[74.3,100],"2024-08":[111.4,100],"2024-09":[107.9,100],"2024-10":[92.0,100],"2024-11":[74.3,100],"2024-12":[82.9,100],"2025-01":[64.5,100],"2025-02":[76.5,100],"2025-03":[122.0,100],"2025-04":[126.7,100],"2025-05":[114.6,100],"2025-06":[109.8,100],"2025-07":[134.3,100],"2025-08":[116.8,100],"2025-09":[101.8,100],"2025-10":[106.4,100],"2025-11":[71.3,100],"2025-12":[45.9,100],"2026-01":[54.0,100],"2026-02":[65.1,100],"2026-03":[124.2,100],"2026-04":[128.4,100],"2026-05":[138.7,100],"2026-06":[127.4,100]},"rolling12":[{"from":"2024-08","flh":1217},{"from":"2024-09","flh":1222},{"from":"2024-10","flh":1216},{"from":"2024-11","flh":1231},{"from":"2024-12","flh":1228},{"from":"2025-01","flh":1191},{"from":"2025-02","flh":1180},{"from":"2025-03","flh":1169},{"from":"2025-04","flh":1171},{"from":"2025-05","flh":1173},{"from":"2025-06","flh":1197},{"from":"2025-07","flh":1214}]},"dist":{"binW":2.5,"series":{"windNick":{"label":"Wind Nickelsdorf","mw":37.12,"tech":"wind","window":"Jul 2023 to Jun 2026","pdf":[26.16,8.3,5.94,4.86,4.08,3.45,3.02,2.65,2.38,2.23,2.1,1.93,1.93,1.7,1.58,1.54,1.39,1.36,1.26,1.23,1.18,1.02,1.02,0.97,0.96,0.91,0.87,0.87,0.79,0.87,0.8,0.81,0.92,0.88,0.83,0.96,1.14,0.91,1.49,2.7],"cdf":[100.0,73.84,65.54,59.6,54.73,50.66,47.21,44.19,41.54,39.16,36.92,34.82,32.89,30.96,29.26,27.67,26.13,24.74,23.38,22.12,20.9,19.71,18.69,17.68,16.7,15.74,14.83,13.96,13.09,12.29,11.43,10.63,9.82,8.9,8.02,7.2,6.24,5.09,4.18,2.7,0.0]},"pvNord":{"label":"PV Nickelsdorf Nord","mw":41.82,"tech":"solar","window":"Apr 2024 to Jun 2026","pdf":[60.64,5.37,4.24,2.94,2.17,1.88,1.57,1.55,1.37,1.36,1.18,1.25,1.14,1.13,1.04,0.99,0.9,0.78,0.77,0.73,0.73,0.74,0.67,0.69,0.71,0.71,0.75,0.7,0.55,0.37,0.19,0.13,0.05,0.02,0.0,0.0,0.0,0.0,0.0,0.0],"cdf":[100.0,39.36,33.99,29.75,26.81,24.64,22.76,21.19,19.64,18.26,16.91,15.73,14.48,13.34,12.21,11.17,10.18,9.27,8.49,7.72,7.0,6.27,5.53,4.86,4.17,3.47,2.76,2.01,1.31,0.76,0.39,0.2,0.07,0.02,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},"pvSued":{"label":"PV Nickelsdorf Sued","mw":76.28,"tech":"solar","window":"Jun 2024 to Jun 2026","pdf":[62.79,5.54,3.8,2.87,2.16,1.94,1.61,1.51,1.39,1.3,1.18,1.06,1.1,1.06,1.01,0.98,1.01,0.91,0.78,0.77,0.76,0.7,0.61,0.6,0.61,0.44,0.34,0.32,0.26,0.2,0.16,0.09,0.08,0.08,0.02,0.0,0.0,0.0,0.0,0.0],"cdf":[100.0,37.21,31.67,27.88,25.01,22.85,20.91,19.3,17.79,16.4,15.1,13.93,12.87,11.77,10.71,9.69,8.72,7.71,6.8,6.01,5.25,4.49,3.79,3.18,2.58,1.98,1.54,1.2,0.88,0.62,0.42,0.26,0.18,0.09,0.02,0.0,0.0,0.0,0.0,0.0,0.0]},"pvWallern":{"label":"PV Wallern-Tadten (Agri)","mw":119.79,"tech":"solar","window":"Jan to Jun 2026, gaps","pdf":[59.32,4.77,3.6,2.83,2.24,2.11,1.81,1.5,1.19,1.22,1.02,1.19,1.04,0.88,0.88,0.84,0.81,0.63,0.74,0.7,0.64,0.65,0.83,0.96,0.89,1.06,1.14,1.08,0.72,0.84,0.86,0.59,0.29,0.12,0.0,0.0,0.0,0.0,0.0,0.0],"cdf":[100.0,40.68,35.91,32.3,29.48,27.24,25.13,23.32,21.82,20.63,19.41,18.4,17.2,16.16,15.27,14.4,13.55,12.75,12.11,11.37,10.68,10.04,9.38,8.55,7.59,6.7,5.64,4.5,3.42,2.7,1.87,1.0,0.41,0.12,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},"solarNS":{"label":"Solar Nord+Sued","mw":118.1,"tech":"solar","window":"Jul 2024 to Jun 2026","pdf":[60.41,5.74,4.27,3.22,2.4,2.07,1.85,1.73,1.58,1.34,1.32,1.13,1.05,1.05,0.99,0.93,0.96,0.94,0.8,0.79,0.76,0.71,0.7,0.64,0.6,0.59,0.46,0.35,0.24,0.17,0.09,0.07,0.03,0.01,0.0,0.0,0.0,0.0,0.0,0.0],"cdf":[100.0,39.59,33.85,29.58,26.37,23.97,21.9,20.06,18.33,16.75,15.4,14.08,12.95,11.9,10.86,9.87,8.94,7.98,7.04,6.24,5.44,4.68,3.97,3.26,2.63,2.03,1.43,0.97,0.62,0.37,0.2,0.12,0.04,0.01,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},"combined":{"label":"Combined wind+solar","mw":155.22,"tech":"mix","window":"Jul 2024 to Jun 2026","pdf":[25.09,11.03,8.43,7.02,6.19,5.35,4.67,4.43,5.05,5.86,2.59,1.9,1.7,1.52,1.54,1.44,1.23,1.16,1.06,0.95,0.74,0.46,0.32,0.15,0.08,0.04,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"cdf":[100.0,74.91,63.88,55.45,48.43,42.24,36.89,32.22,27.79,22.73,16.87,14.29,12.39,10.69,9.17,7.63,6.19,4.95,3.8,2.74,1.79,1.05,0.59,0.27,0.12,0.04,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}}}};
-/* ---------- access gate for the SPV and battery tabs ----------
-   Client-side only. It keeps casual viewers out of the commercial tabs; it is not
-   protection against anyone willing to read the page source. Real confidentiality
-   needs a private repo. */
-const GATE={tabs:['summary','battery'],open:false,
+   Source: BE via Julius 31 Jul 2026 (confidential). Aggregates are carried here in
+   clear text; the full 15-minute series ships only as AES-256-GCM ciphertext in
+   bedata_enc.bin and is decrypted in the browser with the access code. ---- */
+const BEDATA={"windNick":{"label":"Wind Nickelsdorf","tech":"wind","mw":37.12,"from":"2023-07","to":"2026-07","mh":[[32.3,32.8,33.0,30.9,29.8,30.3,29.2,28.4,26.9,26.4,25.0,26.6,27.3,28.1,28.7,26.6,27.0,28.9,30.1,29.6,31.4,32.6,32.9,33.4],[30.2,29.1,28.3,27.5,26.6,26.2,27.2,26.5,23.9,19.7,20.9,22.1,24.1,24.7,24.9,27.0,27.7,29.8,30.9,33.0,32.7,32.8,31.6,30.2],[38.4,38.1,34.3,32.9,33.7,35.9,36.1,33.9,30.2,27.5,27.2,28.8,31.0,31.5,32.5,34.3,36.6,36.8,36.3,38.9,39.9,40.9,39.7,40.2],[40.0,40.3,39.7,38.4,38.4,40.0,42.1,38.9,32.3,30.7,29.3,28.0,25.7,22.6,24.0,27.3,32.0,34.7,34.0,34.2,36.1,38.0,39.7,38.7],[28.1,26.3,26.9,26.6,26.3,24.9,24.2,20.4,17.4,16.1,15.5,16.3,16.0,15.4,15.5,18.5,21.8,21.4,23.9,22.7,24.3,25.3,25.6,26.9],[20.3,20.3,20.0,18.2,17.7,18.5,20.2,17.4,14.1,13.7,13.2,12.7,12.4,11.1,10.6,11.8,15.4,18.1,18.8,17.6,17.8,19.5,22.9,23.8],[27.2,27.1,26.7,26.5,27.2,26.8,25.3,22.4,19.5,18.6,16.7,16.9,17.6,18.7,17.9,17.5,17.3,17.3,20.2,20.2,20.6,23.1,24.4,26.3],[24.4,24.9,25.6,24.1,23.0,22.0,21.0,19.7,15.8,15.2,15.0,13.4,13.2,12.7,12.5,13.6,15.0,15.7,16.7,17.0,19.1,20.5,23.6,22.7],[25.8,24.7,25.0,24.8,24.7,23.9,25.5,25.4,23.6,20.1,18.2,18.2,18.8,20.2,21.1,20.5,22.2,22.8,22.0,24.9,27.7,29.3,27.8,26.5],[33.2,32.9,31.5,31.9,32.0,32.0,31.0,29.2,26.4,22.8,20.9,20.3,21.6,22.9,24.3,25.6,25.7,25.9,29.1,32.7,33.4,33.8,33.8,33.4],[32.2,31.4,29.5,29.9,28.3,30.0,28.9,29.7,29.4,26.6,24.6,25.9,27.1,29.0,28.1,28.0,27.3,27.7,28.7,31.7,31.7,32.5,34.2,31.3],[27.2,27.8,26.8,26.7,27.5,28.3,28.9,27.6,27.7,26.1,25.4,24.2,25.0,26.3,27.0,26.0,25.6,27.6,28.5,26.8,27.5,29.1,28.6,27.9]],"mhn":[[372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372],[340,340,340,340,340,340,340,340,340,340,340,340,340,340,340,340,340,340,340,340,340,340,340,340],[372,372,360,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372],[360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360],[372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372],[360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360],[372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372],[372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372],[360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360],[372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372],[360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360],[372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372]],"monthly":{"2023-07":[119.8,100,2975],"2023-08":[141.1,100,2976],"2023-09":[134.2,100,2880],"2023-10":[186.4,100,2976],"2023-11":[244.0,100,2880],"2023-12":[175.2,100,2976],"2024-01":[308.3,100,2976],"2024-02":[248.0,100,2784],"2024-03":[276.2,100,2972],"2024-04":[241.4,100,2880],"2024-05":[136.6,100,2976],"2024-06":[110.4,100,2880],"2024-07":[149.3,100,2976],"2024-08":[129.3,100,2976],"2024-09":[231.8,100,2880],"2024-10":[194.6,100,2976],"2024-11":[192.3,100,2880],"2024-12":[280.2,100,2976],"2025-01":[194.1,100,2976],"2025-02":[153.5,100,2688],"2025-03":[259.6,100,2972],"2025-04":[262.8,100,2880],"2025-05":[148.2,100,2976],"2025-06":[133.0,100,2880],"2025-07":[216.4,100,2976],"2025-08":[144.8,100,2976],"2025-09":[141.4,100,2880],"2025-10":[257.2,100,2976],"2025-11":[196.9,100,2880],"2025-12":[149.2,100,2976],"2026-01":[156.4,100,2976],"2026-02":[157.6,100,2688],"2026-03":[240.4,100,2972],"2026-04":[238.2,100,2880],"2026-05":[204.7,100,2976],"2026-06":[122.2,100,2880]},"rolling12":[{"from":"2023-08","flh":2351},{"from":"2023-09","flh":2339},{"from":"2023-10","flh":2437},{"from":"2023-11","flh":2445},{"from":"2023-12","flh":2393},{"from":"2024-01","flh":2498},{"from":"2024-02","flh":2384},{"from":"2024-03","flh":2290},{"from":"2024-04","flh":2273},{"from":"2024-05","flh":2294},{"from":"2024-06","flh":2306},{"from":"2024-07","flh":2328},{"from":"2024-08","flh":2396},{"from":"2024-09","flh":2411},{"from":"2024-10","flh":2321},{"from":"2024-11","flh":2383},{"from":"2024-12","flh":2388},{"from":"2025-01","flh":2257},{"from":"2025-02","flh":2219},{"from":"2025-03","flh":2223},{"from":"2025-04","flh":2204},{"from":"2025-05","flh":2180},{"from":"2025-06","flh":2236},{"from":"2025-07","flh":2225}]},"pvNord":{"label":"PV Nickelsdorf Nord","tech":"solar","mw":41.82,"from":"2024-04","to":"2026-07","mh":[[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.6,6.6,11.1,12.6,13.2,10.5,6.3,2.9,0.6,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,5.6,15.1,22.9,27.0,27.5,22.5,17.9,9.2,3.5,0.5,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.7,4.4,13.2,26.0,35.0,40.6,40.6,38.6,29.5,21.7,10.1,3.2,0.3,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.8,4.3,11.1,22.6,31.6,31.6,29.0,26.9,25.2,26.6,26.5,20.2,10.5,2.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.3,3.1,7.6,16.7,29.9,36.9,38.2,35.4,31.5,29.0,29.1,30.6,29.7,19.9,7.2,0.8,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.8,4.1,8.4,17.8,29.5,36.7,40.0,40.4,41.8,40.1,38.7,37.5,33.0,25.7,12.4,2.4,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.3,2.8,6.3,13.8,25.6,35.7,39.8,41.3,40.2,41.9,41.1,37.8,31.0,20.2,8.6,1.6,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,1.3,5.0,11.8,24.2,31.8,37.2,41.5,41.6,40.1,41.6,37.8,27.6,13.9,3.6,0.2,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.1,2.2,7.3,16.8,27.5,34.7,38.8,38.1,37.2,32.7,24.3,12.1,3.5,0.3,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,5.5,14.9,23.6,29.4,31.7,30.2,22.8,15.5,8.1,2.6,0.2,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,5.7,14.1,20.6,20.6,17.5,14.5,6.5,3.1,0.4,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.5,5.1,8.0,10.6,11.2,5.8,3.6,1.4,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"mhn":[[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224],[248,248,240,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[359,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360],[372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372,372],[360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360,360],[249,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240],[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240],[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248]],"monthly":{"2024-04":[72.7,100,2879],"2024-05":[106.7,100,2976],"2024-06":[127.2,100,2880],"2024-07":[123.0,100,2976],"2024-08":[119.0,100,2976],"2024-09":[82.4,100,2880],"2024-10":[60.1,100,2976],"2024-11":[34.0,100,2880],"2024-12":[18.1,100,2976],"2025-01":[21.6,100,2976],"2025-02":[51.6,100,2688],"2025-03":[79.8,100,2972],"2025-04":[83.6,100,2880],"2025-05":[107.1,100,2976],"2025-06":[105.6,100,2880],"2025-07":[117.6,100,2976],"2025-08":[103.7,100,2976],"2025-09":[83.1,100,2880],"2025-10":[54.9,100,2976],"2025-11":[28.3,100,2880],"2025-12":[11.3,100,2976],"2026-01":[19.0,100,2976],"2026-02":[33.9,100,2688],"2026-03":[83.8,100,2972],"2026-04":[85.8,100,2880],"2026-05":[107.9,100,2976],"2026-06":[135.6,100,2880]},"rolling12":[{"from":"2024-05","flh":907},{"from":"2024-06","flh":907},{"from":"2024-07","flh":886},{"from":"2024-08","flh":880},{"from":"2024-09","flh":865},{"from":"2024-10","flh":866},{"from":"2024-11","flh":861},{"from":"2024-12","flh":855},{"from":"2025-01","flh":848},{"from":"2025-02","flh":846},{"from":"2025-03","flh":828},{"from":"2025-04","flh":832},{"from":"2025-05","flh":834},{"from":"2025-06","flh":835},{"from":"2025-07","flh":865}]},"pvSued":{"label":"PV Nickelsdorf Sued","tech":"solar","mw":76.28,"from":"2024-06","to":"2026-07","mh":[[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.8,6.9,11.4,14.2,15.1,13.7,9.9,4.5,0.7,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,5.9,15.2,22.4,26.0,26.9,23.8,20.3,13.1,5.4,0.6,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.7,4.7,13.6,25.5,33.9,39.0,38.7,39.1,32.2,24.1,14.6,4.7,0.3,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.9,4.4,11.7,23.7,33.3,36.1,35.6,32.9,31.4,31.0,27.3,20.9,12.2,2.6,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.3,3.0,7.5,16.7,29.3,35.5,37.9,40.2,38.3,35.6,33.6,31.2,28.2,18.7,7.1,0.8,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.6,3.1,6.5,14.2,23.0,28.5,30.2,32.2,33.1,31.5,28.7,27.6,25.7,18.6,9.0,1.7,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.2,1.4,3.0,7.0,12.9,15.7,18.0,19.5,18.7,20.3,20.5,18.2,15.3,9.6,3.9,0.7,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,1.2,4.9,12.0,24.2,31.4,35.3,37.8,36.9,36.0,36.9,34.5,26.9,14.7,4.0,0.2,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.1,2.1,7.1,15.9,24.9,30.9,35.0,34.1,33.0,30.3,24.7,14.2,4.8,0.3,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,5.5,14.8,23.7,28.8,31.4,30.5,25.4,19.1,11.0,3.7,0.2,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,6.0,14.2,21.2,21.7,20.1,18.8,12.3,5.4,0.5,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.5,5.1,8.7,11.7,13.1,10.5,6.8,2.2,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"mhn":[[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224],[248,248,240,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240],[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[287,288,288,288,288,288,288,288,288,288,288,288,288,288,288,288,288,288,288,288,288,288,288,288],[249,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240],[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240],[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248]],"monthly":{"2024-07":[11.2,100,2976],"2024-08":[98.6,100,2976],"2024-09":[61.6,100,2880],"2024-10":[59.7,100,2976],"2024-11":[39.0,100,2880],"2024-12":[22.5,100,2976],"2025-01":[25.0,100,2976],"2025-02":[52.6,100,2688],"2025-03":[78.3,100,2972],"2025-04":[84.1,100,2880],"2025-05":[102.3,100,2976],"2025-06":[100.9,100,2880],"2025-07":[103.4,100,2976],"2025-08":[110.3,100,2976],"2025-09":[92.7,100,2880],"2025-10":[61.3,100,2976],"2025-11":[33.7,100,2880],"2025-12":[14.5,100,2976],"2026-01":[23.4,100,2976],"2026-02":[37.2,100,2688],"2026-03":[89.8,100,2972],"2026-04":[98.3,100,2880],"2026-05":[123.3,100,2976],"2026-06":[125.4,100,2880]},"rolling12":[{"from":"2024-07","flh":736},{"from":"2024-08","flh":828},{"from":"2024-09","flh":840},{"from":"2024-10","flh":871},{"from":"2024-11","flh":873},{"from":"2024-12","flh":867},{"from":"2025-01","flh":859},{"from":"2025-02","flh":858},{"from":"2025-03","flh":842},{"from":"2025-04","flh":854},{"from":"2025-05","flh":868},{"from":"2025-06","flh":889},{"from":"2025-07","flh":913}]},"pvWallern":{"label":"PV Wallern-Tadten (Agri)","tech":"solar","mw":119.79,"from":"2026-01","to":"2026-07","mh":[[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.2,5.2,9.5,13.0,14.8,14.6,9.4,4.1,0.6,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.5,3.8,8.1,12.2,13.4,14.1,14.6,15.1,9.9,3.4,0.3,0.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,1.0,8.9,22.0,29.6,37.7,46.7,47.4,43.6,42.1,33.7,17.5,4.6,0.1,0.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.0,0.7,8.9,22.9,31.6,33.2,33.6,33.0,29.5,26.7,24.8,22.9,19.7,11.2,1.4,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,0.2,6.1,21.3,36.2,44.4,43.8,41.5,45.1,43.8,38.6,34.6,31.8,27.6,17.0,5.5,0.4,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0,1.5,11.0,26.6,42.4,48.9,49.8,52.9,57.1,56.9,53.2,49.6,43.3,37.4,27.6,14.4,2.7,0.0,0.0,0.0],[0.0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]],"mhn":[[123,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124],[92,92,92,92,90,88,88,88,88,88,88,88,88,88,88,88,88,88,88,88,88,88,88,88],[107,108,108,108,108,108,108,108,108,108,108,108,108,108,106,104,104,104,104,104,104,104,104,104],[83,84,84,84,84,84,84,84,84,84,84,84,84,84,84,84,84,81,80,80,80,80,80,80],[79,80,76,76,76,76,76,76,76,76,76,76,76,76,76,76,76,76,76,76,76,76,76,76],[119,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]],"monthly":{"2026-01":[22.4,100,2975],"2026-02":[21.0,79,2130],"2026-03":[89.6,86,2553],"2026-04":[62.7,69,1988],"2026-05":[83.2,62,1831],"2026-06":[172.6,100,2879]},"rolling12":[]},"all":{"label":"All plants (wind + fixed-tilt PV)","tech":"mix","mw":155.22,"from":"2024-07","to":"2026-06","note":"Wind Nickelsdorf + PV Nord + PV Sued over their common window; Wallern-Tadten excluded (H1 2026 only, gaps)","mh":[[5.9,6.2,6.2,5.8,5.2,5.6,5.7,5.7,6.6,10.2,13.2,15.5,16.1,14.9,12.0,8.2,5.8,5.8,6.0,5.6,6.0,6.4,6.4,6.3],[6.0,5.9,6.1,6.0,5.8,5.8,6.2,6.8,9.9,16.1,22.0,25.0,25.8,22.8,19.7,14.1,8.5,5.9,5.5,5.7,5.6,5.7,5.9,5.7],[9.1,8.8,7.7,7.3,7.6,8.1,8.6,11.3,17.4,26.1,32.7,36.9,37.1,37.2,31.4,25.3,17.7,11.2,8.6,9.0,9.3,9.7,9.6,9.7],[9.4,9.3,9.3,9.3,9.0,8.9,10.2,12.4,16.4,25.3,32.2,33.0,32.1,29.8,29.1,29.9,29.1,24.6,17.6,10.5,9.1,9.5,9.8,9.4],[6.7,6.2,6.3,6.2,6.5,6.4,8.5,10.8,17.0,27.2,31.8,33.5,33.8,31.6,29.4,29.6,29.9,28.0,21.2,11.5,6.6,6.3,6.5,6.8],[4.9,4.7,4.5,4.3,3.9,4.5,7.4,9.9,16.3,24.6,29.9,31.4,32.6,33.3,31.8,30.2,30.4,29.5,23.5,13.6,6.6,5.5,6.1,6.0],[7.3,7.4,7.3,7.3,7.3,7.3,8.6,9.5,12.6,18.1,21.9,24.1,25.3,25.0,26.0,25.8,23.5,20.4,15.6,10.0,6.7,6.3,6.3,6.9],[5.8,5.8,6.1,5.9,5.4,5.4,6.3,8.7,12.8,21.9,27.5,30.5,32.7,32.2,31.4,32.6,30.7,24.3,14.9,6.7,4.5,4.9,5.6,5.3],[7.1,6.8,6.7,6.8,6.9,6.5,7.1,8.5,11.7,17.6,24.5,29.2,32.2,31.7,31.2,28.6,24.2,15.9,9.0,6.8,7.5,8.0,7.7,7.3],[8.3,8.2,8.2,8.4,8.4,8.4,8.1,8.4,11.1,17.3,23.5,27.3,29.5,28.9,25.0,20.0,13.9,9.0,7.2,8.0,8.3,8.3,8.1,8.2],[7.2,7.6,7.0,7.0,6.6,6.8,6.8,7.3,10.7,16.6,21.1,21.7,20.4,19.1,13.4,9.0,6.0,5.8,6.1,6.8,7.1,7.5,7.7,7.1],[7.2,7.4,7.0,7.0,7.1,7.4,7.6,7.5,8.4,10.6,12.7,14.5,15.5,13.1,10.8,7.7,6.3,6.7,7.1,6.7,6.9,7.3,7.4,7.5]],"mhn":[[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224,224],[248,248,240,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240],[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240],[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240],[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248],[240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240,240],[248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248]],"monthly":{"2024-07":[74.3,100,2975],"2024-08":[111.4,100,2976],"2024-09":[107.9,100,2880],"2024-10":[92.0,100,2976],"2024-11":[74.3,100,2880],"2024-12":[82.9,100,2976],"2025-01":[64.5,100,2976],"2025-02":[76.5,100,2688],"2025-03":[122.0,100,2972],"2025-04":[126.7,100,2880],"2025-05":[114.6,100,2976],"2025-06":[109.8,100,2880],"2025-07":[134.3,100,2976],"2025-08":[116.8,100,2976],"2025-09":[101.8,100,2880],"2025-10":[106.4,100,2976],"2025-11":[71.3,100,2880],"2025-12":[45.9,100,2976],"2026-01":[54.0,100,2976],"2026-02":[65.1,100,2688],"2026-03":[124.2,100,2972],"2026-04":[128.4,100,2880],"2026-05":[138.7,100,2976],"2026-06":[127.4,100,2880]},"rolling12":[{"from":"2024-08","flh":1217},{"from":"2024-09","flh":1222},{"from":"2024-10","flh":1216},{"from":"2024-11","flh":1231},{"from":"2024-12","flh":1228},{"from":"2025-01","flh":1191},{"from":"2025-02","flh":1180},{"from":"2025-03","flh":1169},{"from":"2025-04","flh":1171},{"from":"2025-05","flh":1173},{"from":"2025-06","flh":1197},{"from":"2025-07","flh":1214}]},"dist":{"binW":2.5,"series":{"windNick":{"label":"Wind Nickelsdorf","tech":"wind","mw":37.12,"window":"Jul 2023 to Jun 2026","pdf":[26.16,8.3,5.94,4.86,4.08,3.45,3.02,2.65,2.38,2.23,2.1,1.93,1.93,1.7,1.58,1.54,1.39,1.36,1.26,1.23,1.18,1.02,1.02,0.97,0.96,0.91,0.87,0.87,0.79,0.87,0.8,0.81,0.92,0.88,0.83,0.96,1.14,0.91,1.49,2.7],"cdf":[100.0,73.84,65.54,59.6,54.73,50.66,47.21,44.19,41.54,39.16,36.92,34.82,32.89,30.96,29.26,27.67,26.13,24.74,23.38,22.12,20.9,19.71,18.69,17.68,16.7,15.74,14.83,13.96,13.09,12.29,11.43,10.63,9.82,8.9,8.02,7.2,6.24,5.09,4.18,2.7,0.0],"n":105204},"pvNord":{"label":"PV Nickelsdorf Nord","tech":"solar","mw":41.82,"window":"Apr 2024 to Jun 2026","pdf":[60.64,5.37,4.24,2.94,2.17,1.88,1.57,1.55,1.37,1.36,1.18,1.25,1.14,1.13,1.04,0.99,0.9,0.78,0.77,0.73,0.73,0.74,0.67,0.69,0.71,0.71,0.75,0.7,0.55,0.37,0.19,0.13,0.05,0.02,0.0,0.0,0.0,0.0,0.0,0.0],"cdf":[100.0,39.36,33.99,29.75,26.81,24.64,22.76,21.19,19.64,18.26,16.91,15.73,14.48,13.34,12.21,11.17,10.18,9.27,8.49,7.72,7.0,6.27,5.53,4.86,4.17,3.47,2.76,2.01,1.31,0.76,0.39,0.2,0.07,0.02,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"n":78808},"pvSued":{"label":"PV Nickelsdorf Sued","tech":"solar","mw":76.28,"window":"Jun 2024 to Jun 2026","pdf":[62.79,5.54,3.8,2.87,2.16,1.94,1.61,1.51,1.39,1.3,1.18,1.06,1.1,1.06,1.01,0.98,1.01,0.91,0.78,0.77,0.76,0.7,0.61,0.6,0.61,0.44,0.34,0.32,0.26,0.2,0.16,0.09,0.08,0.08,0.02,0.0,0.0,0.0,0.0,0.0],"cdf":[100.0,37.21,31.67,27.88,25.01,22.85,20.91,19.3,17.79,16.4,15.1,13.93,12.87,11.77,10.71,9.69,8.72,7.71,6.8,6.01,5.25,4.49,3.79,3.18,2.58,1.98,1.54,1.2,0.88,0.62,0.42,0.26,0.18,0.09,0.02,0.0,0.0,0.0,0.0,0.0,0.0],"n":71224},"pvWallern":{"label":"PV Wallern-Tadten (Agri)","tech":"solar","mw":119.79,"window":"Jan to Jun 2026, gaps","pdf":[59.32,4.77,3.6,2.83,2.24,2.11,1.81,1.5,1.19,1.22,1.02,1.19,1.04,0.88,0.88,0.84,0.81,0.63,0.74,0.7,0.64,0.65,0.83,0.96,0.89,1.06,1.14,1.08,0.72,0.84,0.86,0.59,0.29,0.12,0.0,0.0,0.0,0.0,0.0,0.0],"cdf":[100.0,40.68,35.91,32.3,29.48,27.24,25.13,23.32,21.82,20.63,19.41,18.4,17.2,16.16,15.27,14.4,13.55,12.75,12.11,11.37,10.68,10.04,9.38,8.55,7.59,6.7,5.64,4.5,3.42,2.7,1.87,1.0,0.41,0.12,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"n":14357},"solarNS":{"label":"Solar Nord+Sued","tech":"solar","mw":118.1,"window":"Jul 2024 to Jun 2026","pdf":[60.41,5.74,4.27,3.22,2.4,2.07,1.85,1.73,1.58,1.34,1.32,1.13,1.05,1.05,0.99,0.93,0.96,0.94,0.8,0.79,0.76,0.71,0.7,0.64,0.6,0.59,0.46,0.35,0.24,0.17,0.09,0.07,0.03,0.01,0.0,0.0,0.0,0.0,0.0,0.0],"cdf":[100.0,39.59,33.85,29.58,26.37,23.97,21.9,20.06,18.33,16.75,15.4,14.08,12.95,11.9,10.86,9.87,8.94,7.98,7.04,6.24,5.44,4.68,3.97,3.26,2.63,2.03,1.43,0.97,0.62,0.37,0.2,0.12,0.04,0.01,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"n":70072},"combined":{"label":"Combined wind+solar","tech":"mix","mw":155.22,"window":"Jul 2024 to Jun 2026","pdf":[25.09,11.03,8.43,7.02,6.19,5.35,4.67,4.43,5.05,5.86,2.59,1.9,1.7,1.52,1.54,1.44,1.23,1.16,1.06,0.95,0.74,0.46,0.32,0.15,0.08,0.04,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"cdf":[100.0,74.91,63.88,55.45,48.43,42.24,36.89,32.22,27.79,22.73,16.87,14.29,12.39,10.69,9.17,7.63,6.19,4.95,3.8,2.74,1.79,1.05,0.59,0.27,0.12,0.04,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"n":70072}}},"quality":{"windNick":{"label":"Wind Nickelsdorf","windowFrom":"2023-07-01 00:15","windowTo":"2026-07-01 00:00","expected":105216,"recorded":105204,"missing":12,"missingDST":9,"duplicates":0,"negatives":0,"outsideGrid":0,"peakPctRated":98.8},"pvNord":{"label":"PV Nickelsdorf Nord","windowFrom":"2024-04-01 00:15","windowTo":"2026-07-01 00:00","expected":78816,"recorded":78808,"missing":8,"missingDST":6,"duplicates":0,"negatives":0,"outsideGrid":0,"peakPctRated":83.3},"pvSued":{"label":"PV Nickelsdorf Sued","windowFrom":"2024-06-19 00:15","windowTo":"2026-07-01 00:00","expected":71232,"recorded":71224,"missing":8,"missingDST":6,"duplicates":0,"negatives":0,"outsideGrid":0,"peakPctRated":86.2},"pvWallern":{"label":"PV Wallern-Tadten (Agri)","windowFrom":"2026-01-01 00:15","windowTo":"2026-07-01 00:00","expected":17376,"recorded":14357,"missing":3019,"missingDST":4,"duplicates":0,"negatives":0,"outsideGrid":0,"peakPctRated":84.6}},"dict":{"source":"Burgenland Energie IDSpecto metering exports, received via Julius Schubart on 31 Jul 2026, confidential under the NDAs","resolution":"15 minutes, per metering point. Aggregates are carried in the page; the full 15-minute series loads in the Raw data view, published only as AES-256 ciphertext and decrypted with the access code","timezone":"Local Austrian time (Europe/Vienna). Inferred: the spring DST hour (02:15-03:00, last Sunday of March) is absent in every plant-year; the autumn repeated hour appears once. Not stated in the files.","stamp":"Timestamp marks the interval END: files run 00:15 through 00:00 of the following day. Inferred from the file structure, not stated.","units":"Source values are kWh of energy per 15-minute interval. Power in MW = kWh x 4 / 1000. FLH = MWh per MW of rating (hours).","missing":"Missing intervals are excluded from averages; observation counts state how many 15-minute records support each figure. Nothing is interpolated.","totals":"Portfolio total = sum of plants reporting in that interval. The combined series uses only intervals where wind, PV Nord and PV Sued all report (Jul 2024 to Jun 2026); Wallern-Tadten is excluded from combined series.","averages":"Month-by-hour cells are arithmetic means of 15-minute observations, as % of each plant's rating. The combined series is capacity-weighted by construction (summed kWh over summed rating).","cf":"Capacity factor % = energy delivered / (rating x time). Full-load hours = capacity factor x hours."}};
+/* ---------- access gate for the SPV, battery and production tabs ----------
+   Client-side. For the model tabs it keeps casual viewers out; the page source stays
+   readable in the public repo, so a private repo is the real fix there. The raw
+   15-minute data is different: it ships only as AES-256-GCM ciphertext
+   (bedata_enc.bin) and the access code is the decryption key, so without the code
+   the published file is noise. */
+const GATE={tabs:['summary','battery','profiles'],open:false,
   h:'958c4aefa345e83fb497ea8718f15f77524dfe76f99eef6962c8fc534db80cf3',salt:'gdc-nickelsdorf::'};
 try{ if(sessionStorage.getItem('gdcGate')==='1') GATE.open=true; }catch(e){}
 function gateLocked(t){return GATE.tabs.indexOf(t)>=0 && !GATE.open;}
@@ -220,6 +248,7 @@ async function gateTry(){
  }catch(e){ msg.textContent='This browser blocked the check. Open the page over https.'; msg.className='gateMsg bad'; return; }
  if(hex===GATE.h){
   GATE.open=true; try{sessionStorage.setItem('gdcGate','1');}catch(e){}
+  try{await rxStoreKey(v);}catch(e){}
   msg.textContent='Unlocked'; msg.className='gateMsg';
   if(window._gateRAF)cancelAnimationFrame(window._gateRAF);
   buildNav(); render();
@@ -230,7 +259,7 @@ async function gateTry(){
  }
 }
 function gatePage(t){
- const name = t==='summary' ? 'SPV economics' : 'Battery dispatch';
+ const name = t==='summary' ? 'SPV economics' : t==='profiles' ? 'Measured production data' : 'Battery dispatch';
  return `<div id="gateWrap"><canvas id="gateCv"></canvas>
   <div class="gateCard">
    <div class="gateRing"><span>&#9679;</span></div>
@@ -616,7 +645,7 @@ function lay(title,opts){return Object.assign({
   legend:{orientation:'h',y:-0.22,yanchor:'top',x:0.5,xanchor:'center',font:{size:10.5}},showlegend:false
 },opts||{});}
 function HT(unit,dec){return '%{y:,.'+(dec==null?1:dec)+'f} '+unit+'<extra></extra>';}
-const TABS=[['wind','Wind'],['solar','Solar'],['battery','Battery'],['summary','SPV'],['prices','Prices'],['profiles','Production']];
+const TABS=[['wind','Wind'],['solar','Solar'],['battery','Battery'],['summary','SPV'],['profiles','Production'],['prices','Prices']];
 let active='wind';
 function buildNav(){document.getElementById('nav').innerHTML=TABS.map(t=>`<button class="${t[0]===active?'on':''}" onclick="go('${t[0]}')">${t[1]}${gateLocked(t[0])?'<span class="lockDot">&#128274;</span>':''}</button>`).join('');}
 function go(t){active=t;buildNav();render();}
@@ -945,6 +974,9 @@ function summaryPage(){
  const gridPr=resPrice(FF), capFeeM=resCapFeeM(FF);
  const dwLine=PROJECTS.reduce((s,p)=>s+parseFloat(String(p.d).replace('~','').replace(',','.'))*p.mw,0)*0.00754; // Σ(km×MW) × €7.54m/100MW/10km (BE #7 cable-plough unit cost)
  const selfPct=dcLoad>0?resGen/dcLoad*100:0, gridPct=Math.max(0,100-selfPct), resBaseMW=resGen/8760;
+ const matY=Math.max(M.wind.codY||FF,M.solar.codY||FF);
+ const wrM=W.rows.find(r=>r.y===matY),srM=S.rows.find(r=>r.y===matY);
+ const resGenM=((wOn&&wrM)?wrM.prod:0)+((sOn&&srM)?srM.prod:0), matPct=dcLoad>0?resGenM/dcLoad*100:0;
  const BF=computeBatteryFin();
  const battGen=B.thru, battRev=B.totalRev, battEbitda=B.totalRev-B.opex-B.gridFee; // audit 15 Jul: Gen/LCOS were on full-energy cycling (cycles×energy×rte, ignoring the SoC floor's nCh) — 1,270 vs 1,111 GWh; EBITDA now nets NE3 fees
  const battRevFF=bOn?((FF>=M.battery.gridYear?B.arbRev+B.ancRev:0)+(B.capRev||0)):0; // battery revenue actually earned in yr-1 (reliability fee; merchant only from the export-ban year)
@@ -972,7 +1004,8 @@ function summaryPage(){
    <div class="muted" style="margin-bottom:8px">Residual = the ~60% of load the RES doesn't cover, bought via BE Trading at the market price above + €${fmt(M.dc.gridEnergyFee,1)}/MWh NE3 energy fee + margin, plus the NE3 capacity charge below. Fees escalate at ${pct(M.dc.feeEsc,1)}/yr from 2028 per BE Trading's 14-Jul-26 indicative path (Arbeitspreis €8.4→€18.4/MWh, Leistungspreis €42.8k→€93.9k/MW by 2048). 2025 baseload was €${fmt(PRICES.per_year['2025'].baseload,0)}.</div>
    <table><tbody>
    <tr><td>DC load = ${fmt(M.dc.firmMW,0)} MW<sub>AC</sub> × 8,760 h</td><td>${fmt(dcLoad/1e6,2)} TWh</td></tr>
-   <tr class="tot"><td>Renewables self-supply</td><td><b style="color:var(--acc)">${fmt(selfPct,1)}%</b> · ${fmt(resGen/1e6,2)} TWh</td></tr>
+   <tr class="tot"><td>Renewables self-supply · yr ${FF}, wind only</td><td><b style="color:var(--acc)">${fmt(selfPct,1)}%</b> · ${fmt(resGen/1e6,2)} TWh</td></tr>
+   <tr><td>Renewables self-supply · from ${matY}, wind + solar</td><td><b>${fmt(matPct,1)}%</b> · ${fmt(resGenM/1e6,2)} TWh</td></tr>
    <tr><td>Grid ride-through (balance)</td><td>${fmt(gridPct,1)}% · ${fmt(gridGen/1e6,2)} TWh</td></tr>
    <tr><td>DC price yr1 = €${fmt(M.dc.dcPrice,0)} today + ${FF-2026}y inflation to ${FF}</td><td>€${fmt(priceYr1,1)}/MWh</td></tr>
    <tr><td>DC revenue = ${fmt(dcLoad/1e6,2)} TWh × €${fmt(priceYr1,1)}</td><td>€${fmt(s29.dcRev,0)}m</td></tr>
@@ -1091,32 +1124,130 @@ function drawSpvCashflow(){
  ],lay('SPV cash-flow build<br><span style="font-size:10px">equity IRR '+(isNaN(SP.irr)?'n/m':fmt(SP.irr*100,1)+'%')+' on €'+fmt(SP.equity,0)+'m equity · Rev − grid/opex − financing − tax = dividends</span>',{barmode:'relative',showlegend:true,yaxis:{title:{text:'€m',font:{size:10}},gridcolor:'#2b3644'}}),CFG);
 }
 let profView='heat', beSel='windNick', distUnit='pct';
+/* ---- BE aggregate tables, copy and downloads. One builder per view feeds the on-page
+   table, the TXT/CSV download and the clipboard, so chart, table and file reconcile. ---- */
+let beView='chart';
+function beCap(q){return (BEDATA[q]||BEDATA.dist.series[q]).mw;}
+function tblMH(keys){
+ const cols=['plant','month','hour','mean_output_pct_of_rated','mean_power_MW','intervals_n'];
+ const rows=[];
+ for(const q of keys){const p=BEDATA[q];
+  for(let mo=0;mo<12;mo++)for(let h=0;h<24;h++){
+   const v=p.mh[mo][h]; if(v==null)continue;
+   rows.push([p.label,MONTHS[mo],h,v,+(v*p.mw/100).toFixed(2),p.mhn[mo][h]]);}}
+ return {cols,rows,method:'Arithmetic mean of 15-minute observations, expressed as % of each plant’s rating; mean_power_MW = mean % × rating; intervals_n counts the records behind each cell. Missing intervals are excluded, nothing is interpolated.'};
+}
+function tblShape(keys){
+ const cols=['plant','year_month','full_load_hours_h','energy_MWh','coverage_pct','intervals_n'];
+ const rows=[];
+ for(const q of keys){const p=BEDATA[q];
+  for(const k of Object.keys(p.monthly)){const a=p.monthly[k];
+   rows.push([p.label,k,a[0],+(a[0]*p.mw).toFixed(1),a[1],a[2]]);}}
+ const cols2=['plant','window_from','rolling_12m_full_load_hours_h'];
+ const rows2=[];
+ for(const q of keys){const p=BEDATA[q];(p.rolling12||[]).forEach(r=>rows2.push([p.label,r.from,r.flh]));}
+ return {cols,rows,cols2,rows2,method:'Sum of 15-minute energy per calendar month, expressed as full-load hours (MWh per MW of rating); energy_MWh = FLH × rating. Months under 50% coverage are excluded; coverage_pct states the share of the month recorded. Rolling windows use complete twelve-month spans only.'};
+}
+function tblDist(keys){
+ const D=BEDATA.dist,BW=D.binW;
+ const cols=['series','band_low_pct','band_high_pct','band_low_MW','band_high_MW','share_of_time_pct'];
+ const rows=[];
+ for(const q of keys){const sr=D.series[q];
+  sr.pdf.forEach((v,i)=>rows.push([sr.label,i*BW,(i+1)*BW,+(i*BW*sr.mw/100).toFixed(2),+(((i+1)*BW)*sr.mw/100).toFixed(2),v]));}
+ const cols2=['series','threshold_pct','threshold_MW','time_at_or_above_pct'];
+ const rows2=[];
+ for(const q of keys){const sr=D.series[q];
+  sr.cdf.forEach((v,i)=>rows2.push([sr.label,i*BW,+((i*BW)*sr.mw/100).toFixed(2),v]));}
+ const n=keys.map(q=>D.series[q].label+' n='+D.series[q].n.toLocaleString('en-US')).join(' · ');
+ return {cols,rows,cols2,rows2,method:'Share of 15-minute records per 2.5%-of-rating band (density) and at or above each threshold (cumulative). The idle band 0–2.5% is included here even though the chart omits it. Records: '+n+'.'};
+}
+function beDataset(){
+ const one=[beSel==='all'?'all':beSel];
+ if(profView==='heat'||profView==='surf')return {b:tblMH(one),base:'BE_month_hour_profile',allKeys:['windNick','pvNord','pvSued','pvWallern','all'],mk:tblMH};
+ if(profView==='shape')return {b:tblShape(one),base:'BE_monthly_production',allKeys:['windNick','pvNord','pvSued','pvWallern','all'],mk:tblShape};
+ if(profView==='dist'){const ks=beSel==='all'?['windNick','pvNord','pvSued','pvWallern','solarNS','combined']:[beSel];
+  return {b:tblDist(ks),base:'BE_output_distribution',allKeys:['windNick','pvNord','pvSued','pvWallern','solarNS','combined'],mk:tblDist};}
+ return null;
+}
+function beText(b,sepr){
+ const esc=v=>sepr===','&&String(v).includes(',')?'"'+v+'"':v;
+ let out=[b.cols.join(sepr)].concat(b.rows.map(r=>r.map(esc).join(sepr)));
+ if(b.cols2)out=out.concat(['',b.cols2.join(sepr)],b.rows2.map(r=>r.map(esc).join(sepr)));
+ return out.join('\r\n');
+}
+function beDl(fmt,all){
+ const d=beDataset(); if(!d)return;
+ const b=all?d.mk(d.allKeys):d.b;
+ const name=d.base+(all?'_all_plants':'_'+(beSel==='all'?'all':beSel))+'.'+fmt;
+ const blob=new Blob([beText(b,fmt==='csv'?',':'\t')],{type:'text/plain;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();
+ setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+function beCopy(){
+ const d=beDataset(); if(!d)return;
+ const txt=beText(d.b,'\t');
+ const ok=()=>{};
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(ok,ok);
+}
+function beTableHTML(b){
+ const th=b.cols.map(c=>`<th style="text-align:${isNaN(b.rows[0]?.[b.cols.indexOf(c)])?'left':'right'};padding:4px 9px">${c}</th>`).join('');
+ const tr=rows=>rows.map(r=>'<tr>'+r.map((v,i)=>`<td style="text-align:${typeof v==='number'?'right':'left'};padding:2px 9px;border-top:1px solid #1c2531">${v}</td>`).join('')+'</tr>').join('');
+ let h=`<div class="muted" style="margin:2px 0 8px">${b.method}</div>
+ <div style="max-height:520px;overflow:auto;border:1px solid var(--line);border-radius:8px">
+ <table style="width:100%;border-collapse:collapse;font-size:11.5px;font-variant-numeric:tabular-nums"><thead style="position:sticky;top:0;background:#16202c"><tr>${th}</tr></thead><tbody>${tr(b.rows)}</tbody></table></div>`;
+ if(b.cols2)h+=`<div style="max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:10px">
+ <table style="width:100%;border-collapse:collapse;font-size:11.5px;font-variant-numeric:tabular-nums"><thead style="position:sticky;top:0;background:#16202c"><tr>${b.cols2.map(c=>`<th style="padding:4px 9px;text-align:left">${c}</th>`).join('')}</tr></thead><tbody>${tr(b.rows2)}</tbody></table></div>`;
+ return h;
+}
+
 const BEPL=[['windNick','Wind'],['pvNord','PV Nord'],['pvSued','PV S\u00fcd'],['pvWallern','PV Wallern'],['all','All plants']];
 function profilesPage(){
  const showSel=(profView==='heat'||profView==='surf'||profView==='shape'||profView==='dist');
  const p=BEDATA[beSel];
  const hint= profView==='mix'
    ? 'Ember generation data and EPEX capture ratios.'
+   : profView==='raw'
+   ? 'Full 15-minute metering records, one row per interval, exactly as received. Decrypted in this browser with the access code; the published file is AES-256 ciphertext.'
    : profView==='dist'
    ? 'Distribution of 15-minute output. Density above, cumulative below. Bands are 2.5% of each plant\u2019s rating.'
    : 'BE 15-minute metering aggregated by month and hour of day \u00b7 '+p.label+', '+fmt(p.mw,2)+' MW \u00b7 '+p.from+' to '+p.to+'.';
  const sel=showSel?`<div class="seg" style="margin-left:10px">${BEPL.map(q=>`<button class="${beSel===q[0]?'on':''}" onclick="beSel='${q[0]}';render()">${q[1]}</button>`).join('')}</div>`:'';
  const unit=profView==='dist'?`<div class="seg" style="margin-left:10px"><button class="${distUnit==='pct'?'on':''}" onclick="distUnit='pct';render()">% of rated</button><button class="${distUnit==='mw'?'on':''}" onclick="distUnit='mw';render()">MW</button></div>`:'';
+ const isBE=(profView==='heat'||profView==='surf'||profView==='shape'||profView==='dist');
+ const tools=isBE?`<div class="seg" style="margin-left:auto"><button class="${beView==='chart'?'on':''}" onclick="beView='chart';render()">Chart</button><button class="${beView==='table'?'on':''}" onclick="beView='table';render()">Table</button></div>
+  <button class="chip" style="cursor:pointer" onclick="beCopy()" title="Copy the current table as tab-delimited text">Copy</button>
+  <button class="chip" style="cursor:pointer" onclick="beDl('txt',false)" title="Download the current view, tab-delimited">TXT</button>
+  <button class="chip" style="cursor:pointer" onclick="beDl('csv',false)">CSV</button>
+  <button class="chip" style="cursor:pointer" onclick="beDl('txt',true)" title="All plants, long format">TXT · all</button>`:'';
  const seg=`<div class="panel" style="margin-bottom:14px"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px"><div class="seg">
    <button class="${profView==='heat'?'on':''}" onclick="profView='heat';render()">Heatmap</button>
    <button class="${profView==='surf'?'on':''}" onclick="profView='surf';render()">3D surface</button>
    <button class="${profView==='shape'?'on':''}" onclick="profView='shape';render()">Shape</button>
    <button class="${profView==='dist'?'on':''}" onclick="profView='dist';render()">Distribution</button>
-   <button class="${profView==='mix'?'on':''}" onclick="profView='mix';render()">Austria grid mix</button></div>${sel}${unit}</div>
+   <button class="${profView==='raw'?'on':''}" onclick="profView='raw';render()">Raw data</button>
+   <button class="${profView==='mix'?'on':''}" onclick="profView='mix';render()">Austria grid mix</button></div>${sel}${unit}${tools}</div>
    <div class="muted" style="margin-top:7px">${hint}</div></div>`;
+ const dict=(isBE||profView==='raw')?`<details class="rreg" style="margin:-4px 0 10px"><summary>Data dictionary and methodology</summary><table><tbody>${Object.entries(BEDATA.dict).map(([k,v])=>`<tr><td style="width:150px;color:#a9d3ff">${k}</td><td>${v}</td></tr>`).join('')}</tbody></table></details>`:'';
+ if(profView==='raw'){setTimeout(rxBoot,0);return seg+dict+rxPage();}
  setTimeout(drawProfiles,0);
- return seg+`<div class="chart tall" id="pmain"></div><div id="pstats"></div>`;
+ return seg+dict+`<div class="chart tall" id="pmain"></div><div id="pstats"></div>`;
 }
 function beTitle(p,txt){return p.label+' \u00b7 '+txt+'<br><span style="font-size:10px">'+fmt(p.mw,2)+' MW \u00b7 '+p.from+' to '+p.to+' \u00b7 measured, % of rated capacity</span>';}
 function beCol(p){return p.tech==='wind'?'#4aa8ff':p.tech==='solar'?'#ffb23e':'#46b45a';}
 function drawProfiles(){
- const el='pmain'; document.getElementById('pstats').innerHTML='';
+ const el='pmain', ps=document.getElementById('pstats');
+ if(!ps||!document.getElementById('pmain'))return;
+ ps.innerHTML='';
  const p=BEDATA[beSel], H=[...Array(24).keys()];
+ const elDiv=document.getElementById('pmain');
+ const isBE=(profView==='heat'||profView==='surf'||profView==='shape'||profView==='dist');
+ if(isBE&&beView==='table'){
+  try{Plotly.purge(elDiv);}catch(e){}
+  elDiv.style.height='auto';
+  elDiv.innerHTML=beTableHTML(beDataset().b);
+  return;
+ }
+ elDiv.style.height='';
  if(profView==='heat'){
   Plotly.react(el,[{z:p.mh,x:H,y:MONTHS,type:'heatmap',colorscale:GREEN,zmin:0,
     colorbar:{title:{text:'% rated',font:{size:9}}},
@@ -1181,7 +1312,7 @@ function drawProfiles(){
 }
 function drawRisk(){
  const T=typicalYear(),load=M.dc.firmMW,n=T.w.length;
- const wNet=M.wind.grossCF*(1-M.wind.loss),sNet=M.solar.grossCF*(1-M.solar.loss);
+ const wNet=M.wind.grossCF*(1-M.wind.loss)*(1-(M.wind.lineLoss||0)),sNet=M.solar.grossCF*(1-M.solar.loss)*(1-(M.solar.lineLoss||0));
  const wS=avg(T.w)>0?wNet/avg(T.w):0, sS=avg(T.s)>0?sNet/avg(T.s):0;
  const comb=T.w.map((w,i)=>w*wS*M.wind.mw+T.s[i]*sS*M.solar.mw);
  const cover=comb.map(g=>Math.min(g,load)/load*100).sort((a,b)=>a-b), gridSh=cover.map(c=>100-c);
@@ -1206,7 +1337,7 @@ function drawRisk(){
    ${kpi('Avg shortfall',fmt(gridE/Math.max(1,deficitHours),0),'MW when short')}</div>
    <div class="chart" id="pmain2" style="margin-top:14px"></div>
    <div class="chart" id="pmain3" style="margin-top:14px"></div>
-   <div class="info" style="margin-top:12px">Renewables self-supply <b>${fmt(resServed/totLoad*100,0)}%</b> of DC load; the grid rides through the other <b>${fmt(gridE/totLoad*100,0)}%</b>. The stacked bars split every month (annual view) and every hour of the day (daily view) into renewables vs grid; the duration curve sorts all 8,760 hours worst→best.</div>`;
+   <div class="info" style="margin-top:12px">Renewables self-supply <b>${fmt(resServed/totLoad*100,0)}%</b> of DC load; the grid rides through the other <b>${fmt(gridE/totLoad*100,0)}%</b>. This is the steady state with both technologies online, delivered energy after direct-line losses, from ${Math.max(M.wind.codY||FF,M.solar.codY||FF)}. In ${FF} the portfolio is wind only at <b>${fmt(M.wind.grossCF*(1-M.wind.loss)*(1-(M.wind.lineLoss||0))*M.wind.mw/M.dc.firmMW*100,1)}%</b>, the figure on the Financial model sub-tab. The stacked bars split every month (annual view) and every hour of the day (daily view) into renewables vs grid; the duration curve sorts all 8,760 hours worst→best.</div>`;
  setTimeout(()=>{
   Plotly.react('pmain2',[
     {x:[...Array(24).keys()],y:rH,name:'Renewables',type:'bar',marker:{color:NXG},text:rH.map(v=>fmt(v,0)),textposition:'inside',textfont:{size:8.5,color:'#04120f'},hovertemplate:'RES %{y:.0f}% of load<extra></extra>'},
@@ -1932,6 +2063,242 @@ function render(){
  else if(active==='prices')m.innerHTML=pricesPage();
  else if(active==='profiles')m.innerHTML=profilesPage();
 }
+/* ---------- raw 15-minute data explorer (Production > Raw data) ----------
+   The full series ships only as bedata_enc.bin: gzip then AES-256-GCM, key derived
+   from the access code with PBKDF2 (SHA-256, 310k rounds). Decrypted in the browser,
+   held in memory only. Table, downloads and copy all run through rxRowVals, so every
+   number shown is the number exported. */
+let RAWX=null, rxSel=[], rxIdx=new Uint32Array(0), rxGrid='', rxDeb=null, rxT0=null, rxF={};
+const RXH=24, RXMN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+      RXDW=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], rxPad=x=>String(x).padStart(2,'0');
+async function rxDerive(pw){
+ const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+ return crypto.subtle.deriveKey({name:'PBKDF2',salt:new TextEncoder().encode('gdc-nickelsdorf::raw'),iterations:310000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},true,['decrypt']);
+}
+async function rxStoreKey(pw){
+ const k=await rxDerive(pw);
+ const raw=await crypto.subtle.exportKey('raw',k);
+ try{sessionStorage.setItem('gdcK',btoa(String.fromCharCode(...new Uint8Array(raw))));}catch(e){}
+}
+async function rxKey(){
+ const b64=sessionStorage.getItem('gdcK'); if(!b64)return null;
+ const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+ return crypto.subtle.importKey('raw',bytes,{name:'AES-GCM'},false,['decrypt']);
+}
+function rxStatus(html){const e=document.getElementById('rxStatus');if(e)e.innerHTML=html;}
+function rxPage(){
+ return `<div class="panel">
+  <div id="rxStatus" class="muted" style="min-height:18px">Preparing…</div>
+  <div id="rxKeyRow" style="display:none;margin-top:8px"><div class="rxRow" style="margin:0">
+    <label class="rxF">Access code<input type="password" id="rxPw" style="width:190px" onkeydown="if(event.key==='Enter')rxInlineTry()"></label>
+    <button class="chip" style="cursor:pointer" onclick="rxInlineTry()">Load raw data</button></div></div>
+  <div id="rxBody" style="display:none;margin-top:12px">
+   <div class="rxq" id="rxQual"></div>
+   <div class="rxChk" id="rxPlantChk"></div>
+   <div class="rxRow">
+    <label class="rxF">From<input type="date" id="rxFrom"></label>
+    <label class="rxF">To<input type="date" id="rxTo"></label>
+    <label class="rxF">Year<select id="rxYear"><option value="">all</option></select></label>
+    <label class="rxF">Month<select id="rxMonth"><option value="">all</option></select></label>
+    <label class="rxF">Day<select id="rxDay"><option value="">all</option></select></label>
+    <label class="rxF">Hour<select id="rxHour"><option value="">all</option></select></label>
+    <label class="rxF">Min total kWh<input type="number" id="rxMin" style="width:96px" placeholder="-"></label>
+    <label class="rxF">Max total kWh<input type="number" id="rxMax" style="width:96px" placeholder="-"></label>
+    <label class="rxF" style="flex-direction:row;align-items:center;gap:6px;padding-bottom:6px"><input type="checkbox" id="rxMiss">missing only</label>
+    <button class="chip" style="cursor:pointer" onclick="rxClearF()">Clear filters</button>
+    <span class="rxCnt">showing <b id="rxNShow">0</b> of <b id="rxNTot">0</b> intervals</span>
+   </div>
+   <div class="rxRow">
+    <button class="chip" style="cursor:pointer;border-color:var(--acc)" onclick="rxDl('txt',true)">TXT · current view</button>
+    <button class="chip" style="cursor:pointer" onclick="rxDl('csv',true)">CSV · current view</button>
+    <button class="chip" style="cursor:pointer" onclick="rxDl('txt',false)">TXT · full dataset</button>
+    <button class="chip" style="cursor:pointer" onclick="rxDl('csv',false)">CSV · full dataset</button>
+    <button class="chip" style="cursor:pointer" onclick="rxCopy()">Copy filtered rows</button>
+   </div>
+   <div id="rxWrap"><div id="rxHdr"></div><div id="rxVp"><div id="rxSp"></div></div></div>
+   <div class="muted" style="margin-top:8px">One row per 15-minute interval; values are kWh per interval, full precision, exactly as received. Timestamp marks the interval end, local Austrian time. Blank cells: no record for that plant. Filtered downloads reflect the filters above; full files ignore them. Decrypted data stays in this browser tab.</div>
+  </div></div>`;
+}
+function rxBoot(){
+ if(RAWX){rxStatus('Loaded: <b>'+RAWX.n.toLocaleString('en-US')+'</b> 15-minute intervals per plant, '+RAWX.plants.map(p=>p.label).join(' · ')+'.');rxShow();return;}
+ if(!window.crypto||!crypto.subtle){rxStatus('This browser blocks WebCrypto. Open the page over https.');return;}
+ if(!sessionStorage.getItem('gdcK')){
+  rxStatus('The raw series is published only as encrypted data. Enter the access code once to decrypt it here.');
+  const kr=document.getElementById('rxKeyRow');if(kr)kr.style.display='block';
+  return;
+ }
+ rxLoad();
+}
+async function rxInlineTry(){
+ const el=document.getElementById('rxPw'); const v=(el&&el.value)||'';
+ if(!v){if(el)el.focus();return;}
+ let hex='';
+ try{
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(GATE.salt+v));
+  hex=[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+ }catch(e){rxStatus('This browser blocked the check. Open the page over https.');return;}
+ if(hex!==GATE.h){rxStatus('Not recognised.');el.select();return;}
+ rxStatus('Deriving key…');
+ await rxStoreKey(v);
+ GATE.open=true; try{sessionStorage.setItem('gdcGate','1');}catch(e){}
+ const kr=document.getElementById('rxKeyRow');if(kr)kr.style.display='none';
+ rxLoad();
+}
+async function rxLoad(){
+ try{
+  rxStatus('Downloading encrypted data (0.9 MB)…');
+  const rs=await fetch('bedata_enc.bin');
+  if(!rs.ok)throw new Error('fetch '+rs.status);
+  const blob=new Uint8Array(await rs.arrayBuffer());
+  if(blob.length<21||String.fromCharCode(...blob.slice(0,4))!=='GDC1')throw new Error('bad header');
+  rxStatus('Decrypting…');
+  const key=await rxKey();
+  if(!key){rxBoot();return;}
+  let pt;
+  try{pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:blob.slice(4,16)},key,blob.slice(16));}
+  catch(e){
+   try{sessionStorage.removeItem('gdcK');}catch(_){ }
+   rxStatus('The stored key does not open this file. Enter the access code again.');
+   const kr=document.getElementById('rxKeyRow');if(kr)kr.style.display='block';
+   return;
+  }
+  if(typeof DecompressionStream==='undefined'){rxStatus('This browser cannot decompress the data stream. Use a current Chrome, Edge, Firefox or Safari.');return;}
+  rxStatus('Decompressing…');
+  const ds=new Response(new Blob([pt]).stream().pipeThrough(new DecompressionStream('gzip')));
+  RAWX=JSON.parse(await ds.text());
+  rxT0=new Date(RAWX.t0.replace(' ','T'));
+  rxSel=RAWX.plants.map(p=>p.key);
+  rxBoot();
+ }catch(e){
+  rxStatus(location.protocol==='file:'
+   ? 'The encrypted file cannot be fetched from a local file:// page. Use the live page, or the offline explorer in 02 Data room.'
+   : 'Could not load bedata_enc.bin ('+(e&&e.message||e)+'). Check that deploy.bat pushed it.');
+ }
+}
+function rxTAt(i){return new Date(rxT0.getTime()+i*900000);}
+function rxCols(){
+ const base=["datetime","date","year","month","month_name","day","day_of_week","hour","minute","time"];
+ const pc=RAWX.plants.filter(p=>rxSel.includes(p.key)).map(p=>p.safe+"_kWh");
+ return base.concat(pc,["total_production_kWh","plants_reporting"]);
+}
+function rxRowVals(i){
+ const d=rxTAt(i);
+ const base=[`${d.getFullYear()}-${rxPad(d.getMonth()+1)}-${rxPad(d.getDate())} ${rxPad(d.getHours())}:${rxPad(d.getMinutes())}`,
+  `${d.getFullYear()}-${rxPad(d.getMonth()+1)}-${rxPad(d.getDate())}`,d.getFullYear(),d.getMonth()+1,RXMN[d.getMonth()],
+  d.getDate(),RXDW[(d.getDay()+6)%7],d.getHours(),d.getMinutes(),`${rxPad(d.getHours())}:${rxPad(d.getMinutes())}`];
+ let tot=0,nrep=0;
+ const pv=[];
+ for(const p of RAWX.plants){const v=RAWX.data[p.key][i];
+   if(rxSel.includes(p.key))pv.push(v==null?"":v);
+   if(v!=null){tot+=v;nrep++;}}
+ return base.concat(pv,[nrep?+tot.toFixed(4):"",nrep]);
+}
+function rxPasses(i){
+ const d=rxTAt(i), F=rxF;
+ if(F.from&&d<F.from)return false;
+ if(F.to&&d>F.to)return false;
+ if(F.year&&d.getFullYear()!==F.year)return false;
+ if(F.month&&d.getMonth()+1!==F.month)return false;
+ if(F.day&&d.getDate()!==F.day)return false;
+ if(F.hour!==null&&d.getHours()!==F.hour)return false;
+ let tot=0,has=false,missing=false,anySel=false;
+ for(const p of RAWX.plants){const v=RAWX.data[p.key][i];
+  if(rxSel.includes(p.key)){anySel=true;if(v==null)missing=true;else{has=true;tot+=v;}}}
+ if(!anySel)return false;
+ if(!has&&!missing)return false;
+ if(F.miss&&!missing)return false;
+ if(F.min!=null&&tot<F.min)return false;
+ if(F.max!=null&&tot>F.max)return false;
+ return has||missing;
+}
+function rxReadF(){
+ const g=id=>{const e=document.getElementById(id);return e?e.value:''};
+ rxF={from:g('rxFrom')?new Date(g('rxFrom')+"T00:00:00"):null,
+  to:g('rxTo')?new Date(g('rxTo')+"T23:59:59"):null,
+  year:g('rxYear')?+g('rxYear'):null,month:g('rxMonth')?+g('rxMonth'):null,
+  day:g('rxDay')?+g('rxDay'):null,hour:g('rxHour')===""?null:+g('rxHour'),
+  min:g('rxMin')===""?null:+g('rxMin'),max:g('rxMax')===""?null:+g('rxMax'),
+  miss:!!(document.getElementById('rxMiss')&&document.getElementById('rxMiss').checked)};
+}
+function rxRefilter(){clearTimeout(rxDeb);rxDeb=setTimeout(()=>{
+ rxReadF();
+ const a=[];for(let i=0;i<RAWX.n;i++)if(rxPasses(i))a.push(i);
+ rxIdx=Uint32Array.from(a);
+ const ns=document.getElementById('rxNShow');if(ns)ns.textContent=rxIdx.length.toLocaleString('en-US');
+ rxHeader();rxLayout();
+},180);}
+function rxClearF(){['rxFrom','rxTo','rxYear','rxMonth','rxDay','rxHour','rxMin','rxMax'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+ const m=document.getElementById('rxMiss');if(m)m.checked=false;rxRefilter();}
+function rxHeader(){
+ const c=rxCols();
+ rxGrid=c.map(x=>x==='datetime'?'150px':(x.endsWith('_kWh')?'128px':(x==='month_name'||x==='day_of_week'?'64px':'56px'))).join(' ');
+ const h=document.getElementById('rxHdr');if(!h)return;
+ h.style.gridTemplateColumns=rxGrid;
+ h.innerHTML=c.map(x=>`<div title="${x}">${x}</div>`).join('');
+ document.getElementById('rxSp').style.height=(rxIdx.length*RXH)+"px";
+}
+function rxLayout(){
+ const vp=document.getElementById('rxVp'),sp=document.getElementById('rxSp');
+ if(!vp||!sp)return;
+ const s=vp.scrollTop,h=vp.clientHeight;
+ const a=Math.max(0,Math.floor(s/RXH)-8),b=Math.min(rxIdx.length,Math.ceil((s+h)/RXH)+8);
+ let html="";
+ for(let r=a;r<b;r++){
+  const vals=rxRowVals(rxIdx[r]);
+  html+=`<div class="rxr" style="top:${r*RXH}px;grid-template-columns:${rxGrid}">`+
+   vals.map((v,ci)=>{const num=ci>=10;const miss=num&&v===""&&ci<vals.length-2;
+     return `<div class="${num?'num':''}${miss?' miss':''}">${v===""&&num&&ci<vals.length-2?"·":v}</div>`;}).join('')+`</div>`;
+ }
+ sp.innerHTML=html;
+}
+function rxText(useFilter,sepr){
+ const c=rxCols(); const out=[c.join(sepr)];
+ const n=useFilter?rxIdx.length:RAWX.n;
+ for(let r=0;r<n;r++){const i=useFilter?rxIdx[r]:r;
+  out.push(rxRowVals(i).map(v=>sepr===','&&String(v).includes(',')?'"'+v+'"':v).join(sepr));}
+ return out.join("\r\n");
+}
+function rxDl(fmt,useFilter){
+ const sepr=fmt==='csv'?',':'\t';
+ const txt=rxText(useFilter,sepr);
+ const name=useFilter?`BE_raw_15min_production_filtered.${fmt}`:`BE_raw_15min_production_all_plants.${fmt}`;
+ const b=new Blob([txt],{type:'text/plain;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();
+ setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+function rxCopy(){
+ const txt=rxText(true,'\t');
+ const done=()=>rxStatus('Copied <b>'+rxIdx.length.toLocaleString('en-US')+'</b> rows to the clipboard.');
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(done,done);
+ else{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);done();}
+}
+function rxShow(){
+ const body=document.getElementById('rxBody');if(!body)return;
+ body.style.display='block';
+ const pc=document.getElementById('rxPlantChk');
+ pc.innerHTML=RAWX.plants.map(p=>`<label><input type="checkbox" ${rxSel.includes(p.key)?'checked':''} data-k="${p.key}">${p.label} · ${p.mw} MW</label>`).join('');
+ pc.querySelectorAll('input').forEach(cb=>cb.addEventListener('change',()=>{
+  rxSel=[...pc.querySelectorAll('input:checked')].map(x=>x.dataset.k);rxRefilter();}));
+ const fy=document.getElementById('rxYear');if(fy.options.length===1)[2023,2024,2025,2026].forEach(y=>fy.add(new Option(y,y)));
+ const fm=document.getElementById('rxMonth');if(fm.options.length===1)RXMN.forEach((m,i)=>fm.add(new Option(m,i+1)));
+ const fd=document.getElementById('rxDay');if(fd.options.length===1)for(let d=1;d<=31;d++)fd.add(new Option(d,d));
+ const fh=document.getElementById('rxHour');if(fh.options.length===1)for(let h=0;h<24;h++)fh.add(new Option(rxPad(h)+":xx",h));
+ ['rxFrom','rxTo','rxYear','rxMonth','rxDay','rxHour','rxMin','rxMax','rxMiss'].forEach(id=>{
+  const e=document.getElementById(id);if(e)e.addEventListener('input',rxRefilter);});
+ document.getElementById('rxVp').addEventListener('scroll',rxLayout);
+ document.getElementById('rxNTot').textContent=RAWX.n.toLocaleString('en-US');
+ const q=document.getElementById('rxQual');
+ q.innerHTML=RAWX.plants.map(p=>{const Q=RAWX.quality[p.key];
+  return `<div class="rxqc"><b>${Q.label}</b><table>
+  <tr><td>window</td><td>${Q.windowFrom} to ${Q.windowTo}</td></tr>
+  <tr><td>recorded / expected</td><td>${Q.recorded.toLocaleString('en-US')} / ${Q.expected.toLocaleString('en-US')}</td></tr>
+  <tr><td>missing</td><td>${Q.missing.toLocaleString('en-US')} (${Q.missingDST} DST spring hour)</td></tr>
+  <tr><td>duplicates · negatives</td><td>${Q.duplicates} · ${Q.negatives}</td></tr>
+  <tr><td>peak, % of rating</td><td>${Q.peakPctRated}%</td></tr></table></div>`;}).join('');
+ rxRefilter();
+}
+
 buildNav();render();
 if(typeof Plotly==='undefined'){(function w(){ (typeof Plotly!=='undefined') ? render() : setTimeout(w,100); })();}
 </script>
