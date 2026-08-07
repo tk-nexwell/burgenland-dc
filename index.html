@@ -4,6 +4,9 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>GDC Nickelsdorf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/3.1.1/plotly.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.plot.ly/plotly-2.35.2.min.js';document.head.appendChild(s);"></script>
 <style>
 :root{--bg:#10161d;--panel:#18202b;--panel2:#1f2733;--line:#2b3644;--txt:#e8eef3;--mut:#94a2b1;--acc:#45b85d;--wind:#4aa8ff;--solar:#ffb23e;--batt:#b98cff;--red:#ff6b6b;--grn:#43c079}
@@ -47,6 +50,58 @@ main{padding:18px 22px;max-width:1560px;margin:0 auto}
 .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px;align-content:start}
 .chart{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;height:305px}
 .chartWrap{position:relative}
+/* ---------------- editorial wordmark + landing scene ---------------- */
+.wm{font-family:'Bodoni Moda',"Didot","Bodoni MT",Georgia,serif;font-weight:500;letter-spacing:.055em;
+ font-optical-sizing:auto;font-synthesis:none}
+.wmHead{font-size:19.5px;color:#f2f6fa;line-height:1;white-space:nowrap}
+.wmHead .nk{font-style:italic;font-weight:400;color:#9fb3c6;letter-spacing:.02em}
+.brandLink{display:inline-flex;align-items:center;gap:9px;text-decoration:none;border-radius:8px;
+ padding:3px 5px;margin:-3px -5px;transition:background .16s,opacity .16s}
+.brandLink:hover{background:rgba(255,255,255,.06)}
+.brandLink:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+#splash{position:fixed;inset:0;z-index:60;background:#070b10;display:flex;flex-direction:column;
+ opacity:1;transition:opacity .65s ease}
+#splash.out{opacity:0;pointer-events:none}
+.splashScene{position:absolute;inset:0;overflow:hidden}
+.sceneFill{display:block;width:100%;height:100%}
+.splashInner{position:relative;z-index:2;margin:auto;text-align:center;padding:0 24px;
+ transform:translateY(-4vh)}
+.splashKicker{font-size:11.5px;letter-spacing:.42em;text-transform:uppercase;color:#8fa6bb;margin-bottom:22px}
+.splashWm{font-size:clamp(38px,7.4vw,104px);line-height:1.02;color:#fff;margin:0}
+.splashWm .nk{display:block;font-size:.42em;font-style:italic;font-weight:400;color:#a8c0d4;
+ letter-spacing:.12em;margin-bottom:.32em}
+.splashRule{width:min(560px,72vw);height:1px;background:linear-gradient(90deg,transparent,#46b45a,transparent);
+ margin:30px auto 24px}
+.splashSub{color:#b9c9d8;font-size:15px;max-width:640px;margin:0 auto 34px;line-height:1.6}
+.splashBtn{background:var(--acc);color:#04120f;border:none;border-radius:24px;padding:13px 34px;
+ font-size:14px;font-weight:650;cursor:pointer;letter-spacing:.02em;transition:transform .15s,box-shadow .15s}
+.splashBtn:hover{transform:translateY(-1px);box-shadow:0 8px 26px rgba(70,180,90,.32)}
+.splashSkip{display:block;margin:18px auto 0;background:none;border:none;color:#7d93a8;font-size:12px;cursor:pointer}
+.splashSkip:hover{color:#cdd8e6}
+.splashFoot{position:absolute;left:0;right:0;bottom:22px;z-index:2;display:flex;justify-content:center;
+ gap:26px;align-items:center;flex-wrap:wrap}
+
+.heroWrap{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);
+ background:#070b10;margin-bottom:16px}
+.heroScene{display:block;width:100%;height:clamp(300px,42vh,470px)}
+.heroCap{position:absolute;left:26px;bottom:22px;z-index:2}
+.heroCap h1{margin:0;font-size:clamp(26px,3.6vw,48px);color:#fff;line-height:1.05}
+.heroCap .nk{display:block;font-size:.36em;font-style:italic;font-weight:400;color:#a8c0d4;
+ letter-spacing:.13em;margin-bottom:.4em}
+.heroCap p{margin:12px 0 0;color:#c3d1de;font-size:13.5px;max-width:520px;line-height:1.55}
+.ovGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:16px}
+.ovCard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+.ovCard h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--mut)}
+.ovCard p{margin:0;color:#c3d1de;font-size:13px;line-height:1.6}
+.ovCard .big{font-size:27px;font-weight:680;color:#fff;letter-spacing:-.01em}
+.ovCard .big small{font-size:12.5px;color:var(--mut);font-weight:400;margin-left:5px}
+@media(prefers-reduced-motion:reduce){.rotor,.cloud,.skyCycle,.starF,.winkw{animation:none !important}}
+.rotor{transform-box:fill-box;transform-origin:center;animation:spin linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.cloud{animation:drift linear infinite}
+@keyframes drift{from{transform:translateX(-360px)}to{transform:translateX(1900px)}}
+
 .chart.sq{height:620px}
 .chart.tall{height:430px}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
@@ -170,9 +225,12 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
 </head>
 <body>
 <header>
-  <div class="brand" title="Nexwell">
-    <img class="logo nx" src="data:image/png;base64,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" alt="Nexwell"/><span class="wm"><b>nexwell</b></span>
+  <div class="brand">
+    <a class="brandLink" href="https://nexwell.com" target="_blank" rel="noopener noreferrer" title="Nexwell — opens nexwell.com">
+    <img class="logo nx" src="data:image/png;base64,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" alt="Nexwell"/></a>
+<span class="wm"><b>nexwell</b></span>
     <span class="bx">×</span>
+    <a class="brandLink" href="https://www.burgenlandenergie.at" target="_blank" rel="noopener noreferrer" title="Burgenland Energie — opens burgenlandenergie.at">
     <svg class="logo" style="height:34px;width:auto" viewBox="0 0 196 32" xmlns="http://www.w3.org/2000/svg" aria-label="Burgenland Energie">
       <defs><linearGradient id="beMark" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0" stop-color="#12b981"/><stop offset="0.55" stop-color="#0ea5a3"/><stop offset="1" stop-color="#f6a623"/>
@@ -181,8 +239,9 @@ footer{padding:16px 22px;color:var(--mut);font-size:11px;border-top:1px solid va
       <text x="12" y="22.5" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="17" font-weight="800" fill="#08121a">e</text>
       <text x="31" y="21" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#e8eef3">Burgenland <tspan fill="#2dd4bf">Energie</tspan></text>
     </svg>
+    </a>
   </div>
-  <h1>GDC NICKELSDORF</h1>
+  <h1 class="wm wmHead" style="cursor:pointer" onclick="go('overview')" title="Back to the overview"><span class="nk">GDC</span> Nickelsdorf</h1>
   <div class="viewtoggle">
     <span class="chip" onclick="dlXLSX()" title="Download the complete model as a formula-driven Excel workbook (Inputs, Wind, Solar, Battery, SPV, Output)">⬇ Full Excel model</span>
     <span class="chip reset" onclick="resetAll()">↺ Reset</span>
@@ -666,8 +725,8 @@ function lay(title,opts){return Object.assign({
   legend:{orientation:'h',y:-0.22,yanchor:'top',x:0.5,xanchor:'center',font:{size:10.5}},showlegend:false
 },opts||{});}
 function HT(unit,dec){return '%{y:,.'+(dec==null?1:dec)+'f} '+unit+'<extra></extra>';}
-const TABS=[['wind','Wind'],['solar','Solar'],['battery','Battery'],['summary','SPV'],['profiles','Production'],['prices','Prices']];
-let active='wind';
+const TABS=[['overview','Overview'],['wind','Wind'],['solar','Solar'],['battery','Battery'],['summary','SPV'],['profiles','Production'],['prices','Prices']];
+let active='overview';
 function buildNav(){document.getElementById('nav').innerHTML=TABS.map(t=>`<button class="${t[0]===active?'on':''}" onclick="go('${t[0]}')">${t[1]}${gateLocked(t[0])?'<span class="lockDot">&#128274;</span>':''}</button>`).join('');}
 function go(t){active=t;buildNav();render();}
 function setView(v){M.view=v;document.getElementById('vBE').classList.toggle('on',v==='BE');document.getElementById('vINT').classList.toggle('on',v==='INT');if(active==='summary')render();}
@@ -742,7 +801,7 @@ function assetPage(sec){
  if(view==='map'){setTimeout(drawMap,0);
   return seg+`<div class="chart sq" id="c_map"></div>
    <div class="info" style="margin-top:12px">Project geography for the direct-line perimeter. Distances drive the line-loss assumption carried on the Financial model tab.</div>`;}
- if(view==='tech')return seg+renderBlock(sec);
+ if(view==='tech')return seg+bridgePanel(sec)+renderBlock(sec);
  setTimeout(()=>{drawAssetCharts(R,col);},0);
  return seg+kpis+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr 1fr">
    <div class="chart" id="c_prod"></div><div class="chart" id="c_pl"></div>
@@ -1282,8 +1341,6 @@ function profilesPage(){
    ? 'Full 15-minute metering records, one row per interval, exactly as received. Decrypted in this browser with the access code; the published file is AES-256 ciphertext.'
    : profView==='dist'
    ? 'Distribution of 15-minute output. Density above, cumulative below. Bands are 2.5% of each plant\u2019s rating. Markers are statistical percentiles: P90 is the level exceeded only 10% of the time.'
-   : profView==='bridge'
-   ? 'From the modelled P50 resource down to what actually reaches the data centre, and how that compares with what the operating meters record.'
    : profView==='trend'
    ? 'Measured output through calendar time at the granularity you pick, with the rolling twelve-month yield below. Gaps are intervals with no record; nothing is interpolated.'
    : profView==='corr'
@@ -1305,13 +1362,11 @@ function profilesPage(){
    <button class="${profView==='shape'?'on':''}" onclick="profView='shape';render()">Shape</button>
    <button class="${profView==='dist'?'on':''}" onclick="profView='dist';render()">Distribution</button>
    <button class="${profView==='corr'?'on':''}" onclick="profView='corr';render()">Correlation</button>
-   <button class="${profView==='bridge'?'on':''}" onclick="profView='bridge';render()">Yield bridge</button>
    <button class="${profView==='raw'?'on':''}" onclick="profView='raw';render()">Raw data</button>
    <button class="${profView==='mix'?'on':''}" onclick="profView='mix';render()">Austria grid mix</button></div>${sel}${unit}${tools}</div>
    <div class="muted" style="margin-top:7px">${hint}</div></div>`;
  const chartTools=isBE?`<div class="ctBar"><button class="chip" style="cursor:pointer" onclick="beView='${beView==='chart'?'table':'chart'}';render()">${beView==='chart'?'Table':'Chart'}</button><button class="chip" style="cursor:pointer" onclick="beDl('csv',false)" title="Download this view as CSV">CSV</button></div>`:'';
  const dict=(isBE||profView==='raw')?`<details class="rreg" style="margin:-4px 0 10px"><summary>Data dictionary and methodology</summary><table><tbody>${Object.entries(BEDATA.dict).map(([k,v])=>`<tr><td style="width:150px;color:#a9d3ff">${k}</td><td>${v}</td></tr>`).join('')}</tbody></table></details>`:'';
- if(profView==='bridge')return seg+bridgePage();
  if(profView==='raw'){setTimeout(rxBoot,0);return seg+dict+rxPage();}
  setTimeout(drawProfiles,0);
  return seg+dict+`<div class="chartWrap">${chartTools}<div class="chart tall" id="pmain"></div></div><div id="pstats"></div>`;
@@ -1822,6 +1877,31 @@ function drawConc(){
     xaxis:{gridcolor:'#1c2531',dtick:1}}),CFG),0);
 }
 /* ================= yield funnel: gross -> plant -> line -> delivered ================= */
+
+function bridgePanel(sec){
+ const isW=sec==='wind', a=M[sec], B=BENCH[sec];
+ const g=a.grossCF*8760, p=g*(1-a.loss), d=effCF(a)*8760;
+ const gap=(p/B.roll-1)*100;
+ const tAdj=isW?null:B.tracker?B.roll*(1+B.tracker.uplift/100):null;
+ const head=`<div class="kpis" style="margin-bottom:14px">
+   ${kpi('Modelled gross P50',fmt(g,0),'FLH · '+pct(a.grossCF,1)+' CF')}
+   ${kpi('At the plant meter',fmt(p,0),'FLH · after '+pct(a.loss,1)+' plant losses')}
+   ${kpi('Delivered to the DC',fmt(d,0),'FLH · after '+pct(a.lineLoss||0,1)+' on the line')}
+   ${kpi('Measured on this fleet',fmt(B.roll,0),'FLH · '+B.label)}
+   ${kpi('The assumption',(gap>0?'+':'')+fmt(gap,1)+'%','model over measured, same point')}</div>`;
+ const note=isW
+  ? `<div class="info" style="margin-top:12px"><b>The wind premium is defensible, but it is an assumption.</b> The model runs ${fmt(g,0)} FLH gross, loses ${pct(a.loss,1)} to wake, availability and electrical to reach <b>${fmt(p,0)} FLH at the plant meter</b>, then ${pct(a.lineLoss||0,1)} on the ~14.7 km direct line to deliver <b>${fmt(d,0)} FLH</b>.
+   <br><br>Compare like for like — both at a plant meter — and the model sits <b>${gap>0?'+':''}${fmt(gap,1)}%</b> above the ${fmt(B.mw,2)} MW operating farm, which records ${fmt(B.roll,0)} FLH across ${B.n} rolling twelve-month windows (${fmt(B.rollLo,0)}–${fmt(B.rollHi,0)}). That premium is the repowering case: the modelled ${fmt(a.mw,0)} MW is BE's whole direct-line portfolio, mostly new-build on taller towers with larger rotors, against one existing farm.
+   <br><br><b>Two cautions.</b> The most recent twelve months at the operating farm read <b>${fmt(B.last,0)} FLH</b>, near the bottom of the range — the recent trend is down, not up. And three years is thin for a P50. If BE's quoted 2,200–2,500 FLH band refers to plant output rather than delivered energy, the model's ${fmt(p,0)} sits at the very top of their range, not comfortably inside it.
+   <br><br><span class="muted">Measured window ${B.window}. Rolling twelve-month means are used rather than the whole-record mean so seasonal coverage stays balanced. The funnel updates live from the sliders on the Financial model tab.</span></div>`
+  : `<div class="info" style="margin-top:12px"><b>This is the largest unevidenced assumption in the model.</b> The funnel runs ${fmt(g,0)} FLH gross → <b>${fmt(p,0)} at the plant meter</b> after ${pct(a.loss,1)} of soiling, inverter and availability losses → <b>${fmt(d,0)} delivered</b> after ${pct(a.lineLoss||0,1)} on the ~9.1 km line.
+   <br><br>The fixed-tilt meters record <b>${fmt(B.roll,0)} FLH</b> across ${B.n} rolling twelve-month windows (${fmt(B.rollLo,0)}–${fmt(B.rollHi,0)}). At the same measuring point the model assumes <b>+${fmt(gap,0)}%</b> — roughly six times the equivalent wind premium.
+   <br><br><b>The tracker argument, tested against your own meters.</b> The justification is that BE builds trackers and agri-PV while the metered arrays are fixed tilt. That is real and now measurable: over ${B.tracker.n.toLocaleString('en-US')} common quarter-hours (${B.tracker.window}), Wallern-Tadten ran <b>+${fmt(B.tracker.uplift,1)}%</b> above the two fixed-tilt arrays on the same intervals. Apply that uplift and the measured base becomes ${fmt(tAdj,0)} FLH — the model still sits <b>+${fmt((p/tAdj-1)*100,0)}%</b> above it. The window is January to June and trackers gain more across a full summer, so the true annual uplift is likely higher than ${fmt(B.tracker.uplift,1)}% — but it would need to be about <b>+${fmt(gap,0)}%</b> to carry the assumption alone, and nothing in the record reaches that.
+   <br><br><b>Ask BE for:</b> project-level P50 yield assessments for the ${fmt(a.mw,0)} MWp pipeline, and a full year of Wallern-Tadten tracker data.
+   <br><br><span class="muted">Measured window ${B.window}. The funnel updates live from the sliders on the Financial model tab.</span></div>`;
+ return `<div class="panel" style="margin-bottom:14px"><h3>${isW?'Wind':'Solar'} · yield bridge, resource to the data centre</h3>
+   ${head}${funnelSVG(sec)}${note}</div>`;
+}
 function funnelSVG(sec){
  const a=M[sec], isW=sec==='wind', B=BENCH[sec];
  const col=isW?'#4aa8ff':'#ffb23e';
@@ -1875,27 +1955,6 @@ function funnelSVG(sec){
   <text x="${x0+wDel+wPl/2}" y="${loY+50}" fill="#ff8b8b" font-size="10.5" text-anchor="middle">plant ${pct(a.loss,1)}</text>
   <text x="${x0+wDel+wPl+wLn/2}" y="${loY+64}" fill="#ff8b8b" font-size="10.5" text-anchor="middle">line ${pct(a.lineLoss||0,1)}</text>
  </svg>`;
-}
-function bridgePage(){
- const w=M.wind, s=M.solar, BW=BENCH.wind, BS=BENCH.solar;
- const f=(a)=>({g:a.grossCF*8760,p:a.grossCF*8760*(1-a.loss),d:effCF(a)*8760});
- const FW=f(w), FS=f(s);
- const gapW=(FW.p/BW.roll-1)*100, gapS=(FS.p/BS.roll-1)*100;
- const trackerAdj=BS.roll*(1+BS.tracker.uplift/100);
- return `<div class="kpis">
-   ${kpi('Wind, delivered',fmt(FW.d,0),'FLH · '+pct(effCF(w),1)+' CF')}
-   ${kpi('Wind, measured',fmt(BW.roll,0),'FLH · gap +'+fmt(gapW,1)+'% at the meter')}
-   ${kpi('Solar, delivered',fmt(FS.d,0),'FLH · '+pct(effCF(s),1)+' CF')}
-   ${kpi('Solar, measured',fmt(BS.roll,0),'FLH · gap +'+fmt(gapS,0)+'% at the meter')}
-   ${kpi('Measured tracker gain','+'+fmt(BS.tracker.uplift,1)+'%','Wallern vs fixed tilt')}</div>
-  <div class="panel" style="margin-bottom:14px"><h3>Wind · from resource to the data centre</h3>${funnelSVG('wind')}</div>
-  <div class="panel" style="margin-bottom:14px"><h3>Solar · from resource to the data centre</h3>${funnelSVG('solar')}</div>
-  <div class="info"><b>Why the two funnels tell different stories.</b>
-  <br><br><b>Wind holds up.</b> The model runs ${fmt(FW.g,0)} FLH gross, loses ${pct(w.loss,1)} to wake, availability and electrical to reach <b>${fmt(FW.p,0)} FLH at the plant meter</b>, then ${pct(w.lineLoss,1)} on the ~14.7 km direct line to deliver <b>${fmt(FW.d,0)} FLH</b>. The operating meter at ${BW.label} records <b>${fmt(BW.roll,0)} FLH</b> across ${BW.n} rolling twelve-month windows (${fmt(BW.rollLo,0)}–${fmt(BW.rollHi,0)}). Like-for-like — both at a plant meter — the model assumes <b>+${fmt(gapW,1)}%</b>. That is a defensible repowering premium: the modelled 320 MW is BE's whole direct-line portfolio, mostly new-build on taller towers with larger rotors, while ${BW.label} is one existing farm of ${fmt(BW.mw,2)} MW. Note the caution though: the most recent twelve months at the operating farm read <b>${fmt(BW.last,0)} FLH</b>, near the bottom of the range, and three years is thin for a P50.
-  <br><br><b>Solar does not.</b> The same funnel runs ${fmt(FS.g,0)} gross → <b>${fmt(FS.p,0)} at the plant meter</b> → <b>${fmt(FS.d,0)} delivered</b>. The fixed-tilt meters at ${BS.label} record <b>${fmt(BS.roll,0)} FLH</b> (${BS.n} rolling windows, ${fmt(BS.rollLo,0)}–${fmt(BS.rollHi,0)}). At the same measuring point that is <b>+${fmt(gapS,0)}%</b> — six times the wind premium, and the single largest unevidenced assumption in the model.
-  <br><br><b>The tracker argument, tested against your own data.</b> The justification for the solar uplift is that BE builds trackers and agri-PV while the meters are fixed tilt. That is real and now measurable: over ${BS.tracker.n.toLocaleString('en-US')} common quarter-hours (${BS.tracker.window}), Wallern-Tadten ran <b>+${fmt(BS.tracker.uplift,1)}%</b> above the two fixed-tilt arrays. Apply that to the measured fixed-tilt base and you get ${fmt(trackerAdj,0)} FLH — the model still sits <b>+${fmt((FS.p/trackerAdj-1)*100,0)}%</b> above it. The window is January to June, and trackers gain more across a full summer, so the true annual uplift is likely higher than 16.8% — but it would need to be roughly <b>+${fmt(gapS,0)}%</b> to close the gap on its own, and nothing in the record supports that.
-  <br><br><b>What to ask BE for.</b> Project-level P50 yield assessments for the ${fmt(w.mw,0)} MW wind and ${fmt(s.mw,0)} MWp solar pipeline, and a full-year tracker dataset from Wallern-Tadten. Until then the wind number is a supportable engineering premium and the solar number is a claim. Both funnels update live from the sliders on the Wind and Solar tabs, so any revision shows here immediately.
-  <br><br><span class="muted">Measured windows: wind ${BW.window}; solar ${BS.window}. Rolling twelve-month means are used rather than the whole-record mean so seasonal coverage is balanced. Both benchmark bars are drawn on the same scale as the funnels.</span></div>`;
 }
 
 function arbPage(){
@@ -2816,6 +2875,271 @@ function svgSystemSchematic(){
   lg(RC.wind,'wind park')+lg(RC.solar,'solar park')+lg(RC.acc,'available ≤2029')+lg(RC.solar,'available 2030+')+
   lg(RC.cab,'buried 110 kV direct line',1)+lg(RC.acc,'110 kV customer cable, Zurndorf → campus')+lg(RC.red,'public grid')+lg(RC.batt,'battery'));
 }
+
+/* ================= landing scene: Pannonian plain, day into night ==================
+   One SVG, no external assets. Sky, sun and moon run on a single 96-second cycle;
+   rotors spin on their own periods; clouds drift; hall lights and turbine warning
+   beacons come up as the light goes. Everything respects prefers-reduced-motion. */
+const SCN={cycle:96};
+function turbine(x,baseY,s,period,phase){
+ const hub=baseY-152*s, r=52*s, tw=3.2*s;
+ const blade=a=>`<path d="M0,0 L${-2.6*s},${-r*0.16} Q${-1.4*s},${-r*0.72} 0,${-r} Q${2.2*s},${-r*0.66} ${3.1*s},${-r*0.14} Z"
+   fill="#dbe6f0" opacity=".93" transform="rotate(${a})"/>`;
+ return `<g>
+  <path d="M${x-5.4*s},${baseY} L${x-tw/2},${hub} L${x+tw/2},${hub} L${x+5.4*s},${baseY} Z" fill="#c3d2e0" opacity=".9"/>
+  <ellipse cx="${x}" cy="${baseY}" rx="${7*s}" ry="${1.8*s}" fill="#0e1a12" opacity=".5"/>
+  <g transform="translate(${x},${hub})"><g class="rotor" style="animation-duration:${period}s;animation-delay:${-phase}s">
+   ${blade(0)}${blade(120)}${blade(240)}
+   <circle r="${3.4*s}" fill="#eef4f9"/></g></g>
+  <circle cx="${x}" cy="${hub-1}" r="${1.5*s}" fill="#ff5252" class="beacon" opacity="0"/>
+ </g>`;
+}
+function trackerRow(x,y,w,s){
+ const n=Math.max(3,Math.round(w/(17*s))), out=[];
+ for(let i=0;i<n;i++){
+  const px=x+i*(w/n);
+  out.push(`<g transform="translate(${px},${y})">
+    <line x1="0" y1="0" x2="0" y2="${5*s}" stroke="#5d6f80" stroke-width="${1.1*s}"/>
+    <rect class="panel3" x="${-7*s}" y="${-3.4*s}" width="${14*s}" height="${3.4*s}" rx="${0.6*s}"
+      fill="#1d3350" stroke="#4a7fb5" stroke-width="${0.45*s}" transform="skewY(-14)"/></g>`);
+ }
+ return out.join('');
+}
+function landingScene(id,h,cls){
+ const W=1600,H=h||440, hz=H*0.60, k=H/620;                 // horizon
+ const C=SCN.cycle;
+ const star=(i)=>{const x=(i*137.5)%W, y=(i*61.7)%(hz-70), r=(i%5)/9+0.35;
+  return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}" fill="#fff"
+    class="starF" style="animation-duration:${(3+(i%7)*0.7).toFixed(1)}s;animation-delay:${(i%11)*0.4}s"/>`;};
+ const stars=Array.from({length:130},(_,i)=>star(i+1)).join('');
+ const cloud=(cx,cy,sc,op,dur,delay)=>`<g class="cloud" style="animation-duration:${dur}s;animation-delay:${-delay}s" opacity="${op}">
+   <g transform="translate(${cx},${cy}) scale(${sc})">
+    <ellipse cx="0" cy="0" rx="62" ry="17" fill="#8fa8bd"/><ellipse cx="34" cy="-9" rx="40" ry="15" fill="#9db4c7"/>
+    <ellipse cx="-32" cy="-5" rx="34" ry="13" fill="#87a0b6"/></g></g>`;
+ // hills on the north-west horizon (Leitha range), deliberately low: this is the plain
+ const hills=`<path d="M0,${hz} C120,${hz-26} 210,${hz-10} 320,${hz-21} C430,${hz-32} 520,${hz-8} 640,${hz-15}
+   C700,${hz-19} 760,${hz-6} 830,${hz-9} L830,${hz+6} L0,${hz+6} Z" fill="#243a4d" opacity=".85"/>`;
+ return `<svg id="${id}" class="${cls||'heroScene'}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice"
+   xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The Nickelsdorf site through a day: wind turbines, solar trackers, battery blocks and the data centre on the Pannonian plain">
+  <defs>
+   <linearGradient id="sky${id}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#0a1622"><animate attributeName="stop-color" dur="${C}s" repeatCount="indefinite"
+      values="#12213a;#2d5f8f;#5ea3d6;#7fbfe4;#e8a463;#8a4f63;#1b2b45;#0a1424;#12213a"/></stop>
+    <stop offset=".55" stop-color="#12283c"><animate attributeName="stop-color" dur="${C}s" repeatCount="indefinite"
+      values="#1b3050;#5b93c4;#8fc6e8;#a9d6ef;#f0b982;#b06a70;#26374f;#131f31;#1b3050"/></stop>
+    <stop offset="1" stop-color="#1b3348"><animate attributeName="stop-color" dur="${C}s" repeatCount="indefinite"
+      values="#2b4462;#93bfdd;#c4e0f2;#d8ecf8;#f6d3a6;#c98d80;#3a4a60;#1d2a3a;#2b4462"/></stop>
+   </linearGradient>
+   <linearGradient id="grd${id}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#25402c"/><stop offset="1" stop-color="#101d16"/></linearGradient>
+   <linearGradient id="glow${id}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#ffc98a" stop-opacity="0"/><stop offset="1" stop-color="#ffb066" stop-opacity=".30"/></linearGradient>
+   <radialGradient id="sunG${id}"><stop offset="0" stop-color="#fff6df"/><stop offset="1" stop-color="#ffd18a"/></radialGradient>
+   <style>
+    .starF{animation-name:twk;animation-iteration-count:infinite}
+    @keyframes twk{0%,100%{opacity:.15}50%{opacity:.95}}
+    #${id} .nightOnly{opacity:0;animation:nightFade ${C}s linear infinite}
+    @keyframes nightFade{0%,8%{opacity:.9}20%,58%{opacity:0}74%{opacity:.55}84%,100%{opacity:.9}}
+    #${id} .beacon{animation:beat 2.4s steps(1,end) infinite,nightFade ${C}s linear infinite}
+    @keyframes beat{0%,45%{opacity:0}46%,60%{opacity:1}61%,100%{opacity:0}}
+    #${id} .dusk{opacity:0;animation:duskFade ${C}s linear infinite}
+    @keyframes duskFade{0%,30%{opacity:0}44%{opacity:.85}56%{opacity:.5}68%,100%{opacity:0}}
+   </style>
+  </defs>
+
+  <rect width="${W}" height="${H}" fill="url(#sky${id})"/>
+  <g class="nightOnly">${stars}</g>
+
+  <!-- sun and moon on one arc, half a cycle apart -->
+  <g><circle r="26" fill="url(#sunG${id})">
+     <animateMotion dur="${C}s" repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1" calcMode="linear"
+       path="M-80,${hz+40} Q${W/2},${hz-H*0.53} ${W+80},${hz+40}"/>
+     <animate attributeName="opacity" dur="${C}s" repeatCount="indefinite" values="0;.15;1;1;1;.5;0;0;0"/></circle>
+   <circle r="26" fill="#fff" opacity=".22">
+     <animateMotion dur="${C}s" repeatCount="indefinite" path="M-80,${hz+40} Q${W/2},${hz-H*0.53} ${W+80},${hz+40}"/>
+     <animate attributeName="opacity" dur="${C}s" repeatCount="indefinite" values="0;.05;.30;.30;.28;.14;0;0;0"/></circle>
+   <g class="nightOnly"><circle cx="${W*0.76}" cy="${hz-H*0.40}" r="17" fill="#e9f0f7"/>
+     <circle cx="${W*0.755}" cy="${hz-H*0.41}" r="4" fill="#cfd9e4" opacity=".6"/>
+     <circle cx="${W*0.772}" cy="${hz-H*0.39}" r="2.6" fill="#cfd9e4" opacity=".5"/></g></g>
+
+  ${cloud(200,hz-H*0.34,1.5,.30,150,0)}${cloud(760,hz-H*0.43,1.05,.22,205,60)}
+  ${cloud(1180,hz-H*0.28,1.9,.20,178,120)}${cloud(430,hz-H*0.22,0.85,.16,240,30)}
+
+  ${hills}
+  <rect x="0" y="${hz}" width="${W}" height="${H-hz}" fill="url(#grd${id})"/>
+  <rect x="0" y="${hz-70}" width="${W}" height="70" fill="url(#glow${id})" class="dusk"/>
+
+  <!-- far turbines: the 320 MW fleet across the plain -->
+  <g opacity=".42">
+   ${turbine(120,hz+6*k,0.42*k,7.6,0)}${turbine(255,hz+4*k,0.38*k,8.9,2)}${turbine(385,hz+7*k,0.44*k,6.9,4)}
+   ${turbine(1290,hz+5*k,0.40*k,8.2,1)}${turbine(1425,hz+3*k,0.36*k,9.4,3)}${turbine(1540,hz+6*k,0.42*k,7.2,5)}</g>
+  <g opacity=".72">
+   ${turbine(520,hz+16*k,0.68*k,6.4,1.2)}${turbine(700,hz+13*k,0.60*k,7.4,3.4)}${turbine(1140,hz+15*k,0.64*k,6.8,0.6)}</g>
+  ${turbine(300,hz+52*k,1.06*k,5.6,2.2)}
+  ${turbine(1000,hz+44*k,0.92*k,6.2,4.4)}
+
+  <!-- solar: tracker rows stepping into the distance -->
+  <g opacity=".8">${trackerRow(560,hz+30*k,540,0.5*k)}</g>
+  <g opacity=".9">${trackerRow(520,hz+56*k,640,0.72*k)}</g>
+  ${trackerRow(470,hz+96*k,760,1.0*k)}
+
+  <!-- battery blocks and the substation -->
+  <g transform="translate(${W-430},${hz+34*k}) scale(${k})">
+   ${Array.from({length:5},(_,i)=>`<rect x="${i*30}" y="0" width="25" height="15" rx="2.2" fill="#3b2f52" stroke="#7d68a8" stroke-width=".9"/>
+     <rect x="${i*30+3}" y="3" width="19" height="2" fill="#b98cff" opacity=".55"/>`).join('')}
+   ${Array.from({length:5},(_,i)=>`<rect x="${i*30+8}" y="18" width="25" height="15" rx="2.2" fill="#332947" stroke="#6d5b95" stroke-width=".9"/>`).join('')}
+   <text x="0" y="-9" font-size="10" fill="#b98cff" letter-spacing="2.2" opacity=".85">STORAGE</text></g>
+
+  <!-- the data centre halls -->
+  <g transform="translate(${W-232},${hz+22*k}) scale(${k})">
+   ${[0,1,2].map(i=>`<g transform="translate(${i*14},${i*17})">
+     <path d="M0,${34-i*3} L96,${34-i*3} L96,${64-i*3} L0,${64-i*3} Z" fill="#1b2734" stroke="#3d5164" stroke-width="1"/>
+     <path d="M0,${34-i*3} L18,${22-i*3} L114,${22-i*3} L96,${34-i*3} Z" fill="#243447" stroke="#3d5164" stroke-width="1"/>
+     ${Array.from({length:7},(_,k)=>`<rect class="nightOnly" x="${7+k*12.4}" y="${42-i*3}" width="6" height="4.6" rx="1" fill="#7fe3a8" opacity=".9"/>`).join('')}
+    </g>`).join('')}
+   <text x="0" y="16" font-size="10" fill="#46b45a" letter-spacing="2.2" opacity=".9">DATA CENTRE</text></g>
+
+  <!-- direct line marching to the halls -->
+  <g opacity=".55">${Array.from({length:9},(_,i)=>{const x=250+i*118,y=hz+(118+i*3.4)*k,s=(0.5+i*0.045)*k;
+    return `<g transform="translate(${x},${y}) scale(${s})"><line x1="0" y1="0" x2="0" y2="-36" stroke="#8ea3b6" stroke-width="1.5"/>
+      <line x1="-11" y1="-30" x2="11" y2="-30" stroke="#8ea3b6" stroke-width="1.2"/>
+      <line x1="-8" y1="-24" x2="8" y2="-24" stroke="#8ea3b6" stroke-width="1.1"/></g>`;}).join('')}</g>
+
+  <!-- foreground field -->
+  <path d="M0,${H} L0,${hz+128*k} Q${W*0.36},${hz+104*k} ${W},${hz+150*k} L${W},${H} Z" fill="#0f1c14"/>
+  <g opacity=".30">${Array.from({length:34},(_,i)=>{const x=i*48;
+    return `<path d="M${x},${H} Q${x+22},${hz+150*k} ${x+46},${H}" stroke="#2f5138" stroke-width="1.1" fill="none"/>`;}).join('')}</g>
+ </svg>`;
+}
+
+/* ---------------- splash, shown once a session ---------------- */
+function splashHTML(){
+ return `<div id="splash">
+  <div class="splashScene">${landingScene('scSplash',900,'sceneFill')}
+   <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 42%,rgba(7,11,16,.34),rgba(7,11,16,.86))"></div></div>
+  <div class="splashInner">
+   <div class="splashKicker">Burgenland · Austria</div>
+   <h1 class="wm splashWm"><span class="nk">Green Data Campus</span>Nickelsdorf</h1>
+   <div class="splashRule"></div>
+   <p class="splashSub">A ${fmt(M.dc.firmMW,0)} MW data centre on the Pannonian plain, supplied by ${fmt(M.wind.mw,0)} MW of wind, ${fmt(M.solar.mw,0)} MWp of solar and ${fmt(M.battery.powerMW,0)} MW of storage over a private direct line.</p>
+   <button class="splashBtn" onclick="closeSplash()">Explore the project</button>
+   <button class="splashSkip" onclick="closeSplash()">Skip · you can reopen this from the Overview tab</button>
+  </div>
+  <div class="splashFoot">
+   <a class="brandLink" href="https://nexwell.com" target="_blank" rel="noopener noreferrer"
+     style="color:#8fa6bb;font-size:12px;letter-spacing:.16em;text-transform:uppercase">Nexwell</a>
+   <span style="color:#3d5164">×</span>
+   <a class="brandLink" href="https://www.burgenlandenergie.at" target="_blank" rel="noopener noreferrer"
+     style="color:#8fa6bb;font-size:12px;letter-spacing:.16em;text-transform:uppercase">Burgenland Energie</a>
+  </div>
+ </div>`;
+}
+function closeSplash(){
+ const s=document.getElementById('splash'); if(!s)return;
+ s.classList.add('out');
+ try{sessionStorage.setItem('gdcSplash','1');}catch(e){}
+ setTimeout(()=>s.remove(),700);
+}
+function maybeSplash(){
+ let seen=false; try{seen=sessionStorage.getItem('gdcSplash')==='1';}catch(e){}
+ if(seen)return;
+ document.body.insertAdjacentHTML('beforeend',splashHTML());
+ document.addEventListener('keydown',function esc(e){if(e.key==='Escape'){closeSplash();document.removeEventListener('keydown',esc);}});
+}
+function replaySplash(){try{sessionStorage.removeItem('gdcSplash');}catch(e){} maybeSplash();}
+
+/* ---------------- the Overview page ---------------- */
+function overviewPage(){
+ const W=computeAsset(M.wind), S=computeAsset(M.solar), B=computeBattery(M.battery);
+ const gwh=(W.prod+S.prod)/1000, load=M.dc.firmMW*8760/1000;
+ return `<div class="heroWrap">${landingScene('scHero')}
+   <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,11,16,.72) 0%,rgba(7,11,16,.28) 46%,rgba(7,11,16,0) 72%)"></div>
+   <div class="heroCap"><h1 class="wm"><span class="nk">Green Data Campus</span>Nickelsdorf</h1>
+    <p>A ${fmt(M.dc.firmMW,0)} MW campus on the Pannonian plain, wired directly to its own wind, solar and storage. Burgenland, Austria.</p></div>
+  </div>
+  <div class="ovGrid">
+   <div class="ovCard"><h4>Wind</h4><div class="big">${fmt(M.wind.mw,0)}<small>MW</small></div>
+    <p>Across BE's direct-line portfolio, delivering ${fmt(W.prod/1000,0)} GWh a year at ${pct(effCF(M.wind),1)} net capacity factor.</p></div>
+   <div class="ovCard"><h4>Solar</h4><div class="big">${fmt(M.solar.mw,0)}<small>MWp</small></div>
+    <p>Tracker and agri-PV arrays adding ${fmt(S.prod/1000,0)} GWh a year, shaped against the wind rather than with it.</p></div>
+   <div class="ovCard"><h4>Storage</h4><div class="big">${fmt(M.battery.powerMW,0)}<small>MW / ${fmt(M.battery.durationH,0)}h</small></div>
+    <p>${fmt(B.energy/1000,1)} GWh of lithium-iron phosphate, holding a ${pct(M.battery.socFloor||0,0)} floor as outage ride-through for the campus.</p></div>
+   <div class="ovCard"><h4>The load</h4><div class="big">${fmt(M.dc.firmMW,0)}<small>MW firm</small></div>
+    <p>${fmt(load,0)} GWh of demand a year against ${fmt(gwh,0)} GWh of on-site generation, balanced across the day by the battery and the grid.</p></div>
+  </div>
+  <div class="panel" style="margin-bottom:12px">
+   <h3>The proposition</h3>
+   <p style="color:#dbe6f0;font-size:15.5px;line-height:1.62;margin:0 0 14px;max-width:1080px">
+    Austria is building more solar than its midday market can absorb. In 2026 to date <b>${fmt(NEGP.byYear[NEGP.byYear.length-1].negPct,1)}% of all hours</b> and <b>${fmt(NEGP.recentMidday,1)}% of midday hours</b> cleared below zero, and solar's capture price has fallen to <b>${fmt(PRICES.per_year['2025'].solar/PRICES.per_year['2025'].baseload*100,0)}% of baseload</b>. Nickelsdorf takes the other side of that: instead of selling into the trough, ${fmt(M.wind.mw+M.solar.mw,0)} MW of Burgenland Energie generation is wired by private line into a ${fmt(M.dc.firmMW,0)} MW data centre that buys around the clock, with ${fmt(M.battery.powerMW,0)} MW of storage moving energy from the hours nobody wants into the hours the campus does.</p>
+   <div class="ovGrid" style="margin-bottom:0">
+    <div class="ovCard" style="border-color:#2c4a34"><h4>Total investment</h4>
+     <div class="big">€${fmt(W.totalCapex+S.totalCapex+B.capex,0)}<small>m</small></div>
+     <p>€${fmt(W.totalCapex,0)}m wind · €${fmt(S.totalCapex,0)}m solar · €${fmt(B.capex,0)}m storage, before the direct line and substation.</p></div>
+    <div class="ovCard" style="border-color:#2c4a34"><h4>Generation</h4>
+     <div class="big">${fmt(gwh,0)}<small>GWh/yr</small></div>
+     <p>Against ${fmt(load,0)} GWh of campus demand — <b>${fmt(gwh/load*100,0)}%</b> of annual consumption produced on site, before time-matching.</p></div>
+    <div class="ovCard" style="border-color:#2c4a34"><h4>Evidence base</h4>
+     <div class="big">3<small>years metered</small></div>
+     <p>${(105204).toLocaleString('en-US')} quarter-hours of wind and ${(150032).toLocaleString('en-US')} of solar from BE's own meters, plus ${NEGP.totalHours.toLocaleString('en-US')} hourly price prints since 2015. No synthetic profiles.</p></div>
+    <div class="ovCard" style="border-color:#2c4a34"><h4>Grid exposure</h4>
+     <div class="big">Direct<small>line</small></div>
+     <p>Private connection over ~${fmt(9.1,1)}–${fmt(14.7,1)} km. No grid fees on PPA volumes, confirmed three times in writing by BE.</p></div>
+   </div>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+   <div class="panel"><h3>Why it works</h3>
+    <p style="color:#c3d1de;font-size:13px;line-height:1.62;margin:0 0 10px"><b style="color:#46b45a">The load is the scarce asset.</b> Renewable capacity is abundant in Burgenland; a creditworthy 24/7 offtaker sitting next to it is not. The direct line converts a cannibalised merchant position into contracted revenue.</p>
+    <p style="color:#c3d1de;font-size:13px;line-height:1.62;margin:0 0 10px"><b style="color:#46b45a">Wind and solar genuinely offset.</b> Measured on the same quarter-hours, their daily output correlates <b>${fmt(NEWD.corr.timescale.find(t=>t.label==='1 day').pearson,2)}</b> — and pairing them cuts portfolio variability from ${fmt(NEWD.corr.smoothing.cvWind,2)} and ${fmt(NEWD.corr.smoothing.cvSolar,2)} to <b>${fmt(NEWD.corr.smoothing.cvComb,2)}</b>.</p>
+    <p style="color:#c3d1de;font-size:13px;line-height:1.62;margin:0"><b style="color:#46b45a">Storage is now bankable on its own.</b> A ${'4'}-hour battery earned <b>€${fmt(ARB.byDuration['4'].last12m.eurOpt/1000,0)}k per MW</b> over the last twelve months against €${fmt(ARB.byYear['4'].find(r=>r.year===2019).eurOpt/1000,0)}k in 2019 — and the same solar glut that hurts PV is what widens the spread.</p></div>
+   <div class="panel"><h3>What the data says</h3>
+    <p style="color:#c3d1de;font-size:13px;line-height:1.62;margin:0 0 10px"><b>Wind is solid.</b> BE's operating farm records ${fmt(BENCH.wind.roll,0)} full-load hours across ${BENCH.wind.n} rolling twelve-month windows. The model carries ${fmt(M.wind.grossCF*8760*(1-M.wind.loss),0)} at the same measuring point — a ${fmt((M.wind.grossCF*8760*(1-M.wind.loss)/BENCH.wind.roll-1)*100,1)}% premium for taller new-build towers.</p>
+    <p style="color:#c3d1de;font-size:13px;line-height:1.62;margin:0 0 10px"><b>Solar is the open question.</b> Fixed-tilt meters record ${fmt(BENCH.solar.roll,0)} FLH; the model carries ${fmt(M.solar.grossCF*8760*(1-M.solar.loss),0)}. BE's tracker at Wallern measurably beats fixed tilt by <b>+${fmt(BENCH.solar.tracker.uplift,1)}%</b> — real, but not the whole gap.</p>
+    <p style="color:#c3d1de;font-size:13px;line-height:1.62;margin:0"><b>The tail is what to size on.</b> Wind and solar both sit in their bottom fifth on <b>${fmt(NEWD.corr.tail.bothLow,1)}%</b> of days against 4.0% if independent. Diversification helps through the body of the distribution and slightly hurts in the tail.</p></div>
+   <div class="panel"><h3>Open items</h3>
+    <div style="display:flex;flex-direction:column;gap:9px">
+     ${[['Solar yield','The +57% assumption over metered fixed tilt needs project-level P50s or a full year of tracker data.','#ff6b6b'],
+        ['Battery grid access','Two-way grid connection is not assumed before ~'+M.battery.gridYear+'. Until then the battery works behind the meter only.','#ffb23e'],
+        ['Solar opex','BE quote ~€32k/MWp all-in against our €20k excluding land. Component bridge outstanding.','#ffb23e'],
+        ['Post-PPA price','Merchant exposure after the '+M.macro.ppaTermY+'-year PPA is the largest single value driver in the outer years.','#ffb23e']]
+      .map(o=>`<div style="border-left:2px solid ${o[2]};padding-left:11px">
+        <div style="color:#e8eef3;font-size:12.5px;font-weight:620">${o[0]}</div>
+        <div style="color:#94a2b1;font-size:11.5px;line-height:1.5;margin-top:2px">${o[1]}</div></div>`).join('')}
+    </div></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1.35fr 1fr;gap:12px;align-items:start;margin-bottom:12px">
+   <div class="panel"><h3>What this is</h3>
+    <p style="color:#c3d1de;font-size:13.5px;line-height:1.68;margin:0 0 12px">Nickelsdorf sits at the eastern edge of Austria, on the flat Pannonian plain where Burgenland Energie already operates one of the country's densest concentrations of wind and solar. This dashboard is the working model behind the project. Every figure runs off live assumptions you can move, and the production tabs carry three years of Burgenland Energie's own fifteen-minute metering rather than a synthetic profile.</p>
+    <p style="color:#94a2b1;font-size:12.5px;line-height:1.6;margin:0">This overview is open. The financial model, storage economics and the metered production record sit behind an access code. Directional and for discussion — not investment advice.</p>
+   </div>
+   <div class="panel"><h3>Where to go next</h3>
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:2px">
+     ${[['wind','Wind',fmt(M.wind.mw,0)+' MW · the resource, the losses and the returns'],
+        ['solar','Solar',fmt(M.solar.mw,0)+' MWp · trackers, agri-PV and the capture problem'],
+        ['battery','Battery',fmt(M.battery.powerMW,0)+' MW · arbitrage, ancillary and ride-through'],
+        ['summary','SPV','how the power company and the campus settle'],
+        ['profiles','Production','three years of metered fifteen-minute output'],
+        ['prices','Prices','Austrian day-ahead since 2015, spreads and negative hours']]
+      .map(t=>`<button onclick="go('${t[0]}')" style="text-align:left;background:var(--panel2);border:1px solid var(--line);
+        border-radius:9px;padding:10px 13px;cursor:pointer;color:var(--txt);font-size:13px;transition:border-color .15s"
+        onmouseover="this.style.borderColor='#46b45a'" onmouseout="this.style.borderColor='var(--line)'">
+        <b>${t[1]}</b>${gateLocked(t[0])?' <span style="font-size:10px;color:#94a2b1">· code</span>':''}
+        <div style="color:#94a2b1;font-size:11.5px;margin-top:2px">${t[2]}</div></button>`).join('')}
+    </div>
+    <button class="chip" style="margin-top:12px;cursor:pointer" onclick="replaySplash()">Replay the opening</button>
+   </div>
+  </div>
+  <div class="panel" style="margin-top:12px;display:flex;align-items:center;gap:26px;flex-wrap:wrap;justify-content:center">
+   <span style="color:#7d8fa1;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase">Developed by</span>
+   <a class="brandLink" href="https://nexwell.com" target="_blank" rel="noopener noreferrer"
+     style="color:#e8eef3;font-size:15px;font-weight:600">Nexwell ↗</a>
+   <span style="color:#3d5164">×</span>
+   <a class="brandLink" href="https://www.burgenlandenergie.at" target="_blank" rel="noopener noreferrer"
+     style="color:#e8eef3;font-size:15px;font-weight:600">Burgenland Energie ↗</a>
+  </div>`;
+}
+
 function renderBlock(which){
  try{
   if(which==='wind')return svgWindPark();
@@ -2829,7 +3153,8 @@ function renderBlock(which){
 function render(){
  const m=document.getElementById('main');
  if(gateLocked(active)){m.innerHTML=gatePage(active);setTimeout(gateAnimate,0);setTimeout(()=>{const e=document.getElementById('gatePw');if(e)e.focus();},60);return;}
- if(active==='wind'){m.innerHTML=assetPage('wind');if(M.v3.wind&&assetView.wind==='tech')setTimeout(()=>start3d('wind'),0);}
+ if(active==='overview'){m.innerHTML=overviewPage();}
+ else if(active==='wind'){m.innerHTML=assetPage('wind');if(M.v3.wind&&assetView.wind==='tech')setTimeout(()=>start3d('wind'),0);}
  else if(active==='solar'){m.innerHTML=assetPage('solar');if(M.v3.solar&&assetView.solar==='tech')setTimeout(()=>start3d('solar'),0);}
  else if(active==='battery'){m.innerHTML=batteryPage();if(M.v3.battery&&assetView.battery==='tech')setTimeout(()=>start3d('battery'),0);}
  else if(active==='summary'){m.innerHTML=summaryPage();if(spvView==='fin'){setTimeout(drawSummaryBalance,0);setTimeout(drawSpvEcon,0);setTimeout(drawSpvCashflow,0);}else if(spvView==='supply')setTimeout(drawRisk,0);}
@@ -3156,7 +3481,7 @@ function rxShow(){
  rxRefilter();
 }
 
-buildNav();render();
+buildNav();setTimeout(maybeSplash,60);render();
 if(typeof Plotly==='undefined'){(function w(){ (typeof Plotly!=='undefined') ? render() : setTimeout(w,100); })();}
 </script>
 </body>
