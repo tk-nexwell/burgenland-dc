@@ -46,6 +46,7 @@ function buildFullModel(ExcelJS, S){
  inp('Tax rate',S.macro.tax,'','TAXR');
  inp('Gearing (wind/solar/line)',S.macro.gearing,'debt share','GEAR');
  inp('Debt tenor',S.macro.tenor,'years','TENOR');
+ inp('Amortisation (1 = annuity, 0 = flat principal)',S.macro.amort==='annuity'?1:0,'level total payment, or level principal','AMORT');
  inp('All-in debt rate',S.macro.allInRate,'','RATE');
  inp('PPA term',S.macro.ppaTermY,'years','PPAT');
  inp('Merchant power (uncontracted RES)',S.macro.merchReal,'€/MWh 2023-real, CPI-indexed','MERCH');
@@ -107,6 +108,11 @@ function buildFullModel(ExcelJS, S){
  inp('Grid-fee escalation',S.dc.feeEsc,'per yr from 2028','FEESC');
  inp('RES sourcing (1=owned, 0=PPA)',(S.dc.resMode||'lcoe')==='lcoe'?1:0,'drives SPV sheet','RES_OWN');
  inp('Direct line cost',S.linePer100,'€m per 100 MW','LINE_C');
+ inp('Solar DC/AC ratio',S.dcac,'line is sized on export capacity','DCAC');
+ inp('Billing (1=pass-through, 0=fixed)',(S.dc.spvMode||'pass')==='pass'?1:0,'cost plus margin, or a flat €/MWh','SPV_MODE');
+ inp('SPV margin (% of energy cost)',S.dc.spvMargin!=null?S.dc.spvMargin:0.03,'used when margin form = 0','SPV_M');
+ inp('Margin form (1=€/MWh, 0=%)',S.dc.marginMode==='flat'?1:0,'€/MWh is neutral to the market','MGN_MODE');
+ inp('SPV margin (€/MWh)',S.dc.marginEur!=null?S.dc.marginEur:3.5,'CPI-indexed, used when form = 1','MGN_E');
  inp('SPV first revenue year',S.FF,'','SPV_FF');
  r++; isect('BATTERY ARBITRAGE CURVE — hourly wholesale €/MWh, year '+S.priceYear);
  const PH0=r;
@@ -151,7 +157,7 @@ function buildFullModel(ExcelJS, S){
   ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
   const L={}, D={}, R={};
   let rr=4; rr=sect(ws,rr,'LOCAL ASSUMPTIONS  (linked from Inputs, shown red)');
-  [['INFL','Inflation (CPI)','per yr'],['TAXR','Tax rate',''],['GEAR','Gearing',''],['TENOR','Debt tenor','yrs'],
+  [['INFL','Inflation (CPI)','per yr'],['TAXR','Tax rate',''],['GEAR','Gearing',''],['TENOR','Debt tenor','yrs'],['AMORT','Amortisation (1=annuity)',''],
    ['RATE','Debt rate',''],['PPAT','PPA term','yrs'],['MERCH','Merchant (uncontracted)','€/MWh 23-real'],
    [P+'_MW','Capacity','MW'],[P+'_CAPEX','Capex','€m/MW'],[P+'_GCF','Gross capacity factor',''],
    [P+'_LOSS','Plant losses',''],[P+'_LLOSS','Direct-line losses',''],[P+'_DEGR','Degradation','per yr'],
@@ -177,7 +183,8 @@ function buildFullModel(ExcelJS, S){
   rr=derRow(ws,rr,D,'DRAW2',   'Constr. draw @ COD-1 (€m)', `0.7*$B$${D.TCAPEX}*${A('GEAR')}`, numF,'70% of capex × gearing');
   rr=derRow(ws,rr,D,'IDC2',    'Constr. IDC year 2 (€m)', `($B$${D.BAL1}+$B$${D.DRAW2}/2)*${A('RATE')}`, numF);
   rr=derRow(ws,rr,D,'DEBTCOD', 'Debt drawn by COD (€m)', `$B$${D.BAL1}+$B$${D.DRAW2}+$B$${D.IDC2}`, numF,'construction debt at COD-1');
-  rr=derRow(ws,rr,D,'ANNPRIN', 'Annual principal (€m)', `$B$${D.DEBTCOD}/$B$${D.REPY}`, numF);
+  rr=derRow(ws,rr,D,'ANNPRIN', 'Annual principal, flat (€m)', `$B$${D.DEBTCOD}/$B$${D.REPY}`, numF);
+  rr=derRow(ws,rr,D,'ANNDS',   'Annual debt service, annuity (€m)', `PMT(${A('RATE')},$B$${D.REPY},-$B$${D.DEBTCOD})`, numF,'level total payment');
 
   rr++; const Yrow=rr; yearHeader(ws,Yrow);
   rr++; rr=sect(ws,rr,'PRODUCTION');
@@ -223,7 +230,7 @@ function buildFullModel(ExcelJS, S){
   tsRow(ws,R.idc,'IDC — interest during constr. (€m)',Yrow,numF,(X,pX)=>`${X}$${R.cflag}*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}/2)*${A('RATE')}`);
   tsRow(ws,R.intr,'Interest (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A(P+'_COD')})*(${pX?pX+'$'+R.bal:'0'})*${A('RATE')}`);
   R.rflag=null; // repayment flag folded into principal for brevity
-  tsRow(ws,R.prin,'Principal repay (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A(P+'_COD')})*(${yr(X)}<${A(P+'_COD')}+$B$${D.REPY})*MIN((${pX?pX+'$'+R.bal:'0'}),$B$${D.ANNPRIN})`);
+  tsRow(ws,R.prin,'Principal repay (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A(P+'_COD')})*(${yr(X)}<${A(P+'_COD')}+$B$${D.REPY})*MIN((${pX?pX+'$'+R.bal:'0'}),${A('AMORT')}*MAX(0,$B$${D.ANNDS}-${X}$${R.intr})+(1-${A('AMORT')})*$B$${D.ANNPRIN})`);
   tsRow(ws,R.bal,'Debt balance EOY (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}<${A(P+'_COD')})*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}+${X}$${R.idc})+(${yr(X)}>=${A(P+'_COD')})*MAX(0,(${pX?pX+'$'+R.bal:'0'})-${X}$${R.prin})`);
   tsRow(ws,R.dep,'Depreciation (€m)',Yrow,numF,X=>`(${yr(X)}>=${A(P+'_COD')})*(${yr(X)}<${A(P+'_COD')}+$B$${D.DEPY})*$B$${D.ANNDEP}`);
   tsRow(ws,R.ebt,'EBT (€m)',Yrow,numF,X=>`${X}$${R.ebit}-${X}$${R.dep}-${X}$${R.intr}`);
@@ -265,7 +272,7 @@ function buildFullModel(ExcelJS, S){
   ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
   const L={}, D={}, R={};
   let rr=4; rr=sect(ws,rr,'LOCAL ASSUMPTIONS (linked from Inputs, red)');
-  [['INFL','Inflation','per yr'],['TAXR','Tax rate',''],['TENOR','Debt tenor','yrs'],['FEESC','Grid-fee escalation','per yr'],
+  [['INFL','Inflation','per yr'],['TAXR','Tax rate',''],['TENOR','Debt tenor','yrs'],['AMORT','Amortisation (1=annuity)',''],['FEESC','Grid-fee escalation','per yr'],
    ['B_MW','Power','MW'],['B_DUR','Duration','h'],['B_CKWH','Cell capex','€/kWh'],['B_SUB','Netzzutritt','€m'],['B_INT','DC connection','€m'],
    ['B_RTE','Round-trip eff.',''],['B_SOC','SoC floor',''],['B_CYC','Cycles/day',''],['B_CAPF','Capture factor',''],
    ['B_OPEXP','Opex %/yr',''],['B_ANC','Ancillary','€k/MW/yr'],['B_CCH','DC reliability charge','€k/MW/yr'],
@@ -304,7 +311,8 @@ function buildFullModel(ExcelJS, S){
   rr=derRow(ws,rr,D,'DEPY',  'Depreciation period (yrs)', `MIN(15,${A('B_LIFE')}-1)`, intF);
   rr=derRow(ws,rr,D,'ANNDEP','Annual depreciation (€m)', `$B$${D.TCAPEX}/$B$${D.DEPY}`, numF);
   rr=derRow(ws,rr,D,'REPY',  'Debt amortisation period (yrs)', `MIN(${A('TENOR')},${A('B_LIFE')}-1)`, intF);
-  rr=derRow(ws,rr,D,'ANNPRIN','Annual principal (€m)', `${A('B_GEAR')}*$B$${D.TCAPEX}/$B$${D.REPY}`, numF);
+  rr=derRow(ws,rr,D,'ANNPRIN','Annual principal, flat (€m)', `${A('B_GEAR')}*$B$${D.TCAPEX}/$B$${D.REPY}`, numF);
+  rr=derRow(ws,rr,D,'ANNDS',  'Annual debt service, annuity (€m)', `PMT(${A('B_RATE')},$B$${D.REPY},-${A('B_GEAR')}*$B$${D.TCAPEX})`, numF,'level total payment');
 
   rr++; const Yrow=rr; yearHeader(ws,Yrow); const yr=X=>`${X}$${Yrow}`;
   rr++; rr=sect(ws,rr,'YEARLY MODEL');
@@ -320,7 +328,7 @@ function buildFullModel(ExcelJS, S){
   R.codf =tsRow(ws,rr++,'COD flag (y=COD)',Yrow,intF,X=>`(${yr(X)}=${A('B_COD')})`);
   R.intr =rr++; R.prin=rr++; R.bal=rr++; R.dep=rr++; R.ebt=rr++; R.nol=rr++; R.tax=rr++; R.fcfe=rr++; R.date=rr++; R.chk=rr++; R.diff=rr++; R.xcf=rr++;
   tsRow(ws,R.intr,'Interest (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>${A('B_COD')})*(${pX?pX+'$'+R.bal:'0'})*${A('B_RATE')}`);
-  tsRow(ws,R.prin,'Principal repay (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>${A('B_COD')})*(${yr(X)}<=${A('B_COD')}+$B$${D.REPY})*MIN((${pX?pX+'$'+R.bal:'0'}),$B$${D.ANNPRIN})`);
+  tsRow(ws,R.prin,'Principal repay (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>${A('B_COD')})*(${yr(X)}<=${A('B_COD')}+$B$${D.REPY})*MIN((${pX?pX+'$'+R.bal:'0'}),${A('AMORT')}*MAX(0,$B$${D.ANNDS}-${X}$${R.intr})+(1-${A('AMORT')})*$B$${D.ANNPRIN})`);
   tsRow(ws,R.bal,'Debt balance EOY (€m)',Yrow,numF,(X,pX)=>`${X}$${R.codf}*${A('B_GEAR')}*$B$${D.TCAPEX}+(${yr(X)}>${A('B_COD')})*MAX(0,(${pX?pX+'$'+R.bal:'0'})-${X}$${R.prin})`);
   tsRow(ws,R.dep,'Depreciation (€m)',Yrow,numF,X=>`(${yr(X)}>${A('B_COD')})*(${yr(X)}<=${A('B_COD')}+$B$${D.DEPY})*$B$${D.ANNDEP}`);
   tsRow(ws,R.ebt,'EBT (€m)',Yrow,numF,X=>`${X}$${R.rev}-${X}$${R.opex}-${X}$${R.dep}-${X}$${R.intr}`);
@@ -357,11 +365,12 @@ function buildFullModel(ExcelJS, S){
   ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
   const L={}, D={}, R={};
   let rr=4; rr=sect(ws,rr,'LOCAL ASSUMPTIONS (linked from Inputs, red)');
-  [['INFL','Inflation','per yr'],['TAXR','Tax rate',''],['GEAR','RES/line gearing',''],['TENOR','Debt tenor','yrs'],['RATE','RES/line debt rate',''],['PPAT','PPA term','yrs'],
+  [['INFL','Inflation','per yr'],['TAXR','Tax rate',''],['GEAR','RES/line gearing',''],['TENOR','Debt tenor','yrs'],['AMORT','Amortisation (1=annuity)',''],['RATE','RES/line debt rate',''],['PPAT','PPA term','yrs'],
    ['W_MW','Wind MW',''],['W_CAPEX','Wind capex','€m/MW'],['W_COD','Wind COD',''],['W_LIFE','Wind life','yrs'],['W_OPEX','Wind opex','€m/MW'],['W_PPA','Wind PPA','€/MWh'],['W_TAIL','Wind tail','€/MWh'],
    ['S_MW','Solar MW',''],['S_CAPEX','Solar capex','€m/MW'],['S_COD','Solar COD',''],['S_LIFE','Solar life','yrs'],['S_OPEX','Solar opex','€m/MW'],['S_PPA','Solar PPA','€/MWh'],['S_TAIL','Solar tail','€/MWh'],
    ['B_GEAR','Battery gearing',''],['B_RATE','Battery debt rate',''],['B_GY','Battery merchant year',''],['B_COD','Battery COD',''],['B_LIFE','Battery life','yrs'],['B_DEGR','Battery degradation',''],['B_COMP','Battery compression',''],['B_OPEXP','Battery opex %',''],
-   ['DC_MW','DC load','MW'],['DC_P','DC price','€/MWh'],['RES_P','Residual price','€/MWh'],['RES_M','BE margin',''],['FEE_E','NE3 energy fee','€/MWh'],['FEE_C','NE3 capacity fee','€/kW/yr'],['FEESC','Grid-fee esc.','per yr'],['RES_OWN','RES owned (1/0)',''],['LINE_C','Direct line','€m/100MW'],['SPV_FF','SPV first year','']
+   ['DC_MW','DC load','MW'],['DC_P','DC price','€/MWh'],['RES_P','Residual price','€/MWh'],['RES_M','BE margin',''],['FEE_E','NE3 energy fee','€/MWh'],['FEE_C','NE3 capacity fee','€/kW/yr'],['FEESC','Grid-fee esc.','per yr'],['RES_OWN','RES owned (1/0)',''],['LINE_C','Direct line','€m/100MW'],['DCAC','Solar DC/AC',''],
+   ['SPV_MODE','Pass-through (1/0)',''],['SPV_M','SPV margin','% of cost'],['MGN_MODE','Margin form (1=€/MWh)',''],['MGN_E','SPV margin','€/MWh'],['SPV_FF','SPV first year','']
   ].forEach(x=>{ rr=linkRow(ws,rr,L,x[0],x[1],x[2]); });
   const A=k=>`$B$${L[k]}`;
 
@@ -373,7 +382,7 @@ function buildFullModel(ExcelJS, S){
 
   rr++; rr=sect(ws,rr,'DERIVED (computed once)');
   rr=derRow(ws,rr,D,'RESCX', 'RES capex owned (€m)', `${A('RES_OWN')}*(${A('W_MW')}*${A('W_CAPEX')}+${A('S_MW')}*${A('S_CAPEX')})`, eurF);
-  rr=derRow(ws,rr,D,'LINECX','Line capex (€m)', `(${A('W_MW')}+${A('S_MW')})*${A('LINE_C')}/100`, eurF);
+  rr=derRow(ws,rr,D,'LINECX','Line capex (€m)', `(${A('W_MW')}+${A('S_MW')}/${A('DCAC')})*${A('LINE_C')}/100`, eurF,'export capacity: solar enters at AC');
   rr=derRow(ws,rr,D,'SPVCX', 'SPV total capex (€m)', `$B$${D.RESCX}+${BXL('TCAPEX')}+$B$${D.LINECX}`, eurF);
   rr=derRow(ws,rr,D,'SENDBT','Senior (RES+line) debt base (€m)', `${A('GEAR')}*($B$${D.RESCX}+$B$${D.LINECX})`, eurF);
   rr=derRow(ws,rr,D,'BATDBT','Battery debt base (€m)', `${A('B_GEAR')}*${BXL('TCAPEX')}`, eurF);
@@ -390,12 +399,13 @@ function buildFullModel(ExcelJS, S){
   rr=derRow(ws,rr,D,'DRAW2', 'Constr. draw @ FF-1 (€m)', `$B$${D.CAPFF1}*$B$${D.BGEAR}`, numF);
   rr=derRow(ws,rr,D,'IDC2',  'Constr. IDC year 2 (€m)', `($B$${D.BAL1}+$B$${D.DRAW2}/2)*$B$${D.BRATE}`, numF);
   rr=derRow(ws,rr,D,'DEBTFF','Debt drawn by SPV_FF (€m)', `$B$${D.BAL1}+$B$${D.DRAW2}+$B$${D.IDC2}`, numF);
-  rr=derRow(ws,rr,D,'ANNPRIN','Annual principal (€m)', `$B$${D.DEBTFF}/$B$${D.REPY}`, numF);
+  rr=derRow(ws,rr,D,'ANNPRIN','Annual principal, flat (€m)', `$B$${D.DEBTFF}/$B$${D.REPY}`, numF);
+  rr=derRow(ws,rr,D,'ANNDS',  'Annual debt service, annuity (€m)', `PMT($B$${D.BRATE},$B$${D.REPY},-$B$${D.DEBTFF})`, numF,'level total payment');
 
   rr++; const Yrow=rr; yearHeader(ws,Yrow); const yr=X=>`${X}$${Yrow}`;
   rr++; rr=sect(ws,rr,'YEARLY MODEL');
   R.op   =tsRow(ws,rr++,'Operating flag (FF≤y<FF+RESlife)',Yrow,intF,X=>`(${yr(X)}>=${A('SPV_FF')})*(${yr(X)}<${A('SPV_FF')}+$B$${D.RESLIFE})`);
-  R.dcrev=tsRow(ws,rr++,'DC revenue (€m)',Yrow,numF,X=>`${X}$${R.op}*${A('DC_MW')}*8760*${A('DC_P')}*(1+${A('INFL')})^(${yr(X)}-2026)/10^6`);
+  R.dcrev=rr++; // filled below, once the pass-through cost base exists
   // battery revenue (mirror Battery sheet, referenced via battery links)
   R.bmf  =tsRow(ws,rr++,'Battery merchant flag',Yrow,intF,X=>`(${yr(X)}>=${A('B_GY')})*(${yr(X)}<${A('B_COD')}+${A('B_LIFE')})`);
   R.bcf  =tsRow(ws,rr++,'Battery op flag (y>COD)',Yrow,intF,X=>`(${yr(X)}>${A('B_COD')})*(${yr(X)}<${A('B_COD')}+${A('B_LIFE')})`);
@@ -414,6 +424,11 @@ function buildFullModel(ExcelJS, S){
   R.wpr  =tsRow(ws,rr++,'Wind price to SPV (€/MWh)',Yrow,eurF,X=>`${X}$${R.wpf}*${A('W_PPA')}+(1-${X}$${R.wpf})*${A('W_TAIL')}`);
   R.spr  =tsRow(ws,rr++,'Solar price to SPV (€/MWh)',Yrow,eurF,X=>`${X}$${R.spf}*${A('S_PPA')}+(1-${X}$${R.spf})*${A('S_TAIL')}`);
   R.resppa=tsRow(ws,rr++,'RES bought at PPA (€m, mode=0)',Yrow,numF,X=>`${X}$${R.op}*(1-${A('RES_OWN')})*(${X}$${R.wpr}*${X}$${R.wprod}+${X}$${R.spr}*${X}$${R.sprod})/10^6`);
+  R.resown=tsRow(ws,rr++,'RES billed at own LCOE (€m, mode=1)',Yrow,numF,X=>`${X}$${R.op}*${A('RES_OWN')}*(${windRef.lcoe}*${X}$${R.wprod}+${solarRef.lcoe}*${X}$${R.sprod})/10^6`);
+  R.pasee=tsRow(ws,rr++,'Pass-through energy base (€m)',Yrow,numF,X=>`${X}$${R.resppa}+${X}$${R.resown}+${X}$${R.resec}`);
+  R.mgn  =tsRow(ws,rr++,'SPV margin (€m)',Yrow,numF,X=>`${X}$${R.op}*(${A('MGN_MODE')}*${A('DC_MW')}*8760*${A('MGN_E')}*(1+${A('INFL')})^(${yr(X)}-2026)/10^6+(1-${A('MGN_MODE')})*${X}$${R.pasee}*${A('SPV_M')})`);
+  // Pass-through: energy at cost + regulated network charge at cost + the margin. Fixed: a flat €/MWh.
+  tsRow(ws,R.dcrev,'DC revenue (€m)',Yrow,numF,X=>`${X}$${R.op}*(${A('SPV_MODE')}*(${X}$${R.pasee}+${X}$${R.rescc}+${X}$${R.mgn})+(1-${A('SPV_MODE')})*${A('DC_MW')}*8760*${A('DC_P')}*(1+${A('INFL')})^(${yr(X)}-2026)/10^6)`);
   R.cpi  =tsRow(ws,rr++,'CPI index vs 2023',Yrow,'0.0000',X=>`(1+${A('INFL')})^(${yr(X)}-2023)`);
   R.resox=tsRow(ws,rr++,'RES opex owned (€m)',Yrow,numF,X=>`${X}$${R.op}*${A('RES_OWN')}*(${A('W_OPEX')}*${A('W_MW')}+${A('S_OPEX')}*${A('S_MW')})*${X}$${R.cpi}`);
   R.batox=tsRow(ws,rr++,'Battery cell opex (€m)',Yrow,numF,X=>`${X}$${R.op}*${BXL('CELLCX')}*${A('B_OPEXP')}*${X}$${R.cpi}`);
@@ -427,7 +442,7 @@ function buildFullModel(ExcelJS, S){
   R.idc=rr++; R.intr=rr++; R.prin=rr++; R.bal=rr++; R.dep=rr++; R.ebt=rr++; R.nol=rr++; R.tax=rr++; R.fcfe=rr++; R.date=rr++; R.xcf=rr++;
   tsRow(ws,R.idc,'IDC — constr. interest (€m)',Yrow,numF,(X,pX)=>`${X}$${R.cflag}*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}/2)*$B$${D.BRATE}`);
   tsRow(ws,R.intr,'Interest (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A('SPV_FF')})*(${pX?pX+'$'+R.bal:'0'})*$B$${D.BRATE}`);
-  tsRow(ws,R.prin,'Principal repay (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A('SPV_FF')})*(${yr(X)}<${A('SPV_FF')}+$B$${D.REPY})*MIN((${pX?pX+'$'+R.bal:'0'}),$B$${D.ANNPRIN})`);
+  tsRow(ws,R.prin,'Principal repay (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A('SPV_FF')})*(${yr(X)}<${A('SPV_FF')}+$B$${D.REPY})*MIN((${pX?pX+'$'+R.bal:'0'}),${A('AMORT')}*MAX(0,$B$${D.ANNDS}-${X}$${R.intr})+(1-${A('AMORT')})*$B$${D.ANNPRIN})`);
   tsRow(ws,R.bal,'Debt balance EOY (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}<${A('SPV_FF')})*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}+${X}$${R.idc})+(${yr(X)}>=${A('SPV_FF')})*MAX(0,(${pX?pX+'$'+R.bal:'0'})-${X}$${R.prin})`);
   tsRow(ws,R.dep,'Depreciation (€m)',Yrow,numF,X=>`(${yr(X)}>=${A('SPV_FF')})*(${yr(X)}<${A('SPV_FF')}+$B$${D.DEPY})*$B$${D.ANNDEP}`);
   tsRow(ws,R.ebt,'EBT (€m)',Yrow,numF,X=>`${X}$${R.ebit}-${X}$${R.dep}-${X}$${R.intr}`);
