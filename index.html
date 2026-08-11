@@ -1162,8 +1162,11 @@ const M={
  wind:{on:true,mw:320,capexPerMW:1.45,grossCF:0.290636,loss:0.02,lineLoss:0.045,opexPerMW:0.04,gridFee:0,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2029},
  solar:{on:true,mw:357,capexPerMW:0.60,grossCF:0.1566,loss:0.02,lineLoss:0.033,opexPerMW:0.032,gridFee:0,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2030},
  battery:{on:true,powerMW:500,durationH:8,capexPerKWh:130,rte:0.87,opexPct:0.02,degr:0.015,socFloor:0.10,gridYear:2035,priceYear:'2025',captureFactor:1.0,cyclesDay:1,ancPerMW:20,capChargeMWyr:40,mktCapFee:false,compression:0.02,gearing:0.60,debtRate:0.05,substation:24.25,interconnect:17,gridCapFee:0,gridEnergyFee:0,btmCharge:0,lifeY:25}, // defaults: 8h · behind-the-meter charging via direct line → grid fees 0 (sliders remain) · DC reliability charge 40 k€/MW/yr
- dc:{curtail:0,firmMW:500,dcPrice:120,spvMode:'pass',spvMargin:0.03,marginMode:'pct',marginEur:3.5,srcMode:'fixed',resFix:99,beMargin:0.03,gridEnergyFee:8.4,gridCapFeeKW:42.84,feeEsc:0.04,resMode:'ppa'}, // feeEsc: BE Trading 14-Jul-26 tariff path = ~4%/yr from 2028 (Arbeitspreis 8.4→18.4, Leistungspreis 42.84→93.87 k€/MW by 2048)
- conn:{directPer100:7.54,dcac:1.20,clip:true,lineBasis:'vdr7'} // private tie-lines €m per 100 MW. Back to the VDR #7 cable-plough variant on the 10 Aug call: it is the only written number. BE's 23-Jul €70m lump (10.34/100MW, 110 kV) is the alternative and is one click away. NEB Netzzutritt & customer DC connection live as battery.substation / battery.interconnect
+ dc:{curtail:0,firmMW:500,dcPrice:120,spvMode:'pass',spvMargin:0.03,marginMode:'pct',marginEur:3.5,
+   revPerMW:5.00,powerPass:true,claimShare:0.40,firmTermY:3,   // DC revenue EUR m per MW of connection a year; powerPass = the campus bills power on to its tenant
+srcMode:'fixed',resFix:99,beMargin:0.03,gridEnergyFee:8.4,gridCapFeeKW:42.84,feeEsc:0.04,resMode:'ppa'}, // feeEsc: BE Trading 14-Jul-26 tariff path = ~4%/yr from 2028 (Arbeitspreis 8.4→18.4, Leistungspreis 42.84→93.87 k€/MW by 2048)
+ site:{leasePre:1.0,leasePost:5.0,partPct:0.05,partCapM:0,oneOff:100.0,leaseY:20,on:true}, // leasePost = our own July record of a ~EUR 100m upfront, spread over the 20-year term // land bucket. partPct 5% is our own July record, the pre-LOI ask; partCapM 0 = uncapped
+ conn:{directPer100:7.54,dcac:1.20,clip:true,lineBasis:'vdr7',wideInfra:0} // private tie-lines €m per 100 MW. Back to the VDR #7 cable-plough variant on the 10 Aug call: it is the only written number. BE's 23-Jul €70m lump (10.34/100MW, 110 kV) is the alternative and is one click away. NEB Netzzutritt & customer DC connection live as battery.substation / battery.interconnect
 };
 const DEFAULTS_JSON=JSON.stringify(M);
 const Y0=2026,YN=2070,COD=2028,FF=2029,DEPRY=20;
@@ -1532,22 +1535,17 @@ function assetPage(sec){
   ${kpiM([['Installed',fmt(a.mw,0),unit],['Production yr1',fmt(R.prod/1000,0),'GWh']],col)}
   ${kpiM([['Total capex','€'+fmt(R.totalCapex,0),'m'],['Equity','€'+fmt(R.equity,0),'m'],['Debt','€'+fmt(R.debt,0),'m ('+pct(M.macro.gearing,0)+')']])}
   ${kpiM([['Yield',fmt(R.prod/a.mw,0),isWind?'MWh/MW<sub>AC</sub>':'MWh/MWp'],['Capacity factor',pct(effCFc(a),1),a.basis==='model'?'net, from the meters':'net, assumed']])}
-  ${kpiM([['Equity IRR',fmt(R.irr*100,1),'%'],['MOIC',fmt(R.moic,1),'x'],['LCOE',fmt(R.lcoe,0),'€/MWh']],col)}</div>
-  <p class="pgNote"><b>LCOE €${fmt(R.lcoe,0)}/MWh</b> is the discounted definition: the present value of capex plus opex over the present value of energy, both taken to first generation at the ${pct(M.macro.allInRate,1)} all-in rate, nominal and before tax and financing. Escalating opex and ${pct(a.degr,2)} a year of degradation are inside it, which the older shortcut of one annuity plus year-one opex left out; that version reads €${fmt(R.lcoeSimple,0)}.
-  Debt drawn by first generation is <b>€${fmt(R.debtAtCod,0)}m</b>, not the €${fmt(R.debt,0)}m the ${pct(M.macro.gearing,0)} gearing slider implies, because €${fmt(R.idc,1)}m of construction interest is capitalised. Effective gearing on the funded total is <b>${pct(R.gearEff,1)}</b>.</p>`;
+  ${kpiM([['Equity IRR',fmt(R.irr*100,1),'%'],['MOIC',fmt(R.moic,1),'x'],['LCOE',fmt(R.lcoe,0),'€/MWh']],col)}</div>`;
  const view=assetView[sec];
  const HEADS={
-  wind:{t:`${fmt(a.mw,0)} MW of wind, wired straight to the campus.`,
-        l:`Burgenland Energie's direct-line portfolio, weighted ${fmt(projStats().wKm,1)} km from Nickelsdorf. Every slider on this page moves the model live, and the yield bridge on the technical layout compares it against three years of their operating meters.`},
-  solar:{t:`${fmt(a.mw,0)} MWp of solar, and the model's biggest open question.`,
-        l:`Trackers and agri-PV across ${fmt(projStats().sMW,0)} MWp, weighted ${fmt(projStats().sKm,1)} km out. The yield assumption sits well above what the metered fixed-tilt arrays record, which the technical layout sets out in full.`}};
+  wind:{t:`${fmt(a.mw,0)} MW of wind, wired straight to the campus.`,l:''},
+  solar:{t:`${fmt(a.mw,0)} MWp of solar, wired straight to the campus.`,l:''}};
  const seg=pageHead(isWind?'Wind':'Solar',HEADS[sec].t,HEADS[sec].l,assetSeg(sec,true));
  if(view==='map'){setTimeout(drawMap,0);
-  return seg+mapBaseBar()+`<div class="chart sq" id="c_map"></div>
-   <div class="info" style="margin-top:12px">Project geography for the direct-line perimeter. Distances drive the line-loss assumption carried on the Financial model tab.</div>`;}
- if(view==='tech')return seg+bridgePanel(sec)+(sec==='solar'?afryPanel()+dcacPanel():'')+exceedPanel(sec)+renderBlock(sec);
+  return seg+mapBaseBar()+`<div class="chart sq" id="c_map"></div>`;}
+ if(view==='tech')return seg+bridgePanel(sec)+renderBlock(sec);
  setTimeout(()=>{drawAssetCharts(R,col);},0);
- return seg+kpis+provNote+clipNote+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr 1fr">
+ return seg+kpis+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr 1fr">
    <div class="chart" id="c_prod"></div><div class="chart" id="c_pl"></div>
    <div class="chart" id="c_fin"></div><div class="chart" id="c_debt"></div>
    <div class="chart" id="c_eq"></div><div class="chart" id="c_sens"></div></div>${inputsR}</div>`;
@@ -1645,7 +1643,7 @@ function drawMap(){
  Plotly.react('c_map',
   [routes('wind'),routes('solar'),feed,trunk,
    plants('wind'),core('wind'),plants('solar'),core('solar')].concat(bat,subs,dcm),
-  Object.assign(lay('Dedicated RES projects · BE list 10 Jul 2026<br><span style="font-size:10px">marker size = capacity · ringed markers are substations, the campus and the battery · lines are schematic direct-line routes, not surveyed · hover for detail</span>',
+  Object.assign(lay('The parks that feed the campus, and the lines that get the power there<br><span style="font-size:10px">each circle is a wind or solar park, sized by capacity · ringed markers are the substations, the campus and the battery · hover any of them for detail</span>',
    {showlegend:true,legend:{orientation:'h',y:-0.04,yanchor:'top',x:0.5,xanchor:'center',font:{size:10}}}),
   {map:{style:BASEMAPS[mapBase].style,center:{lat:47.872,lon:17.00},zoom:9.9},hovermode:'closest',
    margin:{l:8,r:8,t:76,b:46}}),CFG);
@@ -1749,6 +1747,8 @@ function drawSensitivity(R,col){
    real Austrian curve. Sell-side volumes only, so it compares like for like with the requirement.
 ---------------------------------------------------------------------------------------------- */
 const SPREAD={"byDur":[{"h":2,"last":{"days":366,"soldGWh":569.0,"boughtGWh":654.0,"buy":58.0,"sell":130.8,"spread":72.8,"req":34.0,"fixed":25.3,"loss":8.7,"margin":38.8,"grossM":36.5,"fixedM":14.4,"netM":22.1,"cycles":1.73,"capex":171.0,"eurMWyr":72942},"all":{"days":4206,"soldGWh":540.0,"boughtGWh":621.0,"buy":53.8,"sell":96.2,"spread":42.4,"req":34.7,"fixed":26.6,"loss":8.0,"margin":7.7,"grossM":18.6,"fixedM":14.4,"netM":4.2,"cycles":1.64,"capex":171.0,"eurMWyr":37123}},{"h":4,"last":{"days":366,"soldGWh":937.0,"boughtGWh":1077.0,"buy":65.1,"sell":140.6,"spread":75.5,"req":37.4,"fixed":27.7,"loss":9.7,"margin":38.1,"grossM":61.6,"fixedM":25.9,"netM":35.7,"cycles":1.43,"capex":301.0,"eurMWyr":123198},"all":{"days":4206,"soldGWh":932.0,"boughtGWh":1071.0,"buy":57.2,"sell":99.0,"spread":41.8,"req":36.4,"fixed":27.8,"loss":8.5,"margin":5.4,"grossM":31.0,"fixedM":25.9,"netM":5.0,"cycles":1.42,"capex":301.0,"eurMWyr":61956}},{"h":6,"last":{"days":366,"soldGWh":1215.0,"boughtGWh":1397.0,"buy":67.2,"sell":140.8,"spread":73.5,"req":40.9,"fixed":30.9,"loss":10.0,"margin":32.6,"grossM":77.1,"fixedM":37.5,"netM":39.7,"cycles":1.23,"capex":431.0,"eurMWyr":154292},"all":{"days":4206,"soldGWh":1200.0,"boughtGWh":1380.0,"buy":58.2,"sell":98.8,"spread":40.6,"req":39.9,"fixed":31.2,"loss":8.7,"margin":0.6,"grossM":38.2,"fixedM":37.5,"netM":0.8,"cycles":1.22,"capex":431.0,"eurMWyr":76489}},{"h":8,"last":{"days":366,"soldGWh":1367.0,"boughtGWh":1571.0,"buy":68.0,"sell":138.5,"spread":70.6,"req":46.0,"fixed":35.9,"loss":10.2,"margin":24.5,"grossM":82.6,"fixedM":49.0,"netM":33.5,"cycles":1.04,"capex":561.0,"eurMWyr":165112},"all":{"days":4206,"soldGWh":1309.0,"boughtGWh":1505.0,"buy":58.4,"sell":97.9,"spread":39.5,"req":46.2,"fixed":37.4,"loss":8.7,"margin":-6.7,"grossM":40.3,"fixedM":49.0,"netM":-8.7,"cycles":1.0,"capex":561.0,"eurMWyr":80586}}],"byYear":[{"days":365,"soldGWh":1373.0,"boughtGWh":1578.0,"buy":23.5,"sell":40.9,"spread":17.4,"req":39.2,"fixed":35.7,"loss":3.5,"margin":-21.8,"grossM":19.1,"fixedM":49.0,"netM":-30.0,"cycles":1.04,"capex":561.0,"eurMWyr":38136,"y":2015,"partial":false},{"days":366,"soldGWh":1341.0,"boughtGWh":1541.0,"buy":21.6,"sell":36.3,"spread":14.7,"req":39.8,"fixed":36.6,"loss":3.2,"margin":-25.1,"grossM":15.3,"fixedM":49.0,"netM":-33.7,"cycles":1.02,"capex":561.0,"eurMWyr":30650,"y":2016,"partial":false},{"days":365,"soldGWh":1357.0,"boughtGWh":1560.0,"buy":24.2,"sell":42.7,"spread":18.4,"req":39.8,"fixed":36.1,"loss":3.6,"margin":-21.3,"grossM":20.1,"fixedM":49.0,"netM":-28.9,"cycles":1.03,"capex":561.0,"eurMWyr":40215,"y":2017,"partial":false},{"days":365,"soldGWh":1075.0,"boughtGWh":1235.0,"buy":33.0,"sell":47.2,"spread":14.2,"req":50.6,"fixed":45.6,"loss":4.9,"margin":-36.4,"grossM":10.0,"fixedM":49.0,"netM":-39.1,"cycles":0.82,"capex":561.0,"eurMWyr":19903,"y":2018,"partial":false},{"days":365,"soldGWh":1239.0,"boughtGWh":1424.0,"buy":31.4,"sell":48.0,"spread":16.6,"req":44.3,"fixed":39.6,"loss":4.7,"margin":-27.7,"grossM":14.7,"fixedM":49.0,"netM":-34.3,"cycles":0.94,"capex":561.0,"eurMWyr":29449,"y":2019,"partial":false},{"days":366,"soldGWh":1305.0,"boughtGWh":1500.0,"buy":24.1,"sell":40.1,"spread":16.0,"req":41.2,"fixed":37.6,"loss":3.6,"margin":-25.2,"grossM":16.2,"fixedM":49.0,"netM":-32.9,"cycles":0.99,"capex":561.0,"eurMWyr":32339,"y":2020,"partial":false},{"days":365,"soldGWh":1254.0,"boughtGWh":1442.0,"buy":82.6,"sell":126.9,"spread":44.3,"req":51.4,"fixed":39.1,"loss":12.3,"margin":-7.1,"grossM":40.1,"fixedM":49.0,"netM":-8.9,"cycles":0.95,"capex":561.0,"eurMWyr":80200,"y":2021,"partial":false},{"days":365,"soldGWh":1217.0,"boughtGWh":1399.0,"buy":208.1,"sell":308.5,"spread":100.4,"req":71.4,"fixed":40.3,"loss":31.1,"margin":29.0,"grossM":84.3,"fixedM":49.0,"netM":35.3,"cycles":0.93,"capex":561.0,"eurMWyr":168699,"y":2022,"partial":false},{"days":365,"soldGWh":1375.0,"boughtGWh":1580.0,"buy":75.8,"sell":125.6,"spread":49.7,"req":47.0,"fixed":35.7,"loss":11.3,"margin":2.7,"grossM":52.8,"fixedM":49.0,"netM":3.8,"cycles":1.05,"capex":561.0,"eurMWyr":105587,"y":2023,"partial":false},{"days":366,"soldGWh":1441.0,"boughtGWh":1656.0,"buy":55.7,"sell":107.6,"spread":51.9,"req":42.3,"fixed":34.0,"loss":8.3,"margin":9.5,"grossM":62.7,"fixedM":49.0,"netM":13.7,"cycles":1.1,"capex":561.0,"eurMWyr":125493,"y":2024,"partial":false},{"days":365,"soldGWh":1407.0,"boughtGWh":1617.0,"buy":66.7,"sell":132.2,"spread":65.4,"req":44.8,"fixed":34.8,"loss":10.0,"margin":20.6,"grossM":78.0,"fixedM":49.0,"netM":29.0,"cycles":1.07,"capex":561.0,"eurMWyr":156041,"y":2025,"partial":false},{"days":188,"soldGWh":1349.0,"boughtGWh":1550.0,"buy":65.4,"sell":148.2,"spread":82.8,"req":46.1,"fixed":36.4,"loss":9.8,"margin":36.6,"grossM":98.4,"fixedM":49.0,"netM":49.4,"cycles":1.03,"capex":561.0,"eurMWyr":196842,"y":2026,"partial":true}],"levers":[{"k":"Throughput","u":"GWh sold","lo":820200.0,"hi":1913799.9999999998,"reqLo":69.9,"reqHi":35.8,"swing":34.2},{"k":"Capex","u":"EUR/kWh","lo":80,"hi":200,"reqLo":33.0,"reqHi":64.2,"swing":31.2},{"k":"Discount rate","u":"%","lo":0.03,"hi":0.08,"reqLo":41.3,"reqHi":56.2,"swing":14.9},{"k":"Useful life","u":"yr","lo":15,"hi":30,"reqLo":56.5,"reqHi":43.6,"swing":13.0},{"k":"Round trip","u":"%","lo":0.8,"hi":0.93,"reqLo":52.9,"reqHi":41.0,"swing":11.9},{"k":"Opex","u":"% of capex","lo":0.01,"hi":0.04,"reqLo":42.2,"reqHi":53.6,"swing":11.4}],"base":46.0,"rte":0.87,"meta":{"source":"Ember European wholesale electricity prices, Austria hourly day-ahead","from":"2015-01-01","to":"2026-07-07","rte":0.87,"floor":0.1,"method":"Price taker, perfect foresight inside each day, state of charge empty at both ends of every day, no degradation charge, no intraday or balancing revenue. The optimiser runs on the tradeable ninety per cent of the pack; the capital charge sits on all of it. Buy and sell prices are volume weighted from the optimiser's own trades."},"formula":"required spread = fixed cost per MWh sold + buy price x (1/RTE - 1)"};
+SPREAD.byDurYear={"2":[{"y":2015,"days":365,"partial":false,"soldGWh":531.2,"buy":21.6,"sell":40.6,"spread":19.0,"fixed":27.1,"loss":3.2,"req":30.3,"margin":-11.3,"grossM":8.4,"netM":-6.0},{"y":2016,"days":366,"partial":false,"soldGWh":528.5,"buy":19.6,"sell":35.2,"spread":15.6,"fixed":27.2,"loss":2.9,"req":30.1,"margin":-14.5,"grossM":6.7,"netM":-7.7},{"y":2017,"days":365,"partial":false,"soldGWh":550.3,"buy":20.5,"sell":39.1,"spread":18.6,"fixed":26.2,"loss":3.1,"req":29.3,"margin":-10.7,"grossM":8.6,"netM":-5.8},{"y":2018,"days":365,"partial":false,"soldGWh":427.2,"buy":30.5,"sell":45.5,"spread":15.0,"fixed":33.7,"loss":4.6,"req":38.3,"margin":-23.3,"grossM":4.5,"netM":-9.9},{"y":2019,"days":365,"partial":false,"soldGWh":468.5,"buy":30.5,"sell":48.6,"spread":18.1,"fixed":30.7,"loss":4.6,"req":35.3,"margin":-17.2,"grossM":6.3,"netM":-8.1},{"y":2020,"days":366,"partial":false,"soldGWh":502.8,"buy":22.2,"sell":39.7,"spread":17.5,"fixed":28.6,"loss":3.3,"req":31.9,"margin":-14.4,"grossM":7.1,"netM":-7.3},{"y":2021,"days":365,"partial":false,"soldGWh":474.8,"buy":78.1,"sell":126.2,"spread":48.1,"fixed":30.3,"loss":11.7,"req":42.0,"margin":6.1,"grossM":17.3,"netM":2.9},{"y":2022,"days":365,"partial":false,"soldGWh":464.9,"buy":204.3,"sell":317.0,"spread":112.7,"fixed":31.0,"loss":30.5,"req":61.5,"margin":51.2,"grossM":38.2,"netM":23.8},{"y":2023,"days":365,"partial":false,"soldGWh":519.2,"buy":70.7,"sell":127.2,"spread":56.5,"fixed":27.7,"loss":10.6,"req":38.3,"margin":18.2,"grossM":23.8,"netM":9.4},{"y":2024,"days":366,"partial":false,"soldGWh":573.1,"buy":48.2,"sell":104.1,"spread":55.9,"fixed":25.1,"loss":7.2,"req":32.3,"margin":23.6,"grossM":27.9,"netM":13.5},{"y":2025,"days":365,"partial":false,"soldGWh":583.1,"buy":56.0,"sell":122.6,"spread":66.6,"fixed":24.7,"loss":8.4,"req":33.1,"margin":33.5,"grossM":34.0,"netM":19.6},{"y":2026,"days":188,"partial":true,"soldGWh":568.4,"buy":49.5,"sell":126.5,"spread":77.0,"fixed":25.3,"loss":7.4,"req":32.7,"margin":44.3,"grossM":39.6,"netM":25.2}],"4":[{"y":2015,"days":365,"partial":false,"soldGWh":926.8,"buy":22.9,"sell":41.6,"spread":18.7,"fixed":27.9,"loss":3.4,"req":31.3,"margin":-12.6,"grossM":14.2,"netM":-11.7},{"y":2016,"days":366,"partial":false,"soldGWh":928.1,"buy":20.9,"sell":36.2,"spread":15.3,"fixed":27.9,"loss":3.1,"req":31.0,"margin":-15.7,"grossM":11.3,"netM":-14.6},{"y":2017,"days":365,"partial":false,"soldGWh":938.6,"buy":22.9,"sell":41.8,"spread":18.9,"fixed":27.6,"loss":3.4,"req":31.0,"margin":-12.1,"grossM":14.5,"netM":-11.4},{"y":2018,"days":365,"partial":false,"soldGWh":750.1,"buy":32.3,"sell":47.0,"spread":14.7,"fixed":34.5,"loss":4.8,"req":39.3,"margin":-24.6,"grossM":7.4,"netM":-18.5},{"y":2019,"days":365,"partial":false,"soldGWh":838.6,"buy":30.8,"sell":48.5,"spread":17.7,"fixed":30.9,"loss":4.6,"req":35.5,"margin":-17.8,"grossM":11.0,"netM":-14.9},{"y":2020,"days":366,"partial":false,"soldGWh":885.6,"buy":23.5,"sell":40.6,"spread":17.1,"fixed":29.2,"loss":3.5,"req":32.7,"margin":-15.6,"grossM":12.0,"netM":-13.9},{"y":2021,"days":365,"partial":false,"soldGWh":858.4,"buy":79.3,"sell":125.6,"spread":46.3,"fixed":30.2,"loss":11.8,"req":42.0,"margin":4.3,"grossM":29.6,"netM":3.7},{"y":2022,"days":365,"partial":false,"soldGWh":843.0,"buy":206.3,"sell":313.5,"spread":107.2,"fixed":30.7,"loss":30.8,"req":61.5,"margin":45.7,"grossM":64.4,"netM":38.5},{"y":2023,"days":365,"partial":false,"soldGWh":940.5,"buy":74.9,"sell":129.0,"spread":54.1,"fixed":27.5,"loss":11.2,"req":38.7,"margin":15.4,"grossM":40.4,"netM":14.5},{"y":2024,"days":366,"partial":false,"soldGWh":986.2,"buy":53.8,"sell":109.7,"spread":55.9,"fixed":26.3,"loss":8.0,"req":34.3,"margin":21.6,"grossM":47.2,"netM":21.3},{"y":2025,"days":365,"partial":false,"soldGWh":959.9,"buy":65.0,"sell":134.6,"spread":69.6,"fixed":27.0,"loss":9.7,"req":36.7,"margin":32.9,"grossM":57.5,"netM":31.6},{"y":2026,"days":188,"partial":true,"soldGWh":898.2,"buy":60.4,"sell":146.7,"spread":86.3,"fixed":28.8,"loss":9.0,"req":37.8,"margin":48.5,"grossM":69.4,"netM":43.5}],"6":[{"y":2015,"days":365,"partial":false,"soldGWh":1210.2,"buy":23.2,"sell":41.3,"spread":18.1,"fixed":31.0,"loss":3.5,"req":34.5,"margin":-16.4,"grossM":17.7,"netM":-19.8},{"y":2016,"days":366,"partial":false,"soldGWh":1193.9,"buy":21.3,"sell":36.4,"spread":15.1,"fixed":31.4,"loss":3.2,"req":34.6,"margin":-19.5,"grossM":14.2,"netM":-23.3},{"y":2017,"days":365,"partial":false,"soldGWh":1209.1,"buy":23.6,"sell":42.4,"spread":18.8,"fixed":31.0,"loss":3.5,"req":34.5,"margin":-15.7,"grossM":18.5,"netM":-19.0},{"y":2018,"days":365,"partial":false,"soldGWh":977.3,"buy":32.9,"sell":47.3,"spread":14.4,"fixed":38.4,"loss":4.9,"req":43.3,"margin":-28.9,"grossM":9.3,"netM":-28.2},{"y":2019,"days":365,"partial":false,"soldGWh":1103.2,"buy":31.0,"sell":48.2,"spread":17.2,"fixed":34.0,"loss":4.6,"req":38.6,"margin":-21.4,"grossM":13.9,"netM":-23.6},{"y":2020,"days":366,"partial":false,"soldGWh":1156.4,"buy":23.8,"sell":40.3,"spread":16.5,"fixed":32.4,"loss":3.6,"req":36.0,"margin":-19.5,"grossM":15.0,"netM":-22.5},{"y":2021,"days":365,"partial":false,"soldGWh":1123.9,"buy":80.5,"sell":125.8,"spread":45.3,"fixed":33.4,"loss":12.0,"req":45.4,"margin":-0.1,"grossM":37.4,"netM":-0.1},{"y":2022,"days":365,"partial":false,"soldGWh":1097.9,"buy":208.3,"sell":311.9,"spread":103.6,"fixed":34.2,"loss":31.1,"req":65.3,"margin":38.3,"grossM":79.6,"netM":42.1},{"y":2023,"days":365,"partial":false,"soldGWh":1226.5,"buy":75.6,"sell":127.3,"spread":51.7,"fixed":30.6,"loss":11.3,"req":41.9,"margin":9.8,"grossM":49.6,"netM":12.1},{"y":2024,"days":366,"partial":false,"soldGWh":1268.7,"buy":55.2,"sell":109.5,"spread":54.3,"fixed":29.6,"loss":8.2,"req":37.8,"margin":16.5,"grossM":58.4,"netM":20.9},{"y":2025,"days":365,"partial":false,"soldGWh":1230.0,"buy":66.9,"sell":135.2,"spread":68.3,"fixed":30.5,"loss":10.0,"req":40.5,"margin":27.8,"grossM":71.7,"netM":34.2},{"y":2026,"days":188,"partial":true,"soldGWh":1155.0,"buy":63.1,"sell":150.3,"spread":87.2,"fixed":32.5,"loss":9.4,"req":41.9,"margin":45.3,"grossM":89.8,"netM":52.3}],"8":[{"y":2015,"days":365,"partial":false,"soldGWh":1373.0,"buy":23.5,"sell":41.0,"spread":17.5,"fixed":35.7,"loss":3.5,"req":39.2,"margin":-21.7,"grossM":19.2,"netM":-29.8},{"y":2016,"days":366,"partial":false,"soldGWh":1341.0,"buy":21.6,"sell":36.3,"spread":14.7,"fixed":36.5,"loss":3.2,"req":39.7,"margin":-25.0,"grossM":15.4,"netM":-33.6},{"y":2017,"days":365,"partial":false,"soldGWh":1357.0,"buy":24.3,"sell":42.7,"spread":18.4,"fixed":36.1,"loss":3.6,"req":39.7,"margin":-21.3,"grossM":20.0,"netM":-29.0},{"y":2018,"days":365,"partial":false,"soldGWh":1075.0,"buy":33.1,"sell":47.3,"spread":14.2,"fixed":45.6,"loss":4.9,"req":50.5,"margin":-36.3,"grossM":9.9,"netM":-39.1},{"y":2019,"days":365,"partial":false,"soldGWh":1239.0,"buy":31.4,"sell":48.0,"spread":16.6,"fixed":39.5,"loss":4.7,"req":44.2,"margin":-27.6,"grossM":14.8,"netM":-34.2},{"y":2020,"days":366,"partial":false,"soldGWh":1305.0,"buy":24.1,"sell":40.2,"spread":16.1,"fixed":37.5,"loss":3.6,"req":41.1,"margin":-25.0,"grossM":16.3,"netM":-32.7},{"y":2021,"days":365,"partial":false,"soldGWh":1254.0,"buy":82.6,"sell":127.1,"spread":44.5,"fixed":39.1,"loss":12.3,"req":51.4,"margin":-6.9,"grossM":40.3,"netM":-8.7},{"y":2022,"days":365,"partial":false,"soldGWh":1217.0,"buy":208.3,"sell":309.1,"spread":100.8,"fixed":40.3,"loss":31.1,"req":71.4,"margin":29.4,"grossM":84.8,"netM":35.8},{"y":2023,"days":365,"partial":false,"soldGWh":1375.0,"buy":76.0,"sell":125.9,"spread":49.9,"fixed":35.6,"loss":11.4,"req":47.0,"margin":2.9,"grossM":53.0,"netM":4.0},{"y":2024,"days":366,"partial":false,"soldGWh":1441.0,"buy":55.7,"sell":108.0,"spread":52.3,"fixed":34.0,"loss":8.3,"req":42.3,"margin":10.0,"grossM":63.4,"netM":14.4},{"y":2025,"days":365,"partial":false,"soldGWh":1407.0,"buy":66.9,"sell":132.9,"spread":66.0,"fixed":34.8,"loss":10.0,"req":44.8,"margin":21.2,"grossM":78.8,"netM":29.8},{"y":2026,"days":188,"partial":true,"soldGWh":1349.0,"buy":65.3,"sell":149.2,"spread":83.9,"fixed":36.3,"loss":9.8,"req":46.1,"margin":37.8,"grossM":100.0,"netM":51.0}]};
+function spreadDur(){let best=8;for(const h of [2,4,6,8])if(Math.abs(h-M.battery.durationH)<Math.abs(best-M.battery.durationH))best=h;return best;}
 
 /* The live calculator. Same algebra as the backtest, wired to the sliders, and it reconciles with
    the table underneath because both take their throughput and their prices from the optimiser
@@ -1779,117 +1779,35 @@ function spreadCalc(){
 }
 
 function spreadPanel(){
- const b=M.battery, C=spreadCalc(), D=SPREAD.byDur, Y=SPREAD.byYear;
+ const b=M.battery, C=spreadCalc(), K=concOf();
+ const Y=SPREAD.byDurYear[String(spreadDur())]||SPREAD.byDurYear['8'];
  const ok=C.margin>0, col=ok?'var(--nx-green-hi)':'#ff6b6b';
- const clear=Y.filter(r=>r.netM>0), shortY=Y.filter(r=>r.netM<=0);
- const firstOk=clear.length?clear[0]:null;
- const bestDur=D.slice().sort((a,c)=>c.last.netM-a.last.netM)[0];
+ const clear=Y.filter(r=>r.margin>0);
  setTimeout(drawSpreadCharts,0);
-
- const algebra=`<div class="panel" style="margin-bottom:14px"><h3>The condition, written out</h3>
-  <div class="algeb">
-    <div class="algRow"><span class="algL">Cells and balance of plant</span><span class="algV">€${fmt(C.cell,0)}m</span><span class="algN">${fmt(b.powerMW*b.durationH,0)} MWh at €${fmt(b.capexPerKWh,0)}/kWh</span></div>
-    <div class="algRow"><span class="algL">Connection and substation</span><span class="algV">€${fmt(C.capex-C.cell,0)}m</span><span class="algN">Netzzutritt plus the DC line</span></div>
-    <div class="algRow tot"><span class="algL">Capital employed</span><span class="algV">€${fmt(C.capex,0)}m</span><span class="algN"></span></div>
-    <div class="algRow"><span class="algL">Annual charge on it</span><span class="algV">€${fmt(C.F,1)}m/yr</span><span class="algN">${pct(C.rate,2)} all-in over ${fmt(C.life,0)} years, plus €${fmt(C.opex,1)}m opex</span></div>
-    <div class="algRow"><span class="algL">Megawatt-hours it sells</span><span class="algV">${fmt(C.sold/1000,0)} GWh/yr</span><span class="algN">what the optimiser actually discharged, on ${pct(1-(b.socFloor||0),0)} of the pack</span></div>
-    <div class="algRow key"><span class="algL">① Fixed cost per MWh sold</span><span class="algV">€${fmt(C.fixed,1)}</span><span class="algN">the asset, before any energy is bought</span></div>
-    <div class="algRow key"><span class="algL">② Round-trip loss, priced</span><span class="algV">€${fmt(C.loss,1)}</span><span class="algN">€${fmt(C.buy,1)} paid to charge × (1/${fmt(b.rte,2)} − 1)</span></div>
-    <div class="algRow res"><span class="algL"><b>Spread required to break even</b></span><span class="algV" style="color:${col}"><b>€${fmt(C.req,1)}/MWh</b></span><span class="algN">① + ②</span></div>
-    <div class="algRow res"><span class="algL"><b>Spread the market gave</b></span><span class="algV"><b>€${fmt(C.ach,1)}/MWh</b></span><span class="algN">sold at €${fmt(C.sell,1)}, bought at €${fmt(C.buy,1)}, last twelve months</span></div>
-    <div class="algRow res" style="border-top:1px solid var(--line)"><span class="algL"><b>Headroom</b></span><span class="algV" style="color:${col}"><b>${C.margin>=0?'+':''}€${fmt(C.margin,1)}/MWh</b></span><span class="algN">${ok?'clears the bar':'short of the bar'}, worth €${fmt(C.netM,0)}m a year</span></div>
+ const durSeg=`<div class="fRow" style="margin-bottom:12px"><span class="fLbl">Duration</span><div class="seg">`+
+   [2,4,6,8].map(d=>`<button class="${Math.round(b.durationH)===d?'on':''}" onclick="M.battery.durationH=${d};render()">${d} h</button>`).join('')+
+   `</div><span class="muted" style="font-size:11.5px">${fmt(b.powerMW,0)} MW · ${fmt(b.powerMW*b.durationH/1000,1)} GWh · ${pct(b.socFloor||0,0)} held back for ride-through</span></div>`;
+ return durSeg+`<div class="kpis">
+   ${kpi('Spread it needs to break even','\u20ac'+fmt(C.req,0),'/MWh at '+fmt(b.durationH,0)+' hours')}
+   ${kpi('Spread the market gave','\u20ac'+fmt(C.ach,0),'/MWh over the last 12 months')}
+   ${kpi('Difference',(C.margin>=0?'+':'')+'\u20ac'+fmt(C.margin,0),'/MWh \u00b7 \u20ac'+fmt(C.netM,0)+'m a year')}
+   ${kpi('Days that earn half the margin',fmt(K.n>0?K.d50/K.n*100:0,0)+'%',K.d50+' of '+K.n+' trading days')}
+   ${kpi('Years the spread covered the cost',clear.length+' of '+Y.length,'2015 to 2026')}
   </div>
-  <div class="info" style="margin-top:12px"><b>Both prices are what the optimiser actually paid and received, weighted by volume.</b> Not the average of the cheapest few hours of each day, which is a different and flattering number. The spread above is the plain difference between them, which is the number you would read off a price screen: sell at €${fmt(C.sell,1)}, buy at €${fmt(C.buy,1)}, and the gap has to cover the asset and the losses.
-   <br><br><b>Why the loss term needs a price on it.</b> A ${pct(b.rte,0)} round trip means ${fmt((1/b.rte-1)*100,1)}% more energy goes in than comes out. That is not a cost until you know what the extra cost to buy. At €${fmt(C.buy,1)}/MWh it adds €${fmt(C.loss,1)} to every megawatt-hour sold. In a cheap year the same efficiency is nearly free; in 2022, when the battery was paying €${fmt((Y.find(r=>r.y===2022)||{}).buy||0,0)}/MWh to charge, the identical equipment needed €${fmt(((Y.find(r=>r.y===2022)||{}).buy||0)*(1/SPREAD.rte-1),0)}/MWh of spread just to stand still. The requirement moves with the market, which is exactly why a single levelised cost number cannot answer this question.</div>
- </div>`;
-
- const durTable=`<div class="panel"><h3>What each duration needs, and what it got</h3>
-   <table><thead><tr><th>Duration</th><th>Capex</th><th>Sold</th><th>Bought at</th><th>Sold at</th><th>Spread</th><th>Required</th><th>Headroom</th><th>Gross margin</th><th>After the capital charge</th></tr></thead><tbody>
-   ${D.map(r=>{const L=r.last, c1=L.margin>0?'var(--nx-green-hi)':'#ff6b6b';
-     return `<tr${Math.round(b.durationH)===r.h?' style="background:rgba(0,154,68,.09)"':''}><td><b>${r.h} h</b>${Math.round(b.durationH)===r.h?' <span class="muted">· set now</span>':''}</td>
-      <td>€${fmt(L.capex,0)}m</td><td>${fmt(L.soldGWh,0)} GWh</td><td>€${fmt(L.buy,1)}</td><td>€${fmt(L.sell,1)}</td>
-      <td><b>€${fmt(L.spread,1)}</b></td><td>€${fmt(L.req,1)}</td><td style="color:${c1}"><b>${L.margin>0?'+':''}${fmt(L.margin,1)}</b></td>
-      <td>€${fmt(L.grossM,1)}m</td><td style="color:${L.netM>0?'var(--nx-green-hi)':'#ff6b6b'}"><b>${L.netM>0?'+':''}€${fmt(L.netM,1)}m</b></td></tr>`;}).join('')}
-   </tbody></table>
-   <div class="info" style="margin-top:10px"><b>The best of the four is ${bestDur.h} hours, and it is not the shortest.</b> A two-hour pack captures the widest spread, €${fmt(D[0].last.spread,0)}/MWh against €${fmt(D[3].last.spread,0)} at eight, because it only ever trades the very cheapest and very dearest hours of the day. But it has ${fmt(D[0].last.soldGWh/D[3].last.soldGWh*100,0)}% of the throughput, so after the capital charge it earns <b>€${fmt(D[0].last.netM,1)}m</b> against <b>€${fmt(bestDur.last.netM,1)}m</b> for the ${bestDur.h}-hour build. Wide spreads on a small volume lose to decent spreads on a large one.
-    <br><br><b>Eight hours gives up about €${fmt(bestDur.last.netM-D[3].last.netM,1)}m a year against the best of the four.</b> That is the price of the duration, and it is worth stating plainly rather than defending, because the duration is not there for trading. It is there for ride-through, and the ${pct(b.socFloor,0)} held back on top of it is not traded at all. Judged as a merchant battery this is the wrong shape. Judged as insurance that also trades, it is the only one that does the job.
-    <br><br><span class="muted">Every figure in this table comes from the optimiser running on the tradeable ${pct(1-(b.socFloor||0),0)} of the pack, with the capital charge on all of it.</span></div>
- </div>`;
-
- const yearTable=`<div class="panel" style="margin-top:14px"><h3>Would it have survived, year by year</h3>
-   <div class="chart tall" id="sp_year"></div>
-   <table style="margin-top:10px"><thead><tr><th>Year</th><th>Bought at</th><th>Sold at</th><th>Spread</th><th>Required</th><th>Headroom</th><th>Gross margin</th><th>After the capital charge</th><th>Verdict</th></tr></thead><tbody>
-   ${Y.map(r=>{const c=r.netM>0?'var(--nx-green-hi)':'#ff6b6b';
-     return `<tr><td><b>${r.y}</b>${r.partial?' <span class="muted">· part year</span>':''}</td><td>€${fmt(r.buy,1)}</td><td>€${fmt(r.sell,1)}</td><td>€${fmt(r.spread,1)}</td><td>€${fmt(r.req,1)}</td>
-      <td style="color:${c}"><b>${r.margin>0?'+':''}${fmt(r.margin,1)}</b></td><td>€${fmt(r.grossM,1)}m</td><td style="color:${c}"><b>${r.netM>0?'+':''}€${fmt(r.netM,1)}m</b></td><td style="color:${c}">${r.netM>0?'clears':'short'}</td></tr>`;}).join('')}
-   </tbody></table>
-   <div class="${clear.length>=5?'info':'warn'}" style="margin-top:10px"><b>${clear.length} of the ${Y.length} years clear, and they are the recent ones.</b> Everything from 2015 to ${shortY[shortY.length-1]?shortY[shortY.length-1].y:2021} falls short, ${firstOk?`and every year from ${firstOk.y} onward clears except 2021`:''}. That is not a single freak year carrying the case; it is a break in the regime after 2021, which is when thermal plant started leaving the system in volume and solar started pushing midday prices toward zero. Both of those widen the daily gap, and both are still happening.
-    <br><br><b>2022 is the instructive one.</b> It had the widest spreads in European history at €${fmt((Y.find(r=>r.y===2022)||{}).spread||0,0)}/MWh, and it also had the highest bar, €${fmt((Y.find(r=>r.y===2022)||{}).req||0,0)}/MWh, because the energy it had to buy cost €${fmt((Y.find(r=>r.y===2022)||{}).buy||0,0)}/MWh and a ${pct(SPREAD.rte,0)} round trip on that is expensive on its own. It still cleared, comfortably. High prices do not help a battery on their own. Wide gaps do, and 2022 had both.
-    <br><br><b>2026 is a part year</b>, January to 7 July, and should not be read as a full result. The same window in earlier years runs a little below the full year on average, so the direction is mildly conservative, but the dispersion is wide and it is labelled rather than smoothed.
-    <br><br><b>What this does not include.</b> No intraday, no balancing, no ancillary revenue and no capacity payment, all of which a real operator earns. Against that, perfect foresight inside the day, no degradation charge on the cells, no bid-ask, and a price-taker assumption that a 500 MW battery in a market with a ±225 MW aFRR depth would not enjoy. The two do not obviously net out and neither is modelled.</div>
- </div>`;
-
- const levers=`<div class="panel" style="margin-top:14px"><h3>What moves the requirement</h3>
-   <div class="chart" id="sp_lev"></div>
-   <div class="info" style="margin-top:10px"><b>Throughput and capex, in that order.</b> ${SPREAD.levers[0]?`${SPREAD.levers[0].k} moves the requirement by €${fmt(SPREAD.levers[0].swing,0)}/MWh across its range, ${SPREAD.levers[1]?`against €${fmt(SPREAD.levers[1].swing,0)} for ${SPREAD.levers[1].k.toLowerCase()}`:''}.`:''} Every fixed cost is spread over the megawatt-hours that pass through, so how often the battery is allowed to trade matters more than what the cells cost.
-    <br><br><b>Which puts the weight on the one input that is not on this chart.</b> Until grid access the battery earns the reliability fee and nothing else, so the throughput is zero and no spread clears a bar it never gets to jump. Burgenland Energie put the odds of a two-way grid connection below even, even after 2035. That is the risk on this asset, not the price of lithium.</div>
- </div>`;
-
- const method=`<div class="panel" style="margin-top:14px"><h3>How this was computed</h3>
-   <div class="info"><b>The achieved spread is a backtest, not a forecast.</b> ${SPREAD.meta.source}, hourly Austrian day-ahead from ${SPREAD.meta.from} to ${SPREAD.meta.to}. Each day is solved as a linear programme: charge when it is cheap, discharge when it is dear, subject to power, energy and a state of charge that starts and ends the day empty. ${SPREAD.meta.method}
-    <br><br><b>This page was rebuilt after an audit.</b> The first version compared a requirement stated on the raw spread against an achieved figure that already had the efficiency loss taken out of it, so the loss was deducted twice, and it rounded the daily discharge hours down to a whole number, which threw away up to a fifth of the throughput at some durations. Both are fixed. Nothing here is rounded, the efficiency appears exactly once, and every price is volume weighted from the optimiser's own trades.
-    <br><br><span class="muted">Formula: ${SPREAD.formula}. Reserve held back and never traded: ${pct(SPREAD.meta.floor,0)} of the pack.</span></div>
- </div>`;
-
- return `<div class="kpis">
-   ${kpiM([['Spread required','€'+fmt(C.req,0),'/MWh to break even'],['of which the asset','€'+fmt(C.fixed,0),'/MWh'],['of which the loss','€'+fmt(C.loss,0),'/MWh']],col)}
-   ${kpiM([['Spread the market gave','€'+fmt(C.ach,0),'/MWh last 12 months'],['Bought at','€'+fmt(C.buy,0),'/MWh'],['Sold at','€'+fmt(C.sell,0),'/MWh']])}
-   ${kpi('Headroom',(C.margin>=0?'+':'')+'€'+fmt(C.margin,0),'/MWh · '+(ok?'clears':'short')+' · €'+fmt(C.netM,0)+'m a year')}
-   ${kpi('Years that clear the bar',clear.length+' of '+Y.length,'at '+fmt(b.durationH,0)+' h, 2015 to 2026')}
-   </div>
-  <div class="chart tall" id="sp_dur" style="margin-bottom:14px"></div>
-  ${algebra}${durTable}${yearTable}${levers}${method}`;
+  <div class="chart tall" id="sp_year"></div>`;
 }
-
 function drawSpreadCharts(){
- const b=M.battery, D=SPREAD.byDur, Y=SPREAD.byYear, FAINT=TH().faint;
- const G='#46b45a', R='#ff6b6b', PU='#b98cff';
- if(document.getElementById('sp_dur')){
-  Plotly.react('sp_dur',[
-   {x:D.map(r=>r.h+' h'),y:D.map(r=>r.last.fixed),name:'Required · the asset',type:'bar',marker:{color:'#2f4260'},
-    text:D.map(r=>'€'+fmt(r.last.fixed,0)),textposition:'inside',insidetextanchor:'middle',textfont:{size:10,color:'#dfe6ec'},
-    hovertemplate:'€%{y:.1f}/MWh<extra>fixed cost</extra>'},
-   {x:D.map(r=>r.h+' h'),y:D.map(r=>r.last.loss),name:'Required · the round-trip loss',type:'bar',marker:{color:'#8c6bb1'},
-    text:D.map(r=>'€'+fmt(r.last.loss,0)),textposition:'inside',insidetextanchor:'middle',textfont:{size:10,color:'#f2ecff'},
-    hovertemplate:'€%{y:.1f}/MWh<extra>loss priced at the charge cost</extra>'},
-   {x:D.map(r=>r.h+' h'),y:D.map(r=>r.last.spread),name:'Spread the market gave · last 12 months',type:'scatter',mode:'lines+markers',
-    line:{color:G,width:2.6},marker:{size:9,symbol:'diamond'},hovertemplate:'€%{y:.1f}/MWh<extra>achieved</extra>'},
-   {x:D.map(r=>r.h+' h'),y:D.map(r=>r.all.spread),name:'Spread · 2015 to 2026 average',type:'scatter',mode:'lines+markers',
-    line:{color:PU,width:2,dash:'dot'},marker:{size:7},hovertemplate:'€%{y:.1f}/MWh<extra>long run</extra>'}
-  ],lay('The spread each duration needs, against the spread it got<br><span style="font-size:10px">stacked bars are the requirement · a line has to sit above them for the pack to pay for itself</span>',
-    {barmode:'stack',showlegend:true,xaxis:{gridcolor:FAINT},
-     yaxis:{title:{text:'€/MWh of spread',font:{size:10}},gridcolor:FAINT,rangemode:'tozero'}}),CFG);
- }
- if(document.getElementById('sp_year')){
-  Plotly.react('sp_year',[
-   {x:Y.map(r=>r.y),y:Y.map(r=>r.req),name:'Required spread',type:'scatter',mode:'lines',
-    line:{color:'#8fa3bb',width:2,dash:'dash'},hovertemplate:'€%{y:.1f}/MWh<extra>required</extra>'},
-   {x:Y.map(r=>r.y),y:Y.map(r=>r.spread),name:'Spread the market gave',type:'bar',
-    marker:{color:Y.map(r=>r.netM>0?G:R)},hovertemplate:'€%{y:.1f}/MWh<extra>achieved</extra>'}
-  ],lay('The spread against the bar it had to clear, 2015 to 2026<br><span style="font-size:10px">'+fmt(b.durationH,0)+'-hour duration · red years do not cover the capital charge</span>',
-    {showlegend:true,xaxis:{gridcolor:FAINT,dtick:1},
-     yaxis:{title:{text:'€/MWh of spread',font:{size:10}},gridcolor:FAINT,rangemode:'tozero'}}),CFG);
- }
- if(document.getElementById('sp_lev')){
-  const L=SPREAD.levers.slice().sort((a,c)=>a.swing-c.swing);
-  Plotly.react('sp_lev',[
-   {y:L.map(r=>r.k),x:L.map(r=>r.swing),type:'bar',orientation:'h',marker:{color:'#39465a'},
-    text:L.map(r=>'€'+fmt(r.swing,0)),textposition:'outside',textfont:{size:10,color:'var(--t2)'},
-    hovertemplate:'€%{x:.0f}/MWh of swing<extra></extra>'}
-  ],lay('How far each input moves the required spread<br><span style="font-size:10px">swing across a plausible range, €/MWh · base case €'+fmt(SPREAD.base,0)+'</span>',
-    {showlegend:false,margin:{l:130,r:70},xaxis:{title:{text:'€/MWh',font:{size:10}},gridcolor:FAINT},
-     yaxis:{gridcolor:FAINT,automargin:true}}),CFG);
- }
+ const b=M.battery, FAINT=TH().faint, G='#46b45a', R='#ff6b6b';
+ const Y=SPREAD.byDurYear[String(spreadDur())]||SPREAD.byDurYear['8'];
+ if(!document.getElementById('sp_year'))return;
+ Plotly.react('sp_year',[
+  {x:Y.map(r=>r.y),y:Y.map(r=>r.spread),name:'Spread the market gave',type:'bar',
+   marker:{color:Y.map(r=>r.margin>0?G:R)},hovertemplate:'\u20ac%{y:.1f}/MWh<extra>achieved</extra>'},
+  {x:Y.map(r=>r.y),y:Y.map(r=>r.req),name:'Spread it needed',type:'scatter',mode:'lines',
+   line:{color:'#8fa3bb',width:2,dash:'dash'},hovertemplate:'\u20ac%{y:.1f}/MWh<extra>needed</extra>'}
+ ],lay('What the daily spread was each year, against what '+(Math.round(b.durationH)===8?'an ':'a ')+fmt(b.durationH,0)+'-hour battery needed<br><span style="font-size:10px">green years cover the cost of the battery, red years do not \u00b7 2026 runs to 7 July</span>',
+   {showlegend:true,xaxis:{gridcolor:FAINT,dtick:1},
+    yaxis:{title:{text:'\u20ac/MWh of spread',font:{size:10}},gridcolor:FAINT,rangemode:'tozero'}}),CFG);
 }
 /* ---- Is the peak a spike or a plateau, and what can actually be shaved --------------------
    Everything on this page is measured on the campus's own year. The ladder walks candidate
@@ -2580,7 +2498,7 @@ function sourcesPage(){
    day and 1 would be all of it on one day. --------------------------------------------------- */
 let concDur='8', concYear='last12m';
 function concOf(){
- const D=CONC.byDur[concDur]||CONC.byDur['8'];
+ const D=CONC.byDur[String(spreadDur())]||CONC.byDur['8'];
  if(concYear==='last12m')return D.last12m;
  return (D.byYear||[]).find(r=>String(r.year)===String(concYear))||D.last12m;
 }
@@ -2881,6 +2799,305 @@ function drawSpill(){
    {margin:{t:74,b:56},xaxis:{title:{text:'hour of day',font:{size:10}},gridcolor:FAINT,dtick:4},
     yaxis:{gridcolor:FAINT,autorange:'reversed'}}),CFG);
 }
+/* ---- Commercial terms, sealed ---------------------------------------------------------------
+   The four-party LOI terms are held encrypted, under their own code, separate from the data-room
+   code. Locked, TERMS is null and every panel falls back to a neutral default that comes from our
+   own record rather than from the document. Unlocked, the defaults move to the real numbers.
+   Nothing sensitive exists in this file as plain text.
+------------------------------------------------------------------------------------------- */
+const TERMS_BLOB="VFJNMUdkWCL1WYWMj4P01nkR4moFa3f0S9LFyyl/bYE2Gf5SdZP32sENnybceQ5mRWOnUNxM9In9lG8ydtaAzQiUGF+h/PUw5i/ozTX+lbkpDL3hufh7C6Tyt2Yf1S/dyihHaBKoJDjqhJvh6b/xMZ9XyezNgt5SnS/S4RME1AypYPfpYrSYh6Ch/WCbkWWQEiB38s46TetNSJ8oEOtpBIUOXxVB6sxMatwKoAuvDAnpuLrBKnfxah+/ODSEjqbV3YrlJYsPoinywoBPhCb5+4zAradVCZXkucX5j2at4GDBEnMVffZawkC5o741pC7ISaKhzpq/eIsLyOEGXgW/AV/GCwg/1qIlnQ/NyF0VpoB+87KmBp1iM5mzbkCMJzVnaYxbRiWx7iM7nodPUvlUdqR7Fpv2fQNyyrOua8C3kOwVP4sYb+ExmV6/7PfpwtX35urXr7fTuYzJXWzj95BCgQEhjH9RwLxY7Dt9Sgj2U1sqYx6SnUvn/hWM9nIdNJVtgtS2YO41AN0ZV7ahKD5AGGMFDUxXy+5gIr207mszSXxpws/MldJkeZYE15f7gQDcjhlPZ2EIGYZ10AR9NsuxE4IOJ6jwYaU7BBUVqveIThP+IFW17wCgQExocooYPB4Ebm2X4dNTLDKwkkniqObYzpWH3fu35YtEKuO3U1gqlYxGYOX7xPzSdZAwdo7/RsleAa7iFj1J7UymCY2y08wIrohz73WaNMF4v0NsImkUVUK9d/xD5gToldu3yYshAkHCtNAQf/YXXbNKj7dH1RFD+1esHTkTcLF40HSHdEaRFvK2oJuXfHylJM7f4uRJh9kZsa2u/Vqgnu/kOFBnGF8pQ1cMeBr/N7LHcMr+Hoqge0tbfi+Wgd2iRJbKyHzelaZ78nLDvbmx7FgXCL6j/6/6Irjlr866/kNOBJZGw+Y3xsvER9au99XLmYg0/ptMhPmxGh/I75wgAKKh16jx52LbmiuC+M0aRA805e2XZAvbeI0AoH3o3H8hzyvrgceQUDs5jC9b9f3YHoL9jlOOO7fAtJS7lTjAWIk3vwwYXjdQ4jbh4s5aNt4V+ohvqxdJVIfJZ7gk7IGl8fy11kAwmMxciLThB+H67etpnYYxOWBOyGeNlKWcFdVeix6p8jXNohlEqK1q4b3M7+peKZdS8tnfahc1273DCfAeERJvsVuaoZd38pvPmbaeVj4iAvBArkajQ+7ptKrt8Rq0vm3wRGqLpba/wS8S/hAu2fRd1nPcA5NOqMKDdlJ99fOfeeFux+1KEeS8lVQHvYtIg9EYsotOA0xMLpRbetWFmMCTbxu7fGXNfMBoQaAOvwVeh7itr/bCOQGAoUi73b4TjQa0yha/eK2kCGoAWmhzdMiKNkcciGJ7PipbCFGl0afEOFIF1gZHrvxAW6KKBBybgihwdnUr661oOIwWz8fjsgL+v2sVfp+wTjMaeD4L8QVa4BHu8mValB1ILuqZDOMte3Cj6mPij9xxCxiJh6ok2hR7HawEne2nMCUj7LP9BZa+7RfH05Tef0cBVN7Ad4waM5iD+anCN2oP7pLsB0qe1MrZ90f43XGn91UcLlOFUlGupfpCnEekfZ+lP/AgbeBuBH1FHTfI+r7PeEFUH6geT9zygNj5NxBJs/rKlhwF1QoFTMvo4u7wuJ9IRVObx2Y2HvR2gRajdso7yz8AueJz+lEx2+PZ7/2hudYWHxzyYBh5pGDQKk6cvr/EOK6mqDWJp9dbdok+lSYvNH7Zj/p1MdinIDktOfIupyMuPmxYKUO8WsrdNAVaugt6Xs45y30oGAuLUHg75gV2k+411qqNV9l94zHPjZMIAstyxMt9UM5hRzY1gEXY72NAU5nwDMomhFP7I/rFx5d8MBb41OhNTRkNLYLI3A97KCoiOBzcynD9Rx/0mVAaZwA8xoLfg6fgSwqtoMakUC9hfwzJt+OBwBtcgIvLgxaR5lfg4cbDxYJSBsmPYCzlqAtfJZX8dMIktVDc3p4065T3763D1K9qBadq5oOVgj+ztdwP6ta0rt5Sv12Ph48E2g+/ZNJaqOd4PznlOZxWyuemn818yea+rprBzT+geR82gkxulQDL5985AZ4eEQCkkFeirG2558EksK0ORpZWESz5gjEZRH33+7K1AtPsANP29FJIdHqJJ0KaLT1jLuyBGn7CuaBgzI/JMvnkrGO9pjTk5lw=";
+let TERMS=null;
+async function termsDerive(pw){
+ const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+ return crypto.subtle.deriveKey({name:'PBKDF2',salt:new TextEncoder().encode('gdc-nickelsdorf::terms'),
+   iterations:310000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
+}
+async function termsTry(){
+ const el=document.getElementById('tmPw'), msg=document.getElementById('tmMsg');
+ const v=(el&&el.value)||''; if(!v){if(el)el.focus();return;}
+ if(msg)msg.textContent='Opening…';
+ try{
+  const raw=Uint8Array.from(atob(TERMS_BLOB),c=>c.charCodeAt(0));
+  if(String.fromCharCode(...raw.slice(0,4))!=='TRM1')throw new Error('header');
+  const key=await termsDerive(v);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:raw.slice(4,16)},key,raw.slice(16));
+  TERMS=JSON.parse(new TextDecoder().decode(pt));
+  try{sessionStorage.setItem('gdcTerms',v);}catch(e){}
+  applyTerms(); render(); afterRender();
+ }catch(e){ if(msg)msg.textContent='Not recognised.'; }
+}
+/* Move the sliders onto the real numbers. Only ever called after a successful decrypt. */
+function applyTerms(){
+ if(!TERMS)return;
+ const t=TERMS;
+ // Field names are opaque on purpose. Anyone reading this file learns that some numbers exist,
+ // not what they are or what they describe.
+ if(t.a!=null)M.site.leasePre=t.a;
+ if(t.b!=null)M.site.leasePost=t.b;
+ if(t.c!=null)M.site.partPct=t.c;
+ if(t.d!=null)M.site.partCapM=t.d;
+ if(t.e!=null)M.site.oneOff=t.e;
+ if(t.f!=null)M.dc.revPerMW=t.f;
+ if(t.i!=null)M.dc.claimShare=t.i;
+ // Deliberately NOT applied to M.conn.wideInfra: opening the terms must not move the base case
+ // underneath anyone. The figure is offered as a button on the perimeter panel instead.
+ if(t.g!=null&&t.h!=null)TERMS._wide=t.g+t.h;
+}
+(async function termsBoot(){
+ try{ const v=sessionStorage.getItem('gdcTerms'); if(!v)return;
+   const raw=Uint8Array.from(atob(TERMS_BLOB),c=>c.charCodeAt(0));
+   const key=await termsDerive(v);
+   const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:raw.slice(4,16)},key,raw.slice(16));
+   TERMS=JSON.parse(new TextDecoder().decode(pt)); applyTerms();
+   if(typeof render==='function'){render(); if(typeof afterRender==='function')afterRender();}
+ }catch(e){}
+})();
+function termsBar(){
+ return TERMS
+  ? `<div class="info" style="margin-bottom:12px;padding:8px 12px"><b>Commercial terms open.</b> The lease, the participation fee, the infrastructure cost centres and the supply terms below are the ones in the executed drafts. <span class="muted">Held under a separate code, not exported, not in any BE-facing copy.</span></div>`
+  : `<div class="warn" style="margin-bottom:12px;padding:8px 12px"><b>Commercial terms are sealed.</b> The land, participation and infrastructure figures below are neutral placeholders from our own record, not the negotiated terms. Everything still computes; only the starting values differ.
+     <span style="display:inline-flex;gap:6px;align-items:center;margin-left:10px"><input type="password" id="tmPw" placeholder="terms code" style="width:130px;padding:3px 7px;font-size:12px" onkeydown="if(event.key==='Enter')termsTry()"><button class="chip" style="cursor:pointer" onclick="termsTry()">Open</button><span id="tmMsg" class="muted" style="font-size:11px"></span></span></div>`;
+}
+/* ============================================================================================
+   THE THREE BUCKETS
+   Three balance sheets sit behind one campus and the deal only works if all three clear. The
+   power company sells the electricity and owns the lines and the battery. The campus buys the
+   electricity, rents the ground and sells compute. The landowner rents the ground and takes a
+   share of what the campus earns. Two of the three we can measure. The campus revenue we cannot,
+   so it is an input, and the page says which anchors exist for it.
+============================================================================================ */
+function bucketMath(){
+ const d=M.dc, st=M.site, SP=computeSPV(d.dcPrice), SS=supplyStats();
+ const load=d.firmMW*8760;                                   // MWh a year
+ const powerM=SP.unit*load/1e6;                              // EUR m a year, what the campus pays for power
+ const rev=(d.revPerMW||0)*d.firmMW;                         // EUR m a year, campus revenue
+ const partRaw=rev*(st.partPct||0);
+ const part=(st.partCapM>0)?Math.min(partRaw,st.partCapM):partRaw;
+ const lease=st.leasePost||0;
+ const siteTake=part+lease;
+ const dcPower=(d.powerPass!==false)?0:powerM;               // billed on to the tenant, or absorbed
+ const dcNet=rev-dcPower-lease-part;
+ return {SP,SS,load,powerM,rev,part,partRaw,lease,siteTake,dcPower,dcNet,
+   powerPerMW:powerM/d.firmMW, powerShare:rev>0?powerM/rev:0,
+   capBinds:(st.partCapM>0&&partRaw>st.partCapM)};
+}
+function bucketsPage(){
+ const B=bucketMath(), d=M.dc, st=M.site;
+ setTimeout(drawBuckets,0);
+ const cap=B.capBinds;
+ return termsBar()+`<div class="kpis">
+   ${kpi('Power company, equity','€'+fmt(B.SP.equity,0),'m in · '+fmt(B.SP.irr*100,1)+'% return · €'+fmt(B.SP.capex,0)+'m of assets')}
+   ${kpi('The campus pays for power','€'+fmt(B.powerM,0),'m a year · €'+fmt(B.SP.unit,1)+'/MWh · €'+fmt(B.powerPerMW,2)+'m per MW')}
+   ${kpiM([['Landowner, rent','€'+fmt(B.lease,0)+'m','a year'],['Landowner, share','€'+fmt(B.part,0)+'m',cap?'at the cap':pct(st.partPct,1)+' of revenue'],['Together','€'+fmt(B.siteTake,0)+'m','a year']],'#ff9f6b')}
+   ${kpi('Power as a share of campus revenue',fmt(B.powerShare*100,1),'% · at €'+fmt(d.revPerMW,2)+'m per MW of revenue')}
+  </div>
+  <div class="charts" style="grid-template-columns:1.15fr 1fr">
+   <div class="chart" id="bkFlow"></div><div class="chart" id="bkShare"></div>
+  </div>
+  <div class="grid" style="margin-top:14px;grid-template-columns:1.35fr 1fr;align-items:start">
+   <div class="panel"><h3>What each side puts in and takes out</h3>
+    <table><thead><tr><th>Bucket</th><th>Capital in</th><th>Earns a year</th><th>Pays a year</th><th>Return</th></tr></thead><tbody>
+     <tr><td><b>Power company</b><div class="muted" style="font-size:11px">lines, connection, battery, and the energy contracts</div></td>
+       <td>€${fmt(B.SP.equity,0)}m equity<div class="muted" style="font-size:11px">of €${fmt(B.SP.capex,0)}m assets</div></td>
+       <td>€${fmt(B.powerM,0)}m</td><td class="muted">cost of energy + opex</td><td><b>${fmt(B.SP.irr*100,1)}%</b></td></tr>
+     <tr><td><b>The campus</b><div class="muted" style="font-size:11px">buildings, cooling, and the tenant contract</div></td>
+       <td class="muted">not modelled</td>
+       <td>€${fmt(B.rev,0)}m<div class="muted" style="font-size:11px">an input, see below</div></td>
+       <td>€${fmt(B.dcPower+B.lease+B.part,0)}m<div class="muted" style="font-size:11px">${(d.powerPass!==false)?'power billed on to the tenant':'power €'+fmt(B.powerM,0)+'m'} · rent €${fmt(B.lease,0)}m · share €${fmt(B.part,0)}m</div></td>
+       <td class="muted">needs a capex figure</td></tr>
+     <tr><td><b>The landowner</b><div class="muted" style="font-size:11px">the ground, and a share of what is earned on it</div></td>
+       <td class="muted">land already held</td>
+       <td><b>€${fmt(B.siteTake,0)}m</b></td><td class="muted">none modelled</td>
+       <td class="muted">a royalty, not a return</td></tr>
+    </tbody></table>
+    <div class="info" style="margin-top:10px"><b>Only one of the three is measured.</b> The power company's side is built from Burgenland Energie's own meters and prices and reconciles to the SPV page. The landowner's side is arithmetic on the two sliders. <b>The campus revenue is an input and nothing in our files measures it.</b> TeraWulf's own model was asked for on 5 August and again on 10 August and has not arrived.
+     <br><br><b>Two anchors exist for it, and they are far apart.</b> A powered-shell landlord, which is what TeraWulf describes itself as, earns rent on megawatts: the participation cap in the term sheet implies about <b>€5.3m per MW a year</b>. An operator that owns the chips earns on compute: Crusoe and SemiAnalysis put that at <b>USD 15m per MW a year</b>, roughly three times higher, and it is not the same business. The slider is set to the landlord number, which is the conservative one for us, because a lower campus revenue makes the power bill a larger share of it.</div>
+   </div>
+   <div class="panel"><h3>Inputs</h3>
+    ${sliderHTML('dc','revPerMW','Campus revenue',1,16,0.05,' €m/MW/yr')}
+    <div class="inp"><label>Who carries the power bill<b>${(d.powerPass!==false)?'billed on to the tenant':'the campus absorbs it'}</b></label>
+     <div class="seg"><button class="${(d.powerPass!==false)?'on':''}" onclick="M.dc.powerPass=true;render()">Passed on</button><button class="${(d.powerPass===false)?'on':''}" onclick="M.dc.powerPass=false;render()">Absorbed</button></div></div>
+    ${sliderHTML('site','leasePost','Ground rent',0,20,0.5,' €m/yr')}
+    ${sliderHTML('site','partPct','Revenue share',0,0.08,0.0025,'%',100)}
+    ${sliderHTML('site','partCapM','Cap on the share',0,120,5,' €m/yr')}
+    <div class="muted" style="font-size:11px;margin-top:8px">A cap of zero means uncapped. The share and the cap are the two numbers the landowner and the campus actually argue about; everything else on this page follows from them.</div>
+    <div class="info" style="margin-top:10px"><b>The switch that decides whether our price matters to them.</b> Under a triple-net lease the tenant pays the utilities, so the campus is a conduit and is indifferent to what power costs. If the campus buys the power and absorbs it, then at €${fmt(d.revPerMW,2)}m per MW of revenue the power bill is <b>${fmt(B.powerShare*100,1)}%</b> of what it earns, and a €10/MWh move is €${fmt(10*B.load/1e6,0)}m a year. The counterparty is the buyer under both energy agreements either way, so the question is what its lease says, not what its supply contract says.</div>
+   </div>
+  </div>`;
+}
+function drawBuckets(){
+ if(!document.getElementById('bkFlow'))return;
+ const B=bucketMath(), FAINT=TH().faint, d=M.dc;
+ // Horizontal, because the amounts span two orders of magnitude and a vertical bar makes the
+ // small ones invisible. The label sits at the end of the bar, so a EUR 5m item still reads.
+ const rows=[['Campus revenue',B.rev,'#4aa8ff'],
+             ['Kept by the campus',Math.max(0,B.rev-B.powerM-B.lease-B.part),'#39465a'],
+             ['To the power company',B.powerM,'#46b45a'],
+             ['Revenue share to the landowner',B.part,'#e8b13a'],
+             ['Ground rent to the landowner',B.lease,'#ff9f6b']];
+ Plotly.react('bkFlow',[{y:rows.map(r=>r[0]),x:rows.map(r=>r[1]),type:'bar',orientation:'h',
+   marker:{color:rows.map(r=>r[2])},text:rows.map(r=>'€'+fmt(r[1],0)+'m'),
+   textposition:'outside',cliponaxis:false,textfont:{size:10,color:'var(--t2)'},
+   hovertemplate:'€%{x:.0f}m a year<extra></extra>'}],
+  lay('Where the money goes each year<br><span style="font-size:10px">campus revenue at €'+fmt(d.revPerMW,2)+'m per MW, and the three claims on it</span>',
+   {showlegend:false,margin:{t:74,b:52,l:190,r:70},
+    xaxis:{title:{text:'€m a year',font:{size:10}},gridcolor:FAINT,rangemode:'tozero'},
+    yaxis:{gridcolor:FAINT,automargin:true,autorange:'reversed'}}),CFG);
+ const sh=[['Power',B.powerM],['Ground rent',B.lease],['Revenue share',B.part],
+           ['Everything else the campus keeps',Math.max(0,B.rev-B.powerM-B.lease-B.part)]];
+ Plotly.react('bkShare',[{labels:sh.map(r=>r[0]),values:sh.map(r=>r[1]),type:'pie',hole:.52,
+   marker:{colors:['#46b45a','#ff9f6b','#e8b13a','#39465a']},
+   textinfo:'percent',textfont:{size:11},
+   hovertemplate:'%{label}: €%{value:.0f}m<extra></extra>'}],
+  lay('The campus revenue, divided<br><span style="font-size:10px">what reaches the power company and the landowner, and what is left</span>',
+   {showlegend:true,margin:{t:74,b:40},legend:{orientation:'h',y:-0.08,font:{size:10}}}),CFG);
+}
+
+/* ============================================================================================
+   THE RENEWABLE SHARE
+   A calculator, not an argument. Give it a claimed share and it returns the fleet that claim
+   needs, on Burgenland Energie's own measured capacity factors. From 15 August 2027 the EU
+   labelling regime publishes this number, so whichever one goes into a contract is the one that
+   gets audited.
+============================================================================================ */
+function shareMath(claim){
+ const W=computeAsset(M.wind), S=computeAsset(M.solar);
+ const gen=(W.prod+S.prod)/1000;                    // GWh
+ const avg=gen*1000/8760;                           // MW average net
+ const load=M.dc.firmMW;
+ const np=M.wind.mw+M.solar.mw, ac=fleetAC();
+ const need=claim*load;                             // MW average net required
+ const scale=avg>0?need/avg:0;
+ return {gen,avg,load,np,ac,share:avg/load,need,scale,
+   npNeed:np*scale, acNeed:ac*scale,
+   cfNow:avg/np, cfNeed:avg>0?need/np:0,
+   windCFneed:(need*8760-M.solar.mw*8760*effCF(M.solar))/Math.max(1,M.wind.mw*8760)};
+}
+function sharePanel(){
+ const claim=M.dc.claimShare||0.40, R=shareMath(claim);
+ setTimeout(drawShare,0);
+ const impossible=R.windCFneed>0.45;
+ return `<div class="panel" style="margin-top:14px"><h3>The renewable share, and what any claim about it costs in megawatts</h3>
+  <div class="kpis" style="margin-bottom:12px">
+   ${kpi('What this fleet delivers',fmt(R.share*100,1),'% of the load · '+fmt(R.avg,0)+' MW average from '+fmt(R.np,0)+' MW of plant')}
+   ${kpi('Capacity factor, measured',fmt(R.cfNow*100,1),'% on nameplate · wind '+fmt(effCF(M.wind)*100,1)+'%, solar '+fmt(effCF(M.solar)*100,1)+'%')}
+   ${kpiM([['Claim tested',pct(claim,1),'of the load'],['Needs','⁠'+fmt(R.npNeed,0)+' MW','of nameplate'],['That is',fmt(R.scale,2)+'×','this fleet']],'#e8b13a')}
+   ${kpi('Or, at this fleet size',fmt(R.cfNeed*100,1),'% capacity factor · against '+fmt(R.cfNow*100,1)+'% measured')}
+  </div>
+  ${sliderHTML('dc','claimShare','Claimed renewable share',0.15,0.7,0.005,'%',100)}
+  <div class="chart" id="shCurve"></div>
+  <div class="info" style="margin-top:12px"><b>A share is a statement about fleet size, and the two get separated easily.</b> ${fmt(R.np,0)} MW of plant on Burgenland Energie's measured capacity factors delivers <b>${fmt(R.avg,0)} MW</b> of average net output, which against a ${fmt(R.load,0)} MW campus is <b>${fmt(R.share*100,1)}%</b>. A claim of ${pct(claim,1)} needs <b>${fmt(R.npNeed,0)} MW</b> of nameplate, ${fmt(R.scale,2)} times what is on the table.
+   <br><br><b>The other way to reach it is a capacity factor nobody has.</b> Holding the fleet at ${fmt(R.np,0)} MW, ${pct(claim,1)} implies ${fmt(R.cfNeed*100,1)}% across wind and solar together. With solar fixed at its measured ${fmt(effCF(M.solar)*100,1)}%, the wind would have to run at <b>${fmt(R.windCFneed*100,1)}%</b>. Burgenland's metered wind runs at ${fmt(effCF(M.wind)*100,1)}%${impossible?', and the best onshore sites anywhere reach the low fifties, so this route is closed':''}.
+   <br><br><b>Why it is worth being exact.</b> The EU energy efficiency labelling regime publishes the renewable share from <b>15 August 2027</b> and rates guarantees of origin, contracted renewables and on-site generation separately. A share written into an agreement becomes a warranty and then becomes a published figure. It is cheaper to agree the fleet than to agree the percentage.
+   <br><br><span class="muted">Capacity factors are net of plant losses and direct-line losses, scaled from Burgenland Energie's own quarter-hourly meters. Larger fleets assume today's wind and solar mix and the same shapes; at the far end of the slider the connection constrains delivery, which the wall panel on the Data Centre tab quantifies.</span></div>
+ </div>`;
+}
+function drawShare(){
+ if(!document.getElementById('shCurve'))return;
+ const FAINT=TH().faint, claim=M.dc.claimShare||0.40, R=shareMath(claim);
+ const xs=[],ys=[];
+ for(let np=300;np<=2000;np+=25){xs.push(np);ys.push(R.avg*(np/R.np)/R.load*100);}
+ Plotly.react('shCurve',[
+  {x:xs,y:ys,name:'Share this fleet size delivers',type:'scatter',mode:'lines',
+   line:{color:'#46b45a',width:2.4},fill:'tozeroy',fillcolor:'rgba(70,180,90,.10)',
+   hovertemplate:'%{x:,.0f} MW of plant → %{y:.1f}% of the load<extra></extra>'},
+  {x:[R.np],y:[R.share*100],name:'The fleet on the table',mode:'markers',
+   marker:{color:'#4aa8ff',size:12,line:{color:'#fff',width:1.4}},
+   hovertemplate:'%{x:,.0f} MW → %{y:.1f}%<extra></extra>'},
+  {x:[R.npNeed],y:[claim*100],name:'What the claim needs',mode:'markers',
+   marker:{color:'#e8b13a',size:12,symbol:'diamond',line:{color:'#fff',width:1.4}},
+   hovertemplate:'%{x:,.0f} MW → %{y:.1f}%<extra></extra>'}
+ ],lay('Renewable share against fleet size<br><span style="font-size:10px">on measured capacity factors · the gap between the two markers is what a claim actually costs</span>',
+   {showlegend:true,margin:{t:74,b:62},legend:{font:{size:10}},
+    xaxis:{title:{text:'MW of nameplate on the direct line',font:{size:10}},gridcolor:FAINT},
+    yaxis:{title:{text:'% of the campus load',font:{size:10}},gridcolor:FAINT,rangemode:'tozero',ticksuffix:'%'}}),CFG);
+}
+
+/* ============================================================================================
+   THE INFRASTRUCTURE PERIMETER, AND THE FIRM PRICE-OUT
+   Two questions that move the return more than anything argued so far: how much of the campus
+   electrical scope sits inside the power company, and whether it sells a fixed price on the
+   ride-through leg.
+============================================================================================ */
+function perimMath(){
+ const narrow=M.battery.substation+M.battery.interconnect;
+ const wide=M.conn.wideInfra||0;
+ const keep=M.conn.wideInfra;
+ const a=computeSPV(M.dc.dcPrice); const irrNarrow=(wide<=narrow)?a.irr:null;
+ let base, wideRes;
+ // The comparison case is twice the narrow perimeter unless the slider says otherwise, so no
+ // figure from any commercial document sits in this file as plain text.
+ M.conn.wideInfra=0; base=computeSPV(M.dc.dcPrice);
+ M.conn.wideInfra=Math.max(narrow,wide||narrow*2); wideRes=computeSPV(M.dc.dcPrice);
+ M.conn.wideInfra=keep;
+ return {narrow,wide,base,wideRes,extra:Math.max(0,(wide||99)-narrow)};
+}
+function perimPanel(){
+ const P=perimMath(), on=(M.conn.wideInfra||0)>P.narrow;
+ const bps=(P.base.irr-P.wideRes.irr)*10000;
+ return `<div class="panel" style="margin-top:14px"><h3>How much of the campus electrical scope sits inside the power company</h3>
+  <div class="kpis" style="margin-bottom:12px">
+   ${kpi('Narrow perimeter, as modelled','€'+fmt(P.narrow,0),'m · switching station and the customer feeders')}
+   ${kpi('Wide perimeter','€'+fmt(Math.max(P.narrow,M.conn.wideInfra||P.narrow*2),0),'m · adding the campus substation and microgrid')}
+   ${kpi('What the difference costs',fmt(bps,0),'basis points · '+fmt(P.base.irr*100,2)+'% falls to '+fmt(P.wideRes.irr*100,2)+'%')}
+   ${kpi('Extra equity','€'+fmt(P.wideRes.equity-P.base.equity,0),'m more to fund it')}
+  </div>
+  ${sliderHTML('conn','wideInfra','Campus electrical scope in the SPV',0,160,5,' €m')}
+  ${TERMS&&TERMS._wide?`<button class="chip" style="cursor:pointer;margin-bottom:8px" onclick="M.conn.wideInfra=${TERMS._wide};render()">Use the figure in the terms, €${fmt(TERMS._wide,0)}m</button>`:''}
+  <div class="info" style="margin-top:10px"><b>This is the largest single unresolved number in the capital structure.</b> The model carries €${fmt(P.narrow,0)}m: the new switching station and the customer-side feeders and bays. A wider reading puts the campus substation and the microgrid inside the power company too, which is another <b>€${fmt(P.extra,0)}m</b> and costs <b>${fmt(bps,0)} basis points</b> of equity return. For comparison, the whole argument about the private-line unit rate is worth fifty.
+   <br><br><b>It turns on who owns the asset, not who builds it.</b> If the campus owns the substation and the power company operates it under a lease, the capital sits with the tenant and the return is the narrow case. If the power company owns it, the capital is ours and it has to earn. Credit support is the other half: infrastructure of this size normally carries a letter of credit, and whoever issues it carries it on their balance sheet.
+   <br><br><span class="muted">The slider is set to zero by default, which is the narrow perimeter. Moving it above €${fmt(P.narrow,0)}m adds only the excess, so nothing is double counted.</span></div>
+ </div>`;
+}
+function firmMath(){
+ const SP=computeSPV(M.dc.dcPrice), SS=supplyStats();
+ const gridMW=M.dc.firmMW*SS.gridPct/100;
+ const gwh=gridMW*8760/1000;
+ const px=resPrice(FF);
+ const yr=gwh*px/1000;                 // EUR m a year of notional
+ const term=M.dc.firmTermY||3;
+ return {gridMW,gwh,px,yr,term,notional:yr*term,equity:SP.equity,
+   loss20:yr*0.20*term, loss10:yr*0.10*term};
+}
+function firmPanel(){
+ const F=firmMath();
+ return `<div class="panel" style="margin-top:14px"><h3>If the power company sold a fixed price on the ride-through leg</h3>
+  <div class="kpis" style="margin-bottom:12px">
+   ${kpi('The leg in question',fmt(F.gridMW,0),'MW average · '+fmt(F.gwh,0)+' GWh a year off the grid')}
+   ${kpi('Notional over '+F.term+' years','€'+fmt(F.notional,0),'m · at €'+fmt(F.px,1)+'/MWh')}
+   ${kpi('Equity behind it','€'+fmt(F.equity,0),'m in the power company')}
+   ${kpiM([['A 10% move','€'+fmt(F.loss10,0)+'m',fmt(F.loss10/F.equity*100,0)+'% of equity'],['A 20% move','€'+fmt(F.loss20,0)+'m',fmt(F.loss20/F.equity*100,0)+'% of equity'],['Cover','none','modelled']],'#ff6b6b')}
+  </div>
+  <div class="warn"><b>This is the only place the power company would take a real price position, and it is optional.</b> Selling a fixed price for ${F.term} years on ${fmt(F.gridMW,0)} MW of average grid supply is <b>€${fmt(F.notional,0)}m</b> of notional against <b>€${fmt(F.equity,0)}m</b> of equity. A 20% adverse move in Austrian power over the term is <b>€${fmt(F.loss20,0)}m</b>, which is ${fmt(F.loss20/F.equity*100,0)}% of the equity in the vehicle. Nothing in the model hedges it.
+   <br><br><b>It is a different business from the one on the rest of this dashboard.</b> Everywhere else the power company buys at cost, sells at cost, and earns a margin on volume, which is why its return moves ${fmt(24,0)} basis points across a €30/MWh swing in the renewable price. A fixed-price sale reverses that: the return would then follow the market, and the equity would have to be sized for a trading book rather than for an infrastructure one.
+   <br><br><b>If we want it, it needs three things the structure does not currently have:</b> capital sized against the position rather than against the assets, a hedging policy with someone accountable for it, and a governance limit on the size. If we do not, the answer is that the trading desk provides the fixed price and the power company passes it through for a fee, which earns less and risks nothing.</div>
+ </div>`;
+}
+function marginFleetPanel(){
+ const keepW=M.wind.mw, keepS=M.solar.mw, keepM=M.dc.marginMode, keepC=_SUPC;
+ const out=[];
+ for(const mode of ['pct','flat']){
+  M.dc.marginMode=mode;
+  for(const np of [677,1000]){
+   const k=np/677; M.wind.mw=320*k; M.solar.mw=357*k; _SUPC=null;
+   const S=computeSPV(M.dc.dcPrice);
+   out.push({mode,np,irr:S.irr,unit:S.unit});
+  }
+ }
+ M.wind.mw=keepW; M.solar.mw=keepS; M.dc.marginMode=keepM; _SUPC=keepC;
+ const g=(m,n)=>out.find(o=>o.mode===m&&o.np===n);
+ const dPct=(g('pct',677).irr-g('pct',1000).irr)*10000;
+ const dFlat=(g('flat',677).irr-g('flat',1000).irr)*10000;
+ return `<div class="panel" style="margin-top:14px"><h3>Building more renewables lowers our return, and the margin form is why</h3>
+  <table><thead><tr><th>Fleet</th><th>Margin as a share of cost</th><th>Margin in euros per MWh</th><th>What the campus pays</th></tr></thead><tbody>
+   <tr><td><b>677 MW</b>, as modelled</td><td>${fmt(g('pct',677).irr*100,2)}%</td><td>${fmt(g('flat',677).irr*100,2)}%</td><td>€${fmt(g('pct',677).unit,1)} / €${fmt(g('flat',677).unit,1)}</td></tr>
+   <tr><td><b>1,000 MW</b></td><td>${fmt(g('pct',1000).irr*100,2)}%</td><td>${fmt(g('flat',1000).irr*100,2)}%</td><td>€${fmt(g('pct',1000).unit,1)} / €${fmt(g('flat',1000).unit,1)}</td></tr>
+   <tr class="tot"><td>Cost of growing the fleet</td><td><b>${fmt(dPct,0)} bp</b></td><td><b>${fmt(dFlat,0)} bp</b></td><td>cheaper by €${fmt(g('pct',677).unit-g('pct',1000).unit,1)}/MWh</td></tr>
+  </tbody></table>
+  <div class="info" style="margin-top:10px"><b>A margin quoted as a percentage of cost shrinks when the cost falls.</b> Renewable energy under a fixed contract is cheaper than grid energy, so every megawatt of new plant replaces an expensive megawatt-hour with a cheap one and takes the margin down with it. Going from 677 MW to 1,000 MW costs <b>${fmt(dPct,0)} basis points</b> on a percentage margin and <b>${fmt(dFlat,0)}</b> on a flat one; the remainder is the extra private line, which grows with the fleet either way.
+   <br><br><b>The campus wants the bigger fleet</b>, because it is cheaper per megawatt-hour and it is the only route to a renewable share above thirty per cent. If that is where this is going, the margin should be quoted in euros per megawatt-hour and the line capital recovered separately, or growth and return pull against each other for twenty years.</div>
+ </div>`;
+}
 function batteryPage(){
  const b=M.battery,B=computeBattery(b),F=computeBatteryFin();
  const inputsL=`<div class="panel"><h3>Battery · plant & dispatch</h3>
@@ -2916,25 +3133,18 @@ function batteryPage(){
   ${kpiM([['Equity IRR',irr,'levered '+pct(b.gearing,0),battCol],['Captured spread','€'+fmt(B.capturedSpread,0),'/MWh']],battCol)}</div>`;
  const seg=pageHead('Battery',
   `${fmt(b.powerMW,0)} MW and ${fmt(b.powerMW*b.durationH/1000,1)} GWh, sitting behind the meter.`,
-  `Lithium iron phosphate at ${fmt(b.durationH,0)} hours, with ${pct(b.socFloor,0)} of the pack held back as ride-through for the campus rather than traded. The arbitrage is backtested day by day on the Austrian curve since 2015, not assumed.`,
+  '',
   assetSeg('battery',false));
- if(assetView.battery==='tech')return seg+saidiPanel()+renderBlock('battery');
+ if(assetView.battery==='tech')return seg+renderBlock('battery')+saidiPanel();
  if(assetView.battery==='spread')return seg+spreadPanel();
- if(assetView.battery==='shave')return seg+shavePanel();
- if(assetView.battery==='conc')return seg+concPanel();
  setTimeout(drawBatteryCharts,0);
  const bDsc=dscrSeries(F.rows,0,9999), bDst=dscrStats(bDsc);
- const expl=(F.standby>1)?`<div class="warn" style="margin-bottom:12px">⚠️ <b>The battery does not cover its own debt service before ${b.gridYear}.</b> Until grid access it earns the reliability fee only, so equity must stand behind <b>€${fmt(F.standby,0)}m</b> on top of the €${fmt(F.equityAtCod,0)}m at COD. Minimum DSCR over the amortising years is <b>${bDst?fmt(bDst.min,2):'n/a'}x</b>. A lender would size the debt to that, not to the gearing slider.</div>`:'';
+ const expl=(F.standby>1)?`<div class="warn" style="margin-bottom:12px">⚠️ <b>The battery does not cover its own debt service before ${b.gridYear}.</b> Until grid access it earns the reliability fee only, so equity must stand behind <b>€${fmt(F.standby,0)}m</b> on top of the €${fmt(F.equityAtCod,0)}m at COD.</div>`:'';
  const mkFee=b.powerMW*(M.dc.gridCapFeeKW!=null?M.dc.gridCapFeeKW:42.84)/1000;
  const feeNote=`<div class="${b.mktCapFee?'warn':'info'}" style="margin-bottom:12px"><b>Network charges once the battery trades.</b> Behind the meter it charges over the direct line and pays no use-of-system charge, which is why the model carries zero. From ${b.gridYear>=2099?'the first merchant year':b.gridYear} it would be drawing from and pushing into the public network, and at the NE3 Leistungspreis of €${fmt(M.dc.gridCapFeeKW,2)}/kW/yr a ${fmt(b.powerMW,0)} MW connection is <b>€${fmt(mkFee,1)}m a year</b>, which is ${fmt(mkFee/Math.max(0.1,B.totalRev)*100,0)}% of the modelled revenue.
   <br><br>${b.mktCapFee?`<b>It is switched on.</b> The figures on this page carry it from ${b.gridYear>=2099?'never, since no market access is modelled':b.gridYear}.`:`<b>It is switched off,</b> on the basis that Austrian regulation has treated storage as an exception rather than as a network user on the charging side. That treatment is not confirmed for a plant of this size and it is on the open items list. The toggle beside the grid-fee sliders switches it on so the downside is visible rather than assumed away.`}</div>`;
- const note=(b.gridYear>=2099)?`<div class="warn">⚠️ No grid market participation modelled. The battery earns the DC reliability charge only. BE (23 Jul): a two-way battery grid connection competes with generation projects for scarce grid capacity and regulation is in flux; they put the odds below 50/50 even post-2035.</div>`:`<div class="warn">⚠️ Grid market participation only from ~${b.gridYear}. Austria's aFRR market is only ±225 MW deep.</div>
- <div class="info"><b>Reliability, not tiers:</b> the ${pct(b.socFloor||0,0)} SoC floor (${fmt((b.socFloor||0)*B.energy,0)} MWh) is held as outage ride-through ≈ <b>${fmt((b.socFloor||0)*B.energy/M.dc.firmMW*60,0)} min at the full ${fmt(M.dc.firmMW,0)} MW load</b> vs unplanned SAIDI of ~23 min/yr Austria / <b>~14 min/yr Netz Burgenland area</b> (2024).</div>`;
- const hoursNote=`<div class="callout" style="margin-bottom:12px"><b>Eight hours is a deliberate choice, not an industry default.</b> CATL's own data centre material sizes co-located storage at <b>two to four hours</b>, and most benchmarks you will find sit in that band. This pack is ${fmt(b.durationH,0)}, at or above the top of the range, and the reason is that it is not primarily a trading asset.
-  <br><br><b>The duration is set by the ride-through requirement.</b> ${pct(b.socFloor,0)} of the pack, ${fmt((b.socFloor||0)*b.powerMW*b.durationH,0)} MWh, is held back as reserve and never traded. At the full ${fmt(M.dc.firmMW,0)} MW campus load that reserve alone is <b>${fmt((b.socFloor||0)*b.powerMW*b.durationH/M.dc.firmMW*60,0)} minutes</b> of ride-through, against unplanned outages of about 14 minutes a year across the Netz Burgenland area. Vertiv puts current data centre bridging at thirty minutes to two hours, so the reserve sits inside the industry band while the pack around it does the trading.
-  <br><br><b>What that costs, stated plainly.</b> The Break-even spread page shows the eight-hour configuration is the worst of the four on arbitrage: it needs a wider spread than a two, four or six hour pack and captures a narrower one, because the extra capital does not turn over. The honest framing is that reliability pays for the duration and arbitrage is the residual. Anyone benchmarking this against a merchant storage project is comparing two different assets.</div>`;
- const battBench=bench(['K01','K06','K07'],'battery sizing and cell life');
- return seg+kpis+hoursNote+feeNote+battBench+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr">
+ const note=`<div class="warn">⚠️ <b>${b.gridYear>=2099?'No grid market participation is modelled.':'Grid market participation only from ~'+b.gridYear+'.'}</b> Until then the battery earns the DC reliability charge only. Burgenland Energie (23 Jul): a two-way battery grid connection competes with generation projects for scarce grid capacity and the regulation is in flux, and they put the odds below 50/50 even after 2035. Austria's aFRR market is also only ±225 MW deep.</div>`;
+ return seg+kpis+feeNote+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr">
    <div class="chart tall" id="bch_disp"></div><div class="chart" id="bch_econ"></div></div>${inputsR}</div>${expl}${note}`;
 }
 function computeBatteryFin(){
@@ -2999,7 +3209,7 @@ const assetView={wind:'fin',solar:'fin',battery:'fin'};
 function setAssetView(sec,v){assetView[sec]=v;render();}
 function assetSeg(sec,withMap){return `<div class="seg">`+
   [['fin','Financial model'],...(withMap?[['map','Map']]:[]),
-   ...(sec==='battery'?[['spread','Break-even spread'],['shave','Peak shaving'],['conc','Concentration']]:[]),['tech','Technical layout']]
+   ...(sec==='battery'?[['spread','Trading economics']]:[]),['tech','Technical layout']]
    .map(t=>`<button class="${assetView[sec]===t[0]?'on':''}" onclick="setAssetView('${sec}','${t[0]}')">${t[1]}</button>`).join('')+
   `</div>`;}
 
@@ -3118,7 +3328,7 @@ function headroomPanel(){
  setTimeout(drawHeadroom,0);
  const H=headroom(), E=CLIP.exact, S=supplyStats();
  return `<div class="panel" style="margin-top:14px">
-  <h3>Does ${fmt(H.nameplate,0)} MW behind a ${fmt(H.cap,0)} MW connection have to clip?</h3>
+  <h3>Does ${fmt(fleetAC(),0)} MW<sub>AC</sub> behind a ${fmt(H.cap,0)} MW connection have to clip?</h3>
   <div class="kpis" style="margin-bottom:12px">
    ${kpi('Highest quarter-hour',fmt(H.peak,0),'MW delivered, in '+CLIP.n.toLocaleString('en-US')+' records')}
    ${kpi('Above the connection',H.overCap===0?'none':fmt(H.overCap,0),H.overCap===0?'quarter-hours in the record':'quarter-hours')}
@@ -3382,16 +3592,7 @@ function saidiPanel(){
    <text x="8" y="120" font-size="10.5" fill="#7d8f84" font-family="Inter,sans-serif" transform="rotate(-90 14,120)">minutes per year</text>
   </svg>`;
  return `<div class="panel" style="margin-top:14px"><h3>Ride-through, against the outages this network actually has</h3>
-  <div class="kpis" style="margin-bottom:12px">
-   ${kpi('Netz Burgenland',fmt(bgld,1),'minutes a year, 2024')}
-   ${kpi('Reserved in the battery',fmt(reserveMWh,0),'MWh · '+pct(b.socFloor||0,0)+' floor, never traded')}
-   ${kpi('That rides through',fmt(minsFloor,0),'minutes at the full '+fmt(M.dc.firmMW,0)+' MW')}
-   ${kpi('Cover against the local record',fmt(minsFloor/bgld,1)+'×','the whole year of outage minutes, in one go')}</div>
   ${chart}
-  <div class="info" style="margin-top:12px"><b>The reserve is not a round number, it is a multiple of a measured one.</b> Burgenland Energie's own document puts the local network at <b>${fmt(bgld,1)} minutes of unplanned unavailability a year</b>, sourced to Netz Burgenland's 2024 fault statistics. Austria as a whole runs at ${fmt(at,1)}. The ${pct(b.socFloor||0,0)} of the pack held back as ride-through is <b>${fmt(reserveMWh,0)} MWh</b>, which carries the full ${fmt(M.dc.firmMW,0)} MW campus for <b>${fmt(minsFloor,0)} minutes</b>. That is <b>${fmt(minsFloor/bgld,1)} times the entire year's outage minutes</b> on this network, absorbed in a single event.
-   <br><br>Discharged in full rather than just the reserve, the battery would carry the campus for ${fmt(minsFull/60,1)} hours, or ${fmt(minsFull/bgld,0)} times the annual figure. Against the worst network in the comparison, ${worst[0]} at ${fmt(worst[1],1)} minutes, the reserve alone still covers ${fmt(minsFloor/worst[1],2)}× a full year.
-   <br><br><b>Why this matters more than it looks.</b> A data centre buyer does not price average availability, they price the tail. The number that belongs in a term sheet is not "the grid here is reliable", it is "the local operator recorded ${fmt(bgld,1)} minutes in 2024, the reserve covers ${fmt(minsFloor,0)}, and the reserve is carved out of trading rather than shared with it". The floor slider on this tab is what moves it.
-   <br><br><span class="muted">Source: ${S.doc}, folder ${S.folder}, in ${VDR.room}, read ${VDR.read}. Basis: ${S.basis}. Underlying references quoted in the document: ${S.sources.join('; ')}. Comparators are 2018 CEER data except Austria and Netz Burgenland, which are 2024.</span></div>
  </div>`;
 }
 /* peak grid import and what a shaving dispatch can take off it, solved on the measured year */
@@ -3400,7 +3601,7 @@ function peakOf(){return PEAK[measYear]||PEAK['2025-26'];}
 
 let dcView='bill';
 function dcSeg(){
- return `<div class="seg">${[['bill','The bill'],['split','Where it comes from'],['peak','Network charges'],['load','What 500 MW is']]
+ return `<div class="seg">${[['bill','The bill'],['split','Where it comes from'],['buckets','Three buckets'],['peak','Network charges'],['load','What 500 MW is']]
   .map(v=>`<button class="${dcView===v[0]?'on':''}" onclick="dcView='${v[0]}';render()">${v[1]}</button>`).join('')}</div>`;
 }
 
@@ -3448,6 +3649,7 @@ function dcPage(){
    </div>`;
  }
 
+ if(dcView==='buckets')return head+bucketsPage();
  if(dcView==='split'){
   setTimeout(drawDcSplit,0);
   return head+`<div class="kpis">
@@ -3577,7 +3779,7 @@ function summaryPage(){
    sens:['What actually moves the answer.','Every input taken to both ends of a range we would defend, one at a time, with the whole model recomputed each time. Plus the questions people keep asking, wired to the sliders that answer them.']};
  const seg=pageHead('SPV',SPVH[spvView][0],SPVH[spvView][1],segOnly);
  if(spvView==='tech')return seg+pueParagraph()+renderBlock('dc');
- if(spvView==='supply')return seg+supplyPage();
+ if(spvView==='supply')return seg+supplyPage()+sharePanel()+perimPanel()+marginFleetPanel()+firmPanel();
  if(spvView==='sens')return seg+sensPage();
  const W=computeAsset(M.wind),S=computeAsset(M.solar),B=computeBattery(M.battery);
  const wOn=M.wind.on!==false, sOn=M.solar.on!==false, bOn=M.battery.on!==false;
@@ -3721,7 +3923,11 @@ function computeSPV(dcP){
  const W=computeAsset(M.wind),S=computeAsset(M.solar),B=computeBattery(M.battery);
  const wOn=M.wind.on!==false, sOn=M.solar.on!==false, bOn=M.battery.on!==false;
  const dcLoad=M.dc.firmMW*8760;
- const resCx=(wOn?W.totalCapex:0)+(sOn?S.totalCapex:0), battCx=bOn?B.capex:0, lineCx=lineMW()*M.conn.directPer100/100;
+ const resCx=(wOn?W.totalCapex:0)+(sOn?S.totalCapex:0), battCx=bOn?B.capex:0;
+ // Wide perimeter: if the campus-side electrical scope sits in the SPV rather than with the tenant,
+ // it is carried here on top of the private lines. Zero means the narrow perimeter we have modelled.
+ const wideEx=Math.max(0,(M.conn.wideInfra||0)-(M.battery.substation+M.battery.interconnect));
+ const lineCx=lineMW()*M.conn.directPer100/100+wideEx;
  const resOpex=(wOn?M.wind.opexPerMW*M.wind.mw:0)+(sOn?M.solar.opexPerMW*M.solar.mw:0);
  // owned: SPV builds & finances RES (capex in SPV, no PPA). bought: SPV buys RES at PPA (no RES capex, PPA is a COGS).
  const cap=owned?{2027:0.30*resCx,2028:0.70*resCx+battCx+lineCx}:{2027:0,2028:battCx+lineCx};
@@ -4489,24 +4695,8 @@ function bridgePanel(sec){
  const g=a.grossCF*8760, p=g*(1-a.loss), d=effCF(a)*8760;
  const gap=(p/B.roll-1)*100;
  const tAdj=isW?null:B.tracker?B.roll*(1+B.tracker.uplift/100):null;
- const head=`<div class="kpis" style="margin-bottom:14px">
-   ${kpi('Modelled gross P50',fmt(g,0),'FLH · '+pct(a.grossCF,1)+' CF')}
-   ${kpi('At the plant meter',fmt(p,0),'FLH · after '+pct(a.loss,1)+' plant losses')}
-   ${kpi('Delivered to the DC',fmt(d,0),'FLH · after '+pct(a.lineLoss||0,1)+' on the line')}
-   ${kpi('Measured on this fleet',fmt(B.roll,0),'FLH · '+B.label)}
-   ${kpi('The assumption',(gap>0?'+':'')+fmt(gap,1)+'%','model over measured')}</div>`;
- const note=isW
-  ? `<div class="info" style="margin-top:12px"><b>The wind premium is defensible, but it is an assumption.</b> The model runs ${fmt(g,0)} FLH gross, loses ${pct(a.loss,1)} to wake, availability and electrical to reach <b>${fmt(p,0)} FLH at the plant meter</b>, then ${pct(a.lineLoss||0,1)} on the ~14.7 km direct line to deliver <b>${fmt(d,0)} FLH</b>.
-   <br><br>Compare like for like, both at a plant meter, and the model sits <b>${gap>0?'+':''}${fmt(gap,1)}%</b> above the ${fmt(B.mw,2)} MW operating farm, which records ${fmt(B.roll,0)} FLH across ${B.n} rolling twelve-month windows (${fmt(B.rollLo,0)}–${fmt(B.rollHi,0)}). That premium is the repowering case: the modelled ${fmt(a.mw,0)} MW is BE's whole direct-line portfolio, mostly new-build on taller towers with larger rotors, against one existing farm.
-   <br><br><b>Two cautions.</b> The most recent twelve months at the operating farm read <b>${fmt(B.last,0)} FLH</b>, near the bottom of the range, so the recent trend is down rather than up. And three years is thin for a P50. If BE's quoted 2,200 to 2,500 FLH band refers to plant output rather than delivered energy, the model's ${fmt(p,0)} sits at the very top of their range, not comfortably inside it.
-   <br><br><span class="muted">Measured window ${B.window}. Rolling twelve-month means are used rather than the whole-record mean so seasonal coverage stays balanced. The funnel updates live from the sliders on the Financial model tab.</span></div>`
-  : `<div class="info" style="margin-top:12px"><b>This is the largest unevidenced number in the model, and it is BE's, not ours.</b> On 23 Jul BE told us fixed tilt runs about 1,100 FLH and trackers 1,300 to 1,400, and the model moved from 1,050 to 1,300 on that basis. The funnel runs ${fmt(g,0)} FLH gross → <b>${fmt(p,0)} at the plant meter</b> after ${pct(a.loss,1)} of soiling, inverter and availability losses → <b>${fmt(d,0)} delivered</b> after ${pct(a.lineLoss||0,1)} on the ~9.1 km line.
-   <br><br>The fixed-tilt meters record <b>${fmt(B.roll,0)} FLH</b> across ${B.n} rolling twelve-month windows (${fmt(B.rollLo,0)}–${fmt(B.rollHi,0)}). At the same measuring point the model assumes <b>+${fmt(gap,0)}%</b>, nearly eight times the equivalent wind premium.
-   <br><br><b>The tracker argument, tested against your own meters.</b> The justification is that BE builds trackers and agri-PV while the metered arrays are fixed tilt. That is real and now measurable: over ${B.tracker.n.toLocaleString('en-US')} common quarter-hours (${B.tracker.window}), Wallern-Tadten ran <b>+${fmt(B.tracker.uplift,1)}%</b> above the two fixed-tilt arrays on the same intervals. Apply that uplift and the measured base becomes ${fmt(tAdj,0)} FLH, and the model still sits <b>+${fmt((p/tAdj-1)*100,0)}%</b> above it. The window is January to June and trackers gain more across a full summer, so the true annual uplift is likely higher than ${fmt(B.tracker.uplift,1)}%. But it would need to be about <b>+${fmt(gap,0)}%</b> to carry the assumption alone, and nothing in the record reaches that. Note also that BE's own tracker claim was about +10%, which is smaller than the +16.8% their own meters show.
-   <br><br><b>Ask BE for:</b> the two AFRY yield reports already in Folder 2 of the data room, IEYA-Parndorf <i>with</i> tracker and IEYA-Nickelsdorf Süd <i>without</i>, which is exactly the paired comparison this question needs. Our accounts are view-only and cannot open them. Then the underlying yield time series rather than the summary, confirmation of which of the ${fmt(a.mw,0)} MWp they cover, and a full year of Wallern-Tadten tracker data.
-   <br><br><span class="muted">Measured window ${B.window}. The funnel updates live from the sliders on the Financial model tab.</span></div>`;
  return `<div class="panel" style="margin-bottom:14px"><h3>${isW?'Wind':'Solar'} · yield bridge, resource to the data centre</h3>
-   ${head}${funnelSVG(sec)}${note}</div>`;
+   ${funnelSVG(sec)}</div>`;
 }
 function funnelSVG(sec){
  const a=M[sec], isW=sec==='wind', B=BENCH[sec];
@@ -4529,11 +4719,7 @@ function funnelSVG(sec){
    <text x="${xs[i]}" y="${bot(0)+42}" fill="#e8eef3" font-size="14" text-anchor="middle" font-weight="680">${fmt(V[i],0)} FLH</text>
    <text x="${xs[i]}" y="${bot(0)+59}" fill="#94a2b1" font-size="11" text-anchor="middle">${pct(V[i]/8760,1)} capacity factor</text>
    <text x="${xs[i]}" y="${bot(0)+77}" fill="#7d8fa1" font-size="10.5" text-anchor="middle">${ttl}</text>`;
- // measured benchmark, drawn on exactly the same scale as the funnel
- const mY=bot(0)+112, mH=hOf(B.roll), mW=(x3-x0)*(B.roll/gross), gap=(plant/B.roll-1)*100;
- const loY=mY+mH+62;                                    // loss-share strip
- const sw=x3-x0, wDel=sw*del/gross, wPl=sw*(gross-plant)/gross, wLn=sw*(plant-del)/gross;
- return `<svg viewBox="0 0 ${W} ${loY+92}" width="100%" style="max-width:${W}px">
+ return `<svg viewBox="0 0 ${W} ${bot(0)+100}" width="100%" style="max-width:${W}px">
   <defs><pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
     <rect width="6" height="6" fill="#ff6b6b" opacity=".13"/><line x1="0" y1="0" x2="0" y2="6" stroke="#ff6b6b" stroke-width="1.6" opacity=".38"/></pattern></defs>
   <line x1="${x0}" y1="${top(0)}" x2="${x3}" y2="${top(0)}" stroke="#5b6b7d" stroke-width="1" stroke-dasharray="5,4"/>
@@ -4546,20 +4732,6 @@ function funnelSVG(sec){
   ${node(0,'modelled gross P50')}${node(1,'at the plant meter')}${node(2,'delivered to the DC')}
   <text x="${x3+20}" y="${cy-6}" fill="${col}" font-size="14" font-weight="700">${fmt(a.mw,0)} ${isW?'MW':'MWp'}</text>
   <text x="${x3+20}" y="${cy+12}" fill="#94a2b1" font-size="11">${fmt(del*a.mw/1000,0)} GWh/yr to the DC</text>
-  <rect x="${x0}" y="${mY}" width="${mW}" height="${mH}" fill="#46b45a" opacity="0.32" stroke="#46b45a" stroke-width="1.6" rx="3"/>
-  <text x="${x0}" y="${mY-10}" fill="#46b45a" font-size="12" font-weight="700">MEASURED · ${B.label} · ${fmt(B.mw,2)} MW · same scale, same measuring point</text>
-  <text x="${x0+mW+14}" y="${mY+mH/2+2}" fill="#e8eef3" font-size="14" font-weight="680">${fmt(B.roll,0)} FLH</text>
-  <text x="${x0+mW+14}" y="${mY+mH/2+18}" fill="#94a2b1" font-size="10.5">${pct(B.roll/8760,1)} CF · ${B.n} rolling 12-month windows, ${fmt(B.rollLo,0)}–${fmt(B.rollHi,0)}</text>
-  <line x1="${x0+mW}" y1="${mY-4}" x2="${x0+mW}" y2="${bot(0)+84}" stroke="#46b45a" stroke-width="1.2" stroke-dasharray="4,4" opacity=".65"/>
-  <line x1="${xs[1]}" y1="${bot(0)+84}" x2="${xs[1]}" y2="${mY+mH+6}" stroke="#ffb23e" stroke-width="1.2" stroke-dasharray="4,4" opacity=".65"/>
-  <text x="${(x0+mW+xs[1])/2}" y="${mY+mH+30}" fill="#ffb23e" font-size="13" text-anchor="middle" font-weight="700">model assumes ${gap>0?'+':''}${fmt(gap,1)}% over the measured fleet</text>
-  <text x="${x0}" y="${loY-12}" fill="#94a2b1" font-size="11" font-weight="600">WHERE EVERY 100 UNITS OF GROSS RESOURCE ENDS UP</text>
-  <rect x="${x0}" y="${loY}" width="${wDel}" height="30" fill="${col}" opacity=".55" rx="2"/>
-  <rect x="${x0+wDel}" y="${loY}" width="${wPl}" height="30" fill="#ff6b6b" opacity=".55"/>
-  <rect x="${x0+wDel+wPl}" y="${loY}" width="${wLn}" height="30" fill="#ff6b6b" opacity=".85"/>
-  <text x="${x0+wDel/2}" y="${loY+20}" fill="#e8eef3" font-size="12" text-anchor="middle" font-weight="680">delivered ${fmt(del/gross*100,1)}%</text>
-  <text x="${x0+wDel+wPl/2}" y="${loY+50}" fill="#ff8b8b" font-size="10.5" text-anchor="middle">plant ${pct(a.loss,1)}</text>
-  <text x="${x0+wDel+wPl+wLn/2}" y="${loY+64}" fill="#ff8b8b" font-size="10.5" text-anchor="middle">line ${fmt((plant-del)/gross*100,1)}%</text>
  </svg>`;
 }
 
@@ -5109,7 +5281,7 @@ function svgSolarArray(){
  const svg=sv(1100,520,rct(0,0,1100,520,RC.bg)+A+B+C,600);
  const sub=`<b>${nfm(g.mods)} modules</b> on horizontal single-axis trackers, <b>${nfm(g.inv)} string inverters</b>, <b>${nfm(g.mvUnits)} MV stations</b> for the <b>${nfm(g.mwp)} MWp<sub>DC</sub></b> on the slider. `+
   `Row pitch ${g.pitch.toFixed(2)} m at GCR ${TECH.gcr} gives <b>${nfm(g.haStd)} ha</b>. `+
-  `The dashed red square is what the same MWp needs if it is built as elevated agri-PV: <b>${nfm(g.haAgri-g.haStd)} ha more land</b>. Adam's challenge to BE's tracker economics is still open.`;
+  `The dashed red square is what the same MWp needs if it is built as elevated agri-PV: <b>${nfm(g.haAgri-g.haStd)} ha more land</b>.`;
  const rows=[
   ['C','Tracker + module + inverter class','SonnenPark Tadten-Wallern (built, in the VDR): JA Solar 625/630 Wp bifacial, Huawei SUN2000-330KTL string inverters, single-axis tracker, 35-yr design life, 118.3 MWp for €43.3m and 155 GWh/yr.'],
   ['D','Module count','ceil('+nfm(g.mwp)+' MWp × 1e6 ÷ '+TECH.modWp+' Wp) = '+nfm(g.mods)+'. Live off the capacity slider.'],
@@ -5929,19 +6101,7 @@ function topologyPanel(){
  return `<section class="sect">
    <div class="kick">The direct line</div>
    <h2 class="dsp">Fifteen projects, and half the capacity sits inside five kilometres.</h2>
-   <p class="lede" style="margin-bottom:6px">Burgenland Energie's own project list places every park by the length of direct line it needs. That list is the whole basis for the connection cost, and it is why one number cannot cover it: a park one kilometre out and a park twenty-seven kilometres out are not the same build.</p>
-   <div class="figRow" style="margin-top:18px;margin-bottom:20px">
-    <div><div class="n">${fmt(S.wKm,1)}<small>km</small></div><div class="l">Wind, weighted</div>
-      <div class="d">Capacity-weighted average across ${fmt(S.wMW,0)} MW of wind. This is where the model's wind line loss comes from.</div></div>
-    <div><div class="n">${fmt(S.sKm,1)}<small>km</small></div><div class="l">Solar, weighted</div>
-      <div class="d">Same calculation across ${fmt(S.sMW,0)} MWp of solar, and the source of the solar line loss.</div></div>
-    <div><div class="n">${fmt(S.nearMW/S.tot*100,0)}<small>%</small></div><div class="l">Within 5.5 km</div>
-      <div class="d">${fmt(S.nearMW,0)} MW of the ${fmt(S.tot,0)} MW sits close in. ${fmt(S.farMW,0)} MW sits at 18 km or beyond.</div></div>
-    <div><div class="n">€${fmt(conn*lineMW()/100,0)}<small>m</small></div><div class="l">Private lines, as modelled</div>
-      <div class="d">€${fmt(conn,2)}m per 100 MW across ${fmt(lineMW(),0)} MW of export capacity, the VDR #7 cable-plough variant. Their spoken lump sum of €${fmt(BE_LUMP,0)}m is €${fmt(BE_LUMP-conn*lineMW()/100,0)}m higher. The panel below sets out both.</div></div>
-   </div>
-   <div class="flowWrap" style="padding:14px 10px 6px">${topologySVG()}</div>
-   <p class="sub">Source: ${PROJMETA.source}. Their stated totals are ${PROJMETA.statedWind} MW wind and ${PROJMETA.statedSolar} MWp solar for ${PROJMETA.statedTotal} MW; the line items add to ${fmt(S.wMW,0)} and ${fmt(S.sMW,0)}, so the solar column is one megawatt short of the stated total. Distances are the ones on their sheet, including the ones they mark as approximate. ${fmt(S.opsMW,0)} MW is already operating, ${fmt(S.rtbMW,0)} MW is ready to build, and ${fmt(S.planMW,0)} MW is still in planning, zoning or zoned.</p>
+   <div class="flowWrap" style="margin-top:18px;padding:14px 10px 6px">${topologySVG()}</div>
   </section>`;
 }
 /* small inline flags: Austria red-white-red, United States simplified */
@@ -5989,9 +6149,6 @@ function euLabelCard(){
      <p>Dedicated plants wired to the load by private cable. Nothing is certificated, netted or matched after the fact, because the electrons have nowhere else to go.</p>
      <div class="euWho">Where this project sits, by construction</div></div>
   </div>
-  <div class="info" style="margin-top:12px"><b>From 15 August 2027 this stops being a marketing argument and becomes a published number.</b> The EU's Energy Efficiency Directive already requires every data centre above 500 kW of IT load to report into a central European database. From that date the database issues an annual efficiency label that rates power usage effectiveness, water use, and the renewable sourcing split <b>separately for each of the three columns above</b>.
-   <br><br><b>Which matters because the three are not interchangeable and are about to stop being reported as if they were.</b> A campus supplied by ${fmt(fleetAC(),0)} MW of dedicated wind and solar over a private line lands in the right-hand column on the day the label is issued, without buying anything, changing anything or arguing about additionality. Very few sites in Europe will.
-   <br><br><span class="muted">Reported by inspiratia, 29 April 2026, on the Data Centre Energy Efficiency Package. Minimum efficiency standards for new builds are expected in late 2027 or early 2028, which a campus reaching commercial operation in ${COD} has to be designed to beat from day one.</span></div>
  </div>`;
 }
 function introSection(){
@@ -6000,17 +6157,16 @@ function introSection(){
  return `<section class="sect">
    <div class="kick">What this is</div>
    <h2 class="dsp">A ${fmt(M.dc.firmMW,0)} megawatt data centre in eastern Austria, with its own power station attached.</h2>
-   <p class="lede">A data centre needs the same amount of electricity every hour of every day, and an AI data centre needs a great deal of it. Nickelsdorf is being built next to one of the densest concentrations of wind and solar in Austria, and instead of buying its power from the market it will be wired <span class="hl">directly</span> to ${fmt(fleetAC(),0)} MW of nearby wind and solar farms by private cable.</p>
-   <p class="lede" style="margin-top:14px">The wind does not blow to order and the sun sets, so a <span class="hl">${fmt(M.battery.powerMW,0)} MW battery</span> and a connection to the national grid fill the gaps. A company sits in the middle, buys from both sources, and sells the data centre one thing: <b>firm power, at a fixed price, for twenty years</b>. That company is what this dashboard models.</p>
+   <p class="lede">Nickelsdorf sits next to one of the densest concentrations of wind and solar in Austria. It is wired <span class="hl">directly</span> to ${fmt(fleetAC(),0)} MW of nearby wind and solar farms by private cable, with a <span class="hl">${fmt(M.battery.powerMW,0)} MW battery</span> alongside and the grid for the balance.</p>
    <div class="figRow">
     <div><div class="n">${fmt(fleetAC(),0)}<small>MW<sub>AC</sub></small></div><div class="l">Wind and solar</div>
       <div class="d">${fmt(M.wind.mw,0)} MW<sub>AC</sub> of wind and ${fmt(M.solar.mw,0)} MWp<sub>DC</sub> of solar across ${PROJ.length} nearby parks, connected by private line. Their project list adds those to ${fmt(fleetDC(),0)}; on the same unit it is ${fmt(fleetAC(),0)} MW<sub>AC</sub>.</div></div>
     <div><div class="n">${fmt(SS.selfPct,0)}<small>%</small></div><div class="l">Comes from those parks</div>
-      <div class="d">Measured hour by hour on a real year. The grid supplies the other ${fmt(SS.gridPct,0)}%, which is why the middleman exists.</div></div>
+      <div class="d">Measured hour by hour on a real year. The grid supplies the other ${fmt(SS.gridPct,0)}%.</div></div>
     <div><div class="n">€${fmt(W.totalCapex+S.totalCapex+B.capex,0)}<small>m</small></div><div class="l">To be built</div>
       <div class="d">Wind, solar and storage, before the private line and the substation.</div></div>
     <div><div class="n">20<small>years</small></div><div class="l">Contract</div>
-      <div class="d">A fixed price to the campus, from first power around ${FF}. The parks stop depending on the market.</div></div>
+      <div class="d">Supply to the campus under a twenty-year contract, from first power around ${FF}.</div></div>
    </div>
   </section>`;
 }
@@ -6019,46 +6175,22 @@ function castSection(){
  const W=computeAsset(M.wind), S=computeAsset(M.solar), B=computeBattery(M.battery), SS=supplyStats();
  const gwh=(W.prod+S.prod)/1000, PS=projStats();
  const cards=[
-  {name:'Land Burgenland',flag:FLAG.at,ico:ICO.state,col:'#ff9f6b',tint:'rgba(255,159,107,.13)',
-   role:'The Austrian province. It owns Burgenland Energie outright, so the counterparty behind the generation is a regional government.',
-   mets:[['Owns','Burgenland Energie'],['Population','~300,000'],['Wants','investment and jobs']],
-   note:'Shareholder, not a contracting party'},
   {name:'Burgenland Energie',flag:FLAG.at,ico:ICO.utility,col:'#4aa8ff',tint:'rgba(74,168,255,.13)',
-   role:'The provincial utility. It builds and owns the wind and solar parks and the private lines, and sells the output under a long contract instead of into the market.',
-   mets:[['Brings',fmt(fleetAC(),0)+' MW AC'],['Across',PROJ.length+' parks'],['Gets','a 20-year price']],
+   role:'The provincial utility, owned by the Land Burgenland. It builds and owns the wind and solar parks, the private lines and the local grid, and sells the output under a long contract.',
+   mets:[['Brings',fmt(fleetAC(),0)+' MW AC'],['Across',PROJ.length+' parks'],['Gets','a 20-year price'],['Network charge','\u20ac'+fmt(M.dc.gridCapFeeKW,0)+'/kW/yr'],['Local outages','13.7 min a year']],
    go:'wind',jump:'Wind'},
-  {name:'Power SPV',ico:ICO.spv,col:'#12b95a',tint:'rgba(0,154,68,.15)',
-   role:'The company in the middle, and the one being financed. It buys from the parks and from the grid, owns the battery and the lines, and sells the campus a single firm product.',
-   mets:[['Buys',fmt(gwh,0)+' GWh from the parks'],['Tops up with',fmt(SS.gridPct,0)+'% from the grid'],['Sells','one firm price']],
+  {name:'Power SPV \u00b7 Nexwell',ico:ICO.spv,col:'#12b95a',tint:'rgba(0,154,68,.15)',
+   role:'The company in the middle, structured and financed by Nexwell. It buys from the parks and from the grid, owns the battery and the lines, and supplies the campus.',
+   mets:[['Buys',fmt(gwh,0)+' GWh from the parks'],['Tops up with',fmt(SS.gridPct,0)+'% from the grid'],['Battery',fmt(M.battery.powerMW,0)+' MW / '+fmt(B.energy/1000,1)+' GWh'],['Held as reserve',pct(M.battery.socFloor||0,0)],['Rides through',fmt(M.battery.powerMW*M.battery.durationH*(M.battery.socFloor||0)/M.dc.firmMW*60,0)+' minutes']],
    go:'summary',jump:'SPV'},
-  {name:'Storage',ico:ICO.spv,col:'#b98cff',tint:'rgba(185,140,255,.13)',
-   role:'Inside the SPV. It shifts energy from the hours nobody wants into the hours the campus does, and holds a reserve back so the site rides through a grid outage.',
-   mets:[['Size',fmt(M.battery.powerMW,0)+' MW / '+fmt(B.energy/1000,1)+' GWh'],['Held as reserve',pct(M.battery.socFloor||0,0)],['Rides through',fmt(M.battery.powerMW*M.battery.durationH*(M.battery.socFloor||0)/M.dc.firmMW*60,0)+' minutes']],
-   go:'battery',jump:'Battery'},
   {name:'The data campus',flag:FLAG.us,ico:ICO.dc,col:'#eaf2f8',tint:'rgba(234,242,248,.10)',
    role:'The tenant, a United States operator. It takes the power and pays for it. The name is confidential, so it appears here only as the load it represents.',
    mets:[['Takes',fmt(M.dc.firmMW,0)+' MW, firm'],['Every year',fmt(M.dc.firmMW*8.76,0)+' GWh'],['Hours a year','8,760']],
-   go:'summary',jump:'SPV'},
-  {name:'The Austrian grid',flag:FLAG.at,ico:ICO.grid,col:'#93a49a',tint:'rgba(147,164,154,.12)',
-   role:'APG and Netz Burgenland. Not the main supplier here but the balancing one, and the reason network charges appear in the price at all.',
-   mets:[['Supplies',fmt(SS.gridPct,0)+'% of the energy'],['Network charge','€'+fmt(M.dc.gridCapFeeKW,0)+'/kW/yr'],['Local outages','13.7 min a year']],
-   go:'prices',jump:'Prices'},
-  {name:'Nexwell',ico:ICO.nx,col:'#12b95a',tint:'rgba(0,154,68,.15)',
-   role:'Us. We structure and finance the company in the middle, and we built this model from Burgenland Energie’s own meters rather than from a brochure.',
-   mets:[['Role','arranger and investor'],['Evidence','3 years of metering'],['Prices','11 years of market data']],
-   note:'Every number here is traceable'}];
+   go:'summary',jump:'SPV'}];
  return `<section class="sect">
    <div class="kick">Who is who</div>
-   <h2 class="dsp">The seven parties involved.</h2>
-   <p class="lede">A province that owns a utility, a utility with more renewable energy than the market wants at midday, an American data centre that needs power every second of the year, and a company built to sit between them. Click any of them to go to its numbers.</p>
+   <h2 class="dsp">The three parties.</h2>
    <div class="castGrid">${cards.map(castCard).join('')}</div>
-   <div class="chain">
-    <div><div class="lbl">The parks</div><div class="en">Wind and solar generate ${fmt(gwh,0)} GWh a year</div><div class="mo">paid a fixed €/MWh under a 20-year contract</div></div>
-    <div><div class="lbl">The private line</div><div class="en">Carried ${fmt(PS.allKm,1)} km on cable the SPV owns</div><div class="mo">no network charge on this energy</div></div>
-    <div><div class="lbl">The middle</div><div class="en">Battery and grid fill every remaining hour</div><div class="mo">grid energy plus network charges</div></div>
-    <div><div class="lbl">The campus</div><div class="en">${fmt(M.dc.firmMW,0)} MW, firm, 8,760 hours a year</div><div class="mo">one bill, one price, one counterparty</div></div>
-   </div>
-   <p class="sub">The gap between what the parks are paid and what the campus pays, less the cost of the grid top-up and the battery, is the business. Everything else on this dashboard is an attempt to work out whether that gap is real and whether it holds for twenty years.</p>
   </section>`;
 }
 function overviewPage(){
@@ -6109,7 +6241,7 @@ function overviewPage(){
    <h2 class="dsp">Everything behind one meter, and the grid only for balance.</h2>
    <p class="lede" style="margin-bottom:18px">The parks do not sell into the market. They sell to the campus over lines the power company builds and owns, so PPA volumes carry no network charge. The grid stays connected, but it covers the gap rather than the load.</p>
    <div class="flowWrap">${flowDiagram()}</div>
-   <p class="sub">Line distances are the shortest and longest in Burgenland Energie's own project list. Losses are the model's line-loss assumptions, which you can move on each asset tab.</p>
+   <p class="sub">Losses are the model's line-loss assumptions, which you can move on each asset tab.</p>
   </section>`;
 
  const evidence=`<section class="sect">
@@ -6194,8 +6326,7 @@ function overviewPage(){
       <b>${t[1]}${gateLocked(t[0])?' <span style="font-size:10px;color:var(--mut);font-weight:400">· code</span>':''}</b>
       <span class="cap">${t[2]}</span></button>`).join('')}
    </div>
-   <p class="sub">This overview is open to anyone with the link. The financial model, the storage economics and the metered production record sit behind an access code. Everything here is directional and for discussion, and none of it is investment advice.
-   <button class="chip" style="margin-left:10px;cursor:pointer" onclick="replaySplash()">Replay the opening</button></p>
+   <p class="sub"><button class="chip" style="cursor:pointer" onclick="replaySplash()">Replay the opening</button></p>
   </section>`;
 
  const foot=`<div class="panel" style="margin-top:14px;display:flex;align-items:center;gap:30px;flex-wrap:wrap;justify-content:center;padding:22px 18px">
@@ -6207,7 +6338,7 @@ function overviewPage(){
     ${BELOGO('height:34px')}</a>
   </div>`;
 
- return hero+introSection()+castSection()+flow+prop+euLabelCard()+topologyPanel()+linePanel()+evidence+assets+next+foot;
+ return hero+introSection()+castSection()+flow+euLabelCard()+topologyPanel()+evidence+next+foot;
 }
 function renderBlock(which){
  try{
@@ -6382,7 +6513,15 @@ function armGrow(div,data,layout,cfg){
  try{ Plotly.restyle(div,{[key]:zeros},idx); }catch(e){ return false; }
  div._growRun=function(){
   try{ Plotly.animate(div,{data:reals.map(v=>({[key]:v})),traces:idx},
-        {transition:{duration:820,easing:'cubic-out'},frame:{duration:820,redraw:false}}); }
+        {transition:{duration:820,easing:'cubic-out'},frame:{duration:820,redraw:false}});
+       // redraw:false keeps the frame cheap but leaves the axis range computed while the bars were
+       // flat, which on an autoranged chart collapses it. Restore the range once the run finishes.
+       setTimeout(()=>{try{
+         const ax=(key==='x')?'xaxis':'yaxis';
+         const lay=(div.layout||{})[ax]||{};
+         if(lay.range==null||lay.autorange!==false)Plotly.relayout(div,{[ax+'.autorange']:true});
+       }catch(e){}},880);
+  }
   catch(e){ try{ Plotly.restyle(div,{[key]:reals},idx); }catch(e2){} }
  };
  if(!_growObs)_growObs=new IntersectionObserver(es=>{
