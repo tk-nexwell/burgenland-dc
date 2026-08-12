@@ -1275,7 +1275,7 @@ const M={
  dc:{curtail:0,firmMW:500,dcPrice:120,spvMode:'pass',spvMargin:0.03,marginMode:'pct',marginEur:3.5,
    revPerMW:5.00,powerPass:true,claimShare:0.40,firmTermY:3,   // DC revenue EUR m per MW of connection a year; powerPass = the data center bills power on to its tenant
 srcMode:'fixed',resFix:99,beMargin:0.03,gridEnergyFee:8.4,gridCapFeeKW:42.84,feeEsc:0.04,resMode:'ppa'}, // feeEsc: BE Trading 14-Jul-26 tariff path = ~4%/yr from 2028 (Arbeitspreis 8.4→18.4, Leistungspreis 42.84→93.87 k€/MW by 2048)
- site:{leasePre:1.0,leasePost:5.0,partPct:0.05,partCapM:0,oneOff:100.0,leaseY:20,on:true}, // leasePost = our own July record of a ~EUR 100m upfront, spread over the 20-year term // land bucket. partPct 5% is our own July record, the pre-LOI ask; partCapM 0 = uncapped
+ site:{leasePre:1.0,leasePost:5.0,partPct:0.05,partCapM:0,oneOff:100.0,leaseY:20,on:true}, // leasePost = our own July record of a ~EUR 100m upfront, spread over the 20-year term // land bucket. partPct 5% is our own July record; partCapM 0 = uncapped
  conn:{directPer100:7.54,dcac:1.20,clip:true,lineBasis:'vdr7',wideInfra:0} // private tie-lines €m per 100 MW. Back to the VDR #7 cable-plough variant on the 10 Aug call: it is the only written number. BE's 23-Jul €70m lump (10.34/100MW, 110 kV) is the alternative and is one click away. NEB Netzzutritt & customer DC connection live as battery.substation / battery.interconnect
 };
 const DEFAULTS_JSON=JSON.stringify(M);
@@ -1398,8 +1398,15 @@ function computeBattery(b){
  const ph=(PRICES.per_year[b.priceYear]||PRICES.per_year['2025']).ph;
  const effDur=b.durationH*(1-(b.socFloor||0)); // SoC floor reserved as outage ride-through, not tradeable
  const nCh=Math.min(12,Math.max(0,Math.floor(effDur*b.cyclesDay)));   // floor, not round: rounding up charged more energy than the tradeable window holds
- const srt=ph.slice().sort((x,y)=>x-y), buy=srt.slice(0,nCh), sell=srt.slice(24-nCh);
- const sumBuy=buy.reduce((s,x)=>s+x,0), sumSell=sell.reduce((s,x)=>s+x,0), cf=(b.captureFactor||1);
+ /* Buy and sell prices come from the day-by-day backtest, not from an average day. Averaging 365
+    days into one flattens exactly the volatility the battery monetises, so the old average-day
+    curve understated the capture. These are the volume-weighted prices the optimiser actually
+    paid and received running every real day of the chosen year at the chosen duration, which is
+    the same run that draws the Spreads tab. The average-day curve still drives the dispatch
+    picture, because that is an illustration of when it charges, not of what it earns. */
+ const _spY=(SPREAD.byDurYear[String(spreadDur())]||SPREAD.byDurYear['8']);
+ const _spR=_spY.find(r=>String(r.y)===String(b.priceYear))||_spY[_spY.length-1];
+ const sumBuy=nCh*_spR.buy, sumSell=nCh*_spR.sell, cf=(b.captureFactor||1);
  // behind-the-meter self-charge: renewable output above DC firm load spills into the battery at btmCharge (€/MWh; default 0 = curtailed/export-banned spill is free)
  // how much of the charging is met free from renewable output above the data center load. Read off the
  // measured year hour by hour, not off an average day: an average day never exceeds 500 MW, so the
@@ -1783,7 +1790,7 @@ function drawAssetCharts(R,col){
    Plotly.react('c_prod',[
      {x:yrs,y:ops.map(r=>r.prod/1000),name:'Production',type:'scatter',fill:'tozeroy',line:{color:col},hovertemplate:HT('GWh')},
      {x:yrs,y:price,name:'Price €/MWh',type:'scatter',yaxis:'y2',mode:'lines',line:{color:'#45b85d',width:1.6,dash:'dot'},hovertemplate:'€%{y:.0f}/MWh<extra></extra>'}
-   ],lay('Production & price<br><span style="font-size:12px">PPA €'+fmt(pa.ppa,0)+' for '+fmt(M.macro.ppaTermY,0)+' yr, then merchant ~€'+fmt(ptail,0)+'</span>',{showlegend:true,legend:{orientation:'h',y:-0.18},yaxis:{range:[0,Z.prod],gridcolor:'#2b3644',title:{text:'GWh',font:{size:12}}},yaxis2:{overlaying:'y',side:'right',range:[0,Math.max(120,pa.ppa*1.25)],title:{text:'€/MWh',font:{size:11.5}},gridcolor:'transparent'}}),CFG);
+   ],lay('Production & price',{showlegend:true,legend:{orientation:'h',y:-0.18},yaxis:{range:[0,Z.prod],gridcolor:'#2b3644',title:{text:'GWh',font:{size:12}}},yaxis2:{overlaying:'y',side:'right',range:[0,Math.max(120,pa.ppa*1.25)],title:{text:'€/MWh',font:{size:11.5}},gridcolor:'transparent'}}),CFG);
  Plotly.react('c_pl',[
    {x:yrs,y:ops.map(r=>r.rev),name:'Revenue',type:'bar',marker:{color:col},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>-r.opex),name:'Opex',type:'bar',marker:{color:'#ff6b6b'},hovertemplate:HT('€m')},
@@ -1822,7 +1829,7 @@ function drawAssetCharts(R,col){
  Plotly.react('c_eq',[
    {x:cfl.map(r=>r.y),y:cfl.map(r=>r.fcfe),name:'Equity CF',type:'bar',marker:{color:cfl.map(r=>r.fcfe>=0?'#43c079':'#ff6b6b')},hovertemplate:HT('€m')},
    {x:cfl.map(r=>r.y),y:roll,name:'Cumulative IRR',type:'scatter',yaxis:'y2',line:{color:'#45b85d',width:2},hovertemplate:'%{y:.1f}%<extra></extra>'}
- ],lay('Equity cash flow<br><span style="font-size:12px">IRR '+fmt(R.irr*100,1)+'% · MOIC '+fmt(R.moic,1)+'x</span>',{showlegend:true,yaxis:{range:[Z.fcfeMin,Z.fcfeMax],gridcolor:'#2b3644',title:{text:'€m',font:{size:12}}},yaxis2:{overlaying:'y',side:'right',range:[iMin,iMax],gridcolor:'transparent',title:{text:'cumulative IRR %',font:{size:11.5}}}}),CFG);
+ ],lay('Equity cash flow',{showlegend:true,yaxis:{range:[Z.fcfeMin,Z.fcfeMax],gridcolor:'#2b3644',title:{text:'€m',font:{size:12}}},yaxis2:{overlaying:'y',side:'right',range:[iMin,iMax],gridcolor:'transparent',title:{text:'cumulative IRR %',font:{size:11.5}}}}),CFG);
  drawSensitivity(R,col);
 }
 
@@ -1923,7 +1930,7 @@ function spreadPanel(){
    [2,4,6,8].map(d=>`<button class="${Math.round(b.durationH)===d?'on':''}" onclick="M.battery.durationH=${d};render()">${d} h</button>`).join('')+
    `</div><span class="muted" style="font-size:12.5px">${fmt(b.powerMW,0)} MW · ${fmt(b.powerMW*b.durationH/1000,1)} GWh · ${pct(b.socFloor||0,0)} held back for ride-through</span></div>`;
  return durSeg+`<div class="chart tall" id="sp_year"></div>
-  <p class="sub" style="margin-top:12px">How this ties to the Battery model tab: the <b>\u20ac${fmt(computeBattery(b).capturedSpread,0)}/MWh captured spread</b> there is earned on the <i>average</i> ${b.priceYear} day, net of round-trip losses. The bars here re-run every <i>actual</i> day with perfect foresight, so they sit higher \u2014 gross buy-to-sell spread against the dashed break-even line.</p>`;
+  <p class="muted" style="margin-top:10px">* 2026 runs to 10 August.</p>`;
 }
 function drawSpreadCharts(){
  const b=M.battery, FAINT=TH().faint, G='#46b45a', R='#ff6b6b';
@@ -1936,7 +1943,7 @@ function drawSpreadCharts(){
    hovertemplate:'\u20ac%{y:.1f}/MWh<extra>achieved</extra>'},
   {x:Y.map(r=>r.y),y:Y.map(r=>r.req),name:'Spread it needed',type:'scatter',mode:'lines',
    line:{color:'#8fa3bb',width:2,dash:'dash'},hovertemplate:'\u20ac%{y:.1f}/MWh<extra>needed</extra>'}
- ],lay('What the daily spread was each year, against what '+(Math.round(b.durationH)===8?'an ':'a ')+fmt(b.durationH,0)+'-hour battery needed<br><span style="font-size:12px">green years cover the cost of the battery, red years do not \u00b7 2026 runs to 10 August</span>',
+ ],lay('Actual spread vs needed',
    {showlegend:true,xaxis:{gridcolor:FAINT,dtick:1},
     yaxis:{title:{text:'\u20ac/MWh of spread',font:{size:12}},gridcolor:FAINT,rangemode:'tozero'}}),CFG);
 }
@@ -2044,7 +2051,7 @@ function drawShaveCharts(){
    {x:NX,y:NI,name:'Data center grid import',type:'scatter',mode:'lines',fill:'tozeroy',
     fillcolor:'rgba(143,163,187,.22)',line:{color:'#cfe0f2',width:3},hovertemplate:'%{y:.2f}x its mean<extra>import</extra>'},
    {x:[1,2190],y:[1,1],name:'the mean',mode:'lines',line:{color:'#57616c',width:1,dash:'dot'},hoverinfo:'skip'}
-  ],lay('A spike falls away. A plateau does not.<br><span style="font-size:12px">each series divided by its own mean, sorted highest first · the busiest quarter of the year</span>',
+  ],lay('A spike falls away. A plateau does not.',
     {showlegend:true,
      xaxis:{type:'log',title:{text:'hours of the year, ranked highest first',font:{size:12}},gridcolor:FAINT,range:[0,Math.log10(2190)]},
      yaxis:{title:{text:'multiple of its own mean',font:{size:12}},gridcolor:FAINT,range:[0,Math.max(2,Math.max(...NP))*1.06]},
@@ -2069,7 +2076,7 @@ function drawShaveCharts(){
    {x:[1,4000],y:[S.trueCeil,S.trueCeil],name:'Deepest it can actually hold',mode:'lines',
     line:{color:PU,width:1.6,dash:'dot'},hovertemplate:'%{y:,.1f} MW<extra>simulated limit</extra>'},
    wedge
-  ],lay('The top four thousand hours, and the ceiling you are trying to hold<br><span style="font-size:12px">the shaded wedge is '+fmt(cur.energyGWh,1)+' GWh · the pack holds '+fmt(S.usableMWh/1000,1)+' GWh and cannot refill inside an excursion</span>',
+  ],lay('The top four thousand hours, against the ceiling',
     {showlegend:true,xaxis:{title:{text:'hours of the year, ranked highest first',font:{size:12}},gridcolor:FAINT,range:[0,4000]},
      yaxis:{title:{text:'MW drawn from the grid',font:{size:12}},gridcolor:FAINT,range:[Math.min(380,cur.ceil-25),S.peak*1.015]}}),CFG);
  }
@@ -2093,7 +2100,7 @@ function drawShaveCharts(){
     line:{color:'var(--txt)',width:2.4},marker:{size:5},hovertemplate:'€%{y:.2f}m net<extra></extra>'},
    {x:[S.trueCut,S.trueCut],y:[lo,Math.max(...rows.map(r=>r.save))*1.25],name:'Deepest it can hold',mode:'lines',
     line:{color:PU,width:1.8,dash:'dot'},hoverinfo:'skip'}
-  ],lay('Peak shaving, priced at €'+fmt(E.oppCost,0)+'/MWh of forgone value<br><span style="font-size:12px">the dotted line is the energy wall · deeper cuts are arithmetic, not options</span>',
+  ],lay('Peak shaving, priced at €'+fmt(E.oppCost,0)+'/MWh of forgone value',
     {barmode:'relative',showlegend:true,
      xaxis:{title:{text:'MW taken off the billed peak',font:{size:12}},gridcolor:FAINT,dtick:10},
      yaxis:{title:{text:'€m a year',font:{size:12}},gridcolor:FAINT,zeroline:true,zerolinecolor:'#57616c',
@@ -2109,7 +2116,7 @@ function drawShaveCharts(){
    {x:ks.map(k=>'top '+Number(k).toLocaleString('en-US')+' hours'),y:ks.map(k=>S.overlap[k].chance),
     name:'What blind chance would give',type:'scatter',mode:'markers',marker:{color:PU,size:13,symbol:'diamond-open',line:{width:2.4,color:PU}},
     hovertemplate:'%{y:.1f}% by chance<extra></extra>'}
-  ],lay('How much the worst import hours and the best price hours have in common<br><span style="font-size:12px">share of each set that appears in both · the bar sitting above the diamond means they do coincide</span>',
+  ],lay('Worst import hours vs best price hours',
     {showlegend:true,xaxis:{gridcolor:FAINT},yaxis:{title:{text:'% of the set',font:{size:12}},ticksuffix:'%',gridcolor:FAINT,rangemode:'tozero'}}),CFG);
  }
 
@@ -2557,7 +2564,7 @@ function drawTornado(){
    hovertemplate:'%{x:+.2f} from the base<extra></extra>'},
   {y:R.map(r=>r.k),x:hi.map(v=>v*sc),name:'At the favourable end',type:'bar',orientation:'h',marker:{color:'#46b45a'},
    hovertemplate:'%{x:+.2f} from the base<extra></extra>'}
- ],lay('How far each input moves the answer<br><span style="font-size:12px">distance from the base case of '+sfmt(tornOut,T.base)+', one input at a time, everything else held</span>',
+ ],lay('How far each input moves the answer',
    {barmode:'overlay',showlegend:true,margin:{l:190,r:40},
     xaxis:{title:{text:isPct?'percentage points from the base case':'change from the base case',font:{size:12}},
       gridcolor:FAINT,zeroline:true,zerolinecolor:'#8fa3bb',zerolinewidth:1.4},
@@ -2688,7 +2695,7 @@ function drawConcCharts(){
    {x:x,y:y,name:'This market',type:'scatter',mode:'lines',fill:'tonexty',fillcolor:'rgba(70,180,90,.16)',
     line:{color:G,width:2.6},hovertemplate:'best %{x:.0f}% of days earn %{y:.1f}% of the year<extra></extra>'},
    {x:[C.d50/C.n*100,C.d50/C.n*100],y:[0,50],name:'Half the money',mode:'lines',line:{color:PU,width:1.6,dash:'dash'},hoverinfo:'skip'}
-  ],lay('Share of the year earned by the best days<br><span style="font-size:12px">the further the green line sits above the dotted one, the more the income depends on a few days</span>',
+  ],lay('Share of the year earned by the best days',
     {showlegend:true,xaxis:{title:{text:'best % of days, cumulated',font:{size:12}},ticksuffix:'%',gridcolor:FAINT},
      yaxis:{title:{text:'% of the annual margin',font:{size:12}},ticksuffix:'%',gridcolor:FAINT,range:[0,100]}}),CFG);
  }
@@ -2699,7 +2706,7 @@ function drawConcCharts(){
     hovertemplate:'%{y:.1f}% of the year lost<extra></extra>'},
    {x:av.map(r=>r.downDays),y:av.map(r=>r.worstCaseLossPct),name:'Outage days fall on the best days',type:'bar',marker:{color:R},
     hovertemplate:'%{y:.1f}% of the year lost<extra></extra>'}
-  ],lay('The cost of being out of service<br><span style="font-size:12px">the gap between the two is what maintenance scheduling is worth</span>',
+  ],lay('The cost of being out of service',
     {barmode:'group',showlegend:true,xaxis:{title:{text:'days out of service in a year',font:{size:12}},gridcolor:FAINT},
      yaxis:{title:{text:'% of annual margin lost',font:{size:12}},ticksuffix:'%',gridcolor:FAINT}}),CFG);
  }
@@ -2709,7 +2716,7 @@ function drawConcCharts(){
    {x:m.map(r=>r.k),y:m.map(r=>r.lostPct),type:'scatter',mode:'lines+markers',name:'Lost',
     line:{color:R,width:2.4},marker:{size:7},fill:'tozeroy',fillcolor:'rgba(255,107,107,.14)',
     hovertemplate:'missing the best %{x} days costs %{y:.1f}% of the year<extra></extra>'}
-  ],lay('If the battery missed the best days entirely<br><span style="font-size:12px">cumulative share of the annual margin given up</span>',
+  ],lay('If the battery missed the best days entirely',
     {showlegend:false,xaxis:{title:{text:'best days missed',font:{size:12}},gridcolor:FAINT},
      yaxis:{title:{text:'% of the year lost',font:{size:12}},ticksuffix:'%',gridcolor:FAINT,rangemode:'tozero'}}),CFG);
  }
@@ -2720,7 +2727,7 @@ function drawConcCharts(){
     line:{color:PU,width:2.4},marker:{size:7},hovertemplate:'Gini %{y:.2f}<extra></extra>'},
    {x:gt.map(r=>r.year),y:gt.map(r=>r.top10),name:'Best 10 days, % of the year',type:'bar',marker:{color:'#39465a'},yaxis:'y2',
     hovertemplate:'%{y:.1f}% from the best 10 days<extra></extra>'}
-  ],lay('Concentration year by year<br><span style="font-size:12px">two measures of the same question, on the eight-hour backtest</span>',
+  ],lay('Concentration year by year',
     {showlegend:true,xaxis:{gridcolor:FAINT,dtick:1},
      yaxis:{title:{text:'Gini',font:{size:12}},gridcolor:FAINT,range:[0,0.65]},
      yaxis2:{title:{text:'% from the best 10 days',font:{size:12}},overlaying:'y',side:'right',ticksuffix:'%',
@@ -2802,7 +2809,7 @@ function drawLineChart(){
   {x:lbl,y:rows.map(r=>r.dist),name:'At the real route lengths',type:'bar',
    marker:{color:'#46b45a'},text:rows.map(r=>'€'+fmt(r.dist,0)+'m'),textposition:'outside',
    textfont:{size:12,color:'var(--t2)'},hovertemplate:'€%{y:.0f}m<extra>real distances</extra>'}
- ],lay('What the private lines cost on each written variant<br><span style="font-size:12px">'+fmt(lineMW(),0)+' MW of export capacity across 15 projects · the dashed line is Burgenland Energie’s spoken lump sum, which is already a total</span>',
+ ],lay('What the private lines cost on each written variant',
    {barmode:'group',showlegend:true,margin:{t:76,b:78},xaxis:{gridcolor:FAINT},
     yaxis:{title:{text:'€m, all parks',font:{size:12}},gridcolor:FAINT,range:[0,BE_LUMP*1.32]},
     shapes:[{type:'line',xref:'paper',x0:0,x1:1,yref:'y',y0:BE_LUMP,y1:BE_LUMP,
@@ -2857,7 +2864,7 @@ function drawDcac(){
    y:DCACEV.map(p=>p.pctRated),type:'bar',marker:{color:DCACEV.map(col)},
    text:DCACEV.map(p=>fmt(p.pctRated,1)+'%'),textposition:'outside',textfont:{size:12,color:'var(--t2)'},
    hovertemplate:'%{y:.1f}% of nameplate<extra></extra>'}],
-  lay('Highest export ever recorded, against nameplate<br><span style="font-size:12px">wind in blue reaches its rating · solar in amber never does</span>',
+  lay('Highest export ever recorded, against nameplate',
    {showlegend:false,margin:{t:70,b:70},xaxis:{gridcolor:FAINT},
     yaxis:{title:{text:'% of rated capacity',font:{size:12}},gridcolor:FAINT,range:[0,112]},
     shapes:[{type:'line',xref:'paper',x0:0,x1:1,yref:'y',y0:100,y1:100,line:{color:'#7f8f86',width:1,dash:'dot'}}]}),CFG);
@@ -2865,7 +2872,7 @@ function drawDcac(){
    y:DCACEV.map(p=>p.plateauPct),type:'bar',marker:{color:DCACEV.map(col)},
    text:DCACEV.map(p=>p.bands['1']+' intervals'),textposition:'outside',textfont:{size:12,color:'var(--t2)'},
    hovertemplate:'%{y:.2f}% of generating intervals<extra></extra>'}],
-  lay('Time spent within 1% of its own peak<br><span style="font-size:12px">a hard ceiling gets hit again and again · a sunny record does not</span>',
+  lay('Time spent within 1% of its own peak',
    {showlegend:false,margin:{t:70,b:70},xaxis:{gridcolor:FAINT},
     yaxis:{title:{text:'% of generating intervals',font:{size:12}},gridcolor:FAINT,
       range:[0,Math.max(...DCACEV.map(p=>p.plateauPct))*1.32]}}),CFG);
@@ -2918,7 +2925,7 @@ function drawSpill(){
    line:{color:'#ff6b6b',width:1.7,dash:'dash'},hoverinfo:'skip'},
   {x:[xs[0],xs[xs.length-1]],y:[SPILL.acMW,SPILL.acMW],name:'Fleet AC maximum, 617.5 MW',mode:'lines',
    line:{color:'#8fa3bb',width:1.2,dash:'dot'},hoverinfo:'skip'}
- ],lay('The top of the delivered duration curve<br><span style="font-size:12px">the '+(SPILL.top.length*12).toLocaleString('en-US')+' highest quarter-hours of '+SPILL.n.toLocaleString('en-US')+' · the record peaks '+fmt(500-E.peak,1)+' MW under the wall</span>',
+ ],lay('The top of the delivered duration curve',
    {showlegend:true,margin:{t:74,b:64},
     xaxis:{title:{text:'hours per year at or above this level',font:{size:12}},gridcolor:FAINT},
     yaxis:{gridcolor:FAINT,range:[300,650],title:{text:'MW delivered',font:{size:12}}}}),CFG);
@@ -2927,12 +2934,12 @@ function drawSpill(){
    colorscale:[[0,'#101820'],[0.6,'#1f4d33'],[0.85,'#46b45a'],[1,'#ffd166']],
    zmin:0,zmax:520,colorbar:{title:{text:'MW',font:{size:11.5}},thickness:10,tickfont:{size:11.5}},
    hovertemplate:'%{y} %{x}:00 · highest seen %{z:.0f} MW<extra></extra>'}],
-  lay('When the near misses happen<br><span style="font-size:12px">highest delivered MW seen in each month and hour of day · bright cells are windy summer middays</span>',
-   {margin:{t:74,b:56},xaxis:{title:{text:'hour of day',font:{size:12}},gridcolor:FAINT,dtick:4},
+  lay('When the near misses happen',
+   {margin:{t:74,b:56},xaxis:{gridcolor:FAINT,dtick:4},
     yaxis:{gridcolor:FAINT,autorange:'reversed'}}),CFG);
 }
 /* ---- Commercial terms, sealed ---------------------------------------------------------------
-   The four-party LOI terms are held encrypted, under their own code, separate from the data-room
+   The commercial terms are held encrypted, under their own code, separate from the data-room
    code. Locked, TERMS is null and every panel falls back to a neutral default that comes from our
    own record rather than from the document. Unlocked, the defaults move to the real numbers.
    Nothing sensitive exists in this file as plain text.
@@ -3071,7 +3078,7 @@ function drawBuckets(){
    marker:{color:rows.map(r=>r[2])},text:rows.map(r=>'€'+fmt(r[1],0)+'m'),
    textposition:'outside',cliponaxis:false,textfont:{size:12,color:'var(--t2)'},
    hovertemplate:'€%{x:.0f}m a year<extra></extra>'}],
-  lay('Where the money goes each year<br><span style="font-size:12px">data center revenue at €'+fmt(d.revPerMW,2)+'m per MW, and the three claims on it</span>',
+  lay('Where the money goes each year',
    {showlegend:false,margin:{t:74,b:52,l:190,r:70},
     xaxis:{title:{text:'€m a year',font:{size:12}},gridcolor:FAINT,rangemode:'tozero'},
     yaxis:{gridcolor:FAINT,automargin:true,autorange:'reversed'}}),CFG);
@@ -3081,7 +3088,7 @@ function drawBuckets(){
    marker:{colors:['#46b45a','#ff9f6b','#e8b13a','#39465a']},
    textinfo:'percent',textfont:{size:11},
    hovertemplate:'%{label}: €%{value:.0f}m<extra></extra>'}],
-  lay('The data center revenue, divided<br><span style="font-size:12px">what reaches the power company and the landowner, and what is left</span>',
+  lay('The data center revenue, divided',
    {showlegend:true,margin:{t:74,b:40},legend:{orientation:'h',y:-0.08,font:{size:12}}}),CFG);
 }
 
@@ -3139,7 +3146,7 @@ function drawShare(){
   {x:[R.npNeed],y:[claim*100],name:'What the claim needs',mode:'markers',
    marker:{color:'#e8b13a',size:12,symbol:'diamond',line:{color:'#fff',width:1.4}},
    hovertemplate:'%{x:,.0f} MW → %{y:.1f}%<extra></extra>'}
- ],lay('Renewable share against fleet size<br><span style="font-size:12px">on measured capacity factors · the gap between the two markers is what a claim actually costs</span>',
+ ],lay('Renewable share against fleet size',
    {showlegend:true,margin:{t:74,b:62},legend:{font:{size:12}},
     xaxis:{title:{text:'MW of nameplate on the direct line',font:{size:12}},gridcolor:FAINT},
     yaxis:{title:{text:'% of the data center load',font:{size:12}},gridcolor:FAINT,rangemode:'tozero',ticksuffix:'%'}}),CFG);
@@ -3262,10 +3269,10 @@ function battSection(){
   ${kpiM([['Power',fmt(b.powerMW,0),'MW<sub>AC</sub>'],['Energy',fmt(B.energy/1000,1),'GWh'],['Duration',fmt(b.durationH,0),'h']],battCol)}
   ${kpiM([['Capex','€'+fmt(B.capex,0),'m'],['Equity at COD','€'+fmt(F.equityAtCod,0),'m'],['Standby equity','€'+fmt(F.standby,0),'m',F.standby>1?'#ff6b6b':null],['Debt ('+pct(b.gearing,0)+')','€'+fmt(F.debt,0),'m']])}
   ${kpiM([['Arbitrage','€'+fmt(B.arbRev,1),'m/yr'],['Total rev','€'+fmt(B.totalRev,1),'m/yr']])}
-  ${kpiM([['Equity IRR',irr,'%',battCol],['Captured spread','€'+fmt(B.capturedSpread,0),'/MWh, avg day']],battCol)}</div>`;
+  ${kpiM([['Equity IRR',irr,'%',battCol],['Captured spread','€'+fmt(B.capturedSpread,0),'/MWh, actual days']],battCol)}</div>`;
  setTimeout(drawBatteryCharts,0);
  const mkFee=b.powerMW*(M.dc.gridCapFeeKW!=null?M.dc.gridCapFeeKW:42.84)/1000;
- const bullets=`<div class="info" style="margin-top:14px">
+ const bullets=`<div class="info" style="margin-top:14px;max-width:none">
    <div style="display:grid;gap:9px">
     <div>• <b>${b.gridYear>=2099?'No grid market participation is modelled.':'Grid market participation only from ~'+b.gridYear+'.'}</b> Until then the battery earns the DC reliability charge only and charges behind the meter off the direct line.</div>
     <div>• <b>Ancillary is capped by the market.</b> Austria's aFRR market is only ±225 MW deep, so ancillary revenue cannot scale with a ${fmt(b.powerMW,0)} MW machine.</div>
@@ -3324,13 +3331,13 @@ function drawBatteryCharts(){
    {x:hrs,y:act.map((a,i)=>a===0?0:null),name:'Idle',type:'bar',marker:{color:'#39465a'},customdata:txt,hovertemplate:'%{customdata}<extra></extra>'},
    {x:hrs,y:price,name:'Wholesale price',type:'scatter',yaxis:'y2',line:{color:'#ffb23e',dash:'dot',width:2},hovertemplate:'€%{y:,.0f}/MWh<extra></extra>'},
    {x:hrs,y:socP.map(s=>s/100*maxP),name:'State of charge',type:'scatter',yaxis:'y2',line:{color:'#b98cff',width:2.4},customdata:socP,hovertemplate:'SoC %{customdata:,.0f}%<extra></extra>'}
- ],lay('Dispatch on the '+b.priceYear+' curve<br><span style="font-size:12px">'+nCh+'h charge + '+nCh+'h discharge · spread €'+fmt(B.capturedSpread,0)+'/MWh · −'+fmt((1-b.rte)*100,0)+'% RTE · '+fmt((b.socFloor||0)*100,0)+'% SoC floor</span>',
-   {showlegend:true,xaxis:{title:'hour of day',dtick:2,gridcolor:'#2b3644'},yaxis:{title:{text:'MW',font:{size:12}}},
+ ],lay('Dispatch on the '+b.priceYear+' curve',
+   {showlegend:true,xaxis:{dtick:2,gridcolor:'#2b3644'},yaxis:{title:{text:'MW',font:{size:12}}},
     yaxis2:{overlaying:'y',side:'right',range:[0,maxP],title:{text:'€/MWh · SoC scaled',font:{size:11.5},standoff:14},gridcolor:'transparent'},margin:{r:76}}),CFG);
  const F=computeBatteryFin(), fr=F.rows.filter(r=>r.y>=COD&&r.y<COD+(M.battery.lifeY||25)), fyrs=fr.map(r=>r.y), Zb=assetRanges();
  Plotly.react('bch_econ',[
    {x:fyrs,y:fr.map(r=>r.fcfe),name:'Equity cash flow',type:'bar',marker:{color:fr.map(r=>r.fcfe>=0?'#43c079':'#ff6b6b')},hovertemplate:HT('€m')}
- ],lay('Battery equity cash flow<br><span style="font-size:12px">capex '+COD+' · costs from '+(COD+1)+' · merchant from '+b.gridYear+' · IRR '+(isNaN(F.irr)?'n/m':fmt(F.irr*100,1)+'%')+' on €'+fmt(F.equity,0)+'m equity</span>',{barmode:'relative',showlegend:true,yaxis:{range:[Zb.fcfeMin,Zb.fcfeMax],title:{text:'€m',font:{size:12}},gridcolor:'#2b3644'}}),CFG);
+ ],lay('Battery equity cash flow',{barmode:'relative',showlegend:true,yaxis:{range:[Zb.fcfeMin,Zb.fcfeMax],title:{text:'€m',font:{size:12}},gridcolor:'#2b3644'}}),CFG);
 }
 let spvView='fin';
 const assetView={wind:'fin',solar:'fin',battery:'fin'};
@@ -3430,7 +3437,7 @@ function drawHeadroom(){
    line:{color:'#ff6b6b',width:1.6,dash:'dash'},hovertemplate:'%{y:,.0f} MW limit<extra></extra>'},
   {x:[0,100],y:[H.nameplate,H.nameplate],name:'Nameplate',mode:'lines',
    line:{color:'#5c6b7d',width:1.2,dash:'dot'},hovertemplate:'%{y:,.0f} MW nameplate<extra></extra>'}
- ],lay('Headroom against the connection<br><span style="font-size:12px">every quarter-hour of the measured record, sorted highest to lowest · '+CLIP.window+'</span>',
+ ],lay('Headroom against the connection',
    {showlegend:true,xaxis:{title:{text:'% of quarter-hours',font:{size:12}},ticksuffix:'%',gridcolor:FAINT},
     yaxis:{title:{text:'MW delivered',font:{size:12}},gridcolor:FAINT,rangemode:'tozero'}}),CFG);
 }
@@ -3608,7 +3615,7 @@ function drawFwd(){
   {x:fy,y:fs,name:'Solar, fitted forward',type:'scatter',mode:'lines',line:{color:'#ffb23e',width:2,dash:'dot'},hovertemplate:'%{y:.0f}% of baseload<extra></extra>'},
   {x:fy,y:fw,name:'Wind, held flat',type:'scatter',mode:'lines',line:{color:'#4aa8ff',width:2,dash:'dot'},hovertemplate:'%{y:.0f}% of baseload<extra></extra>'},
   {x:[2015,FWD.horizon],y:[FWD.floor,FWD.floor],name:'Floor you set',mode:'lines',line:{color:'#5c6b7d',width:1.2,dash:'dash'},hovertemplate:'floor %{y:.0f}%<extra></extra>'}
- ],lay('Capture ratio, measured then projected<br><span style="font-size:12px">share of the baseload price each technology actually earns</span>',
+ ],lay('Capture ratio, measured then projected',
    {showlegend:true,xaxis:{gridcolor:FAINT},yaxis:{ticksuffix:'%',gridcolor:FAINT,rangemode:'tozero'}}),CFG);
  const bl=y=>PRICES.per_year['2025'].baseload*Math.pow(1+M.macro.infl+FWD.realBase,y-2025);
  Plotly.react('fwdChart2',[
@@ -3616,7 +3623,7 @@ function drawFwd(){
   {x:fy,y:fy.map(y=>bl(y)*FWD.windFlat/100),name:'Wind capture, projected',type:'scatter',mode:'lines',line:{color:'#4aa8ff',width:2.4},hovertemplate:HT('€/MWh',0)},
   {x:fy,y:fy.map(()=>CAP7.solar),name:'Model tail, solar',mode:'lines',line:{color:'#ffb23e',width:1.4,dash:'dash'},hovertemplate:HT('€/MWh',0)},
   {x:fy,y:fy.map(()=>CAP7.wind),name:'Model tail, wind',mode:'lines',line:{color:'#4aa8ff',width:1.4,dash:'dash'},hovertemplate:HT('€/MWh',0)}
- ],lay('In money, against what the model carries<br><span style="font-size:12px">nominal €/MWh, baseload escalating at inflation plus the real growth slider</span>',
+ ],lay('In money, against what the model carries',
    {showlegend:true,xaxis:{gridcolor:FAINT},yaxis:{title:{text:'€/MWh',font:{size:12}},gridcolor:FAINT,rangemode:'tozero'}}),CFG);
 }
 /* ---------- read out of the Burgenland Energie data room, 9 Aug 2026 ----------
@@ -3716,8 +3723,8 @@ function dcSeg(){
 }
 
 /* The whole data-center universe on one page: what the power costs, what the build costs,
-   and what each player spends and earns. Power figures are this model, live; the build and
-   revenue anchors are the confidential LOI and 2026 market benchmarks. */
+   and what each player carries. Power figures are this model, live; the shell and chip
+   figures are 2026 market benchmarks per MW of critical IT load. */
 function dcPage(){
  if(dcView!=='fin'&&dcView!=='tech')dcView='fin';
  const SS=supplyStats(), d=M.dc;
@@ -3767,9 +3774,7 @@ function dcPage(){
  // ---------- 3 · the three players ----------
  const SP=computeSPV(M.dc.dcPrice), y1=SP.rows.find(r=>r.y===FF)||{rev:0,bRev:0,gridCost:0,resPPA:0,opex:0,ebitda:0};
  const spvRev=y1.rev+y1.bRev, spvCost=y1.resPPA+y1.gridCost+y1.opex, spvEb=y1.ebitda;
- const rentLo=it*1.0, rentHi=it*1.4;             // €m/yr · landlord lease per the LOI yield anchor
- const compRevLo=it*12, compRevHi=it*15;         // €m/yr · AI compute revenue per MW of IT
- const opsLo=it*0.08, opsHi=it*0.12;             // €m/yr · facility O&M ex power
+ const opsLo=it*0.08, opsHi=it*0.12;             // €m/yr · facility O&M ex power, market benchmark
  const pcard=(name,col,tint,ico,rows2)=>`<button class="castCard" style="cursor:default" onclick="void 0">
    <div class="top"><span class="ico" style="background:${tint};color:${col}">${ico}</span></div>
    <h5>${name}</h5>
@@ -3777,7 +3782,7 @@ function dcPage(){
    <div class="mets">${rows2.mets.map(m=>`<div class="met"><span>${m[0]}</span><b>${m[1]}</b></div>`).join('')}</div>
    <div class="jump" style="color:${col}">${rows2.foot}</div>
   </button>`;
- const players=`<div class="panel" style="margin-bottom:14px"><h3>The data center universe · who spends what, who earns what</h3>
+ const players=`<div class="panel" style="margin-bottom:14px"><h3>The data center universe · who builds what, who pays what</h3>
   <div class="castGrid" style="margin-top:6px">
    ${pcard('Power SPV','#12b95a','rgba(0,154,68,.15)',ICO.spv,{
      role:'Builds and owns the lines, the substation and the battery. Buys from the parks and the grid, sells firm power on.',
@@ -3785,14 +3790,13 @@ function dcPage(){
      foot:'This model, live'})}
    ${pcard('The landlord','#eaf2f8','rgba(234,242,248,.10)',ICO.state,{
      role:'Builds the powered shell and leases it. Power is passed through to the tenant.',
-     mets:[['CAPEX (shell)','€'+fmt(it*shellLo/1000,1)+'–'+fmt(it*shellHi/1000,1)+'bn'],['Revenue /yr (lease)','€'+fmt(rentLo,0)+'–'+fmt(rentHi,0)+'m'],['OPEX /yr (facility)','€'+fmt(opsLo,0)+'–'+fmt(opsHi,0)+'m'],['EBITDA /yr','€'+fmt(rentLo-opsHi,0)+'–'+fmt(rentHi-opsLo,0)+'m'],['Yield on shell','~'+fmt((rentLo+rentHi)/2/((it*(shellLo+shellHi)/2))*100,0)+'%']],
-     foot:'LOI-anchored · €'+fmt(1.0,1)+'–'+fmt(1.4,1)+'m per MW of IT a year'})}
+     mets:[['CAPEX (shell)','€'+fmt(it*shellLo/1000,1)+'–'+fmt(it*shellHi/1000,1)+'bn'],['Per MW of IT','€'+shellLo+'–'+shellHi+'m'],['OPEX /yr (facility)','€'+fmt(opsLo,0)+'–'+fmt(opsHi,0)+'m']],
+     foot:'Market benchmarks per MW of IT'})}
    ${pcard('The compute tenant','#ffb23e','rgba(255,178,62,.12)',ICO.dc,{
-     role:'Owns the chips, buys the power, pays the lease, sells AI compute.',
-     mets:[['CAPEX (chips)','€'+fmt(it*chipLo/1000,0)+'–'+fmt(it*chipHi/1000,0)+'bn'],['Revenue /yr (compute)','€'+fmt(compRevLo/1000,1)+'–'+fmt(compRevHi/1000,1)+'bn'],['Power /yr','€'+fmt(total,0)+'m'],['Lease /yr','€'+fmt(rentLo,0)+'–'+fmt(rentHi,0)+'m'],['Power as % of revenue',fmt(total/((compRevLo+compRevHi)/2)*100,1)+'%']],
+     role:'Owns the chips, buys the power, pays the lease.',
+     mets:[['CAPEX (chips)','€'+fmt(it*chipLo/1000,1)+'–'+fmt(it*chipHi/1000,1)+'bn'],['Per MW of IT','€'+chipLo+'–'+chipHi+'m'],['Power /yr','€'+fmt(total,0)+'m']],
      foot:'Market benchmarks per MW of IT'})}
   </div>
-  <p class="sub" style="margin-top:12px">Lease and compute-revenue anchors: the confidential LOI and 2026 market benchmarks (per MW of critical IT load). Power figures come out of this model and move with the sliders. The point to hold on to: power is <b>~${fmt(total/((compRevLo+compRevHi)/2)*100,1)}%</b> of what the tenant earns — the offtaker is price-insensitive, the landlord earns a yield, and the SPV earns a regulated-style margin on flow.</p>
  </div>`;
 
  return head+billPanel+buildKpis+buildPanel+players;
@@ -3804,8 +3808,8 @@ function drawDcHour(){
  Plotly.react('dc_hour',[
   {x:[...Array(24).keys()],y:rH,name:'From the parks',type:'bar',marker:{color:'#46b45a'},hovertemplate:'%{y:.0f}% of load<extra></extra>'},
   {x:[...Array(24).keys()],y:gH,name:'From the grid',type:'bar',marker:{color:'#39465a'},hovertemplate:'%{y:.0f}% of load<extra></extra>'}
- ],lay('Through the day<br><span style="font-size:12px">share of load met on site, hour by hour · measured '+SS.window+'</span>',
-   {barmode:'stack',showlegend:true,xaxis:{title:{text:'hour of day',font:{size:12}},dtick:2,gridcolor:FAINT},yaxis:{range:[0,100],ticksuffix:'%',gridcolor:FAINT}}),CFG);
+ ],lay('Through the day',
+   {barmode:'stack',showlegend:true,xaxis:{dtick:2,gridcolor:FAINT},yaxis:{range:[0,100],ticksuffix:'%',gridcolor:FAINT}}),CFG);
 }
 function drawDcSplit(){
  const SS=supplyStats(), FAINT=TH().faint;
@@ -3813,7 +3817,7 @@ function drawDcSplit(){
  Plotly.react('dc_split',[
   {x:MONTHS,y:rM,name:'From the parks',type:'bar',marker:{color:'#46b45a'},hovertemplate:'%{y:.0f}% of load<extra></extra>'},
   {x:MONTHS,y:gM,name:'From the grid',type:'bar',marker:{color:'#39465a'},hovertemplate:'%{y:.0f}% of load<extra></extra>'}
- ],lay('Where the data center gets its power<br><span style="font-size:12px">share of a firm '+fmt(M.dc.firmMW,0)+' MW, month by month · measured '+SS.window+'</span>',
+ ],lay('Where the data center gets its power',
    {barmode:'stack',showlegend:true,xaxis:{gridcolor:FAINT},yaxis:{range:[0,100],ticksuffix:'%',gridcolor:FAINT}}),CFG);
 }
 function drawDcPeak(){
@@ -3826,7 +3830,7 @@ function drawDcPeak(){
    line:{color:'#8fa3bb',width:2},hovertemplate:'%{y:,.0f} MW<extra></extra>'},
   {x:[0,100],y:[shaveOf().peak,shaveOf().peak],name:'Billed peak today',mode:'lines',line:{color:'#ff6b6b',width:1.6,dash:'dash'},hovertemplate:'%{y:,.0f} MW<extra></extra>'},
   {x:[0,100],y:[shaveOf().trueCeil,shaveOf().trueCeil],name:'Deepest ceiling it can hold',mode:'lines',line:{color:'#b98cff',width:1.6,dash:'dot'},hovertemplate:'%{y:,.1f} MW<extra></extra>'}
- ],lay('Grid import, sorted highest to lowest<br><span style="font-size:12px">the capacity charge is billed on the top of this curve, and the top is flat</span>',
+ ],lay('Grid import, sorted highest to lowest',
    {showlegend:true,xaxis:{title:{text:'% of hours',font:{size:12}},ticksuffix:'%',gridcolor:FAINT},
     yaxis:{title:{text:'MW drawn from the grid',font:{size:12}},gridcolor:FAINT,rangemode:'tozero'}}),CFG);
 }
@@ -3929,7 +3933,7 @@ function drawSummaryBalance(){
   {x:yrs,y:res,name:'RES → DC',type:'bar',marker:{color:'#46b45a'},text:res.map(v=>fmt(v,1)),textposition:'inside',textfont:{size:11.5,color:'#04120f'},hovertemplate:HT('TWh',2)},
   {x:yrs,y:grid,name:'Grid → DC',type:'bar',marker:{color:'#39465a'},text:grid.map(v=>fmt(v,1)),textposition:'inside',textfont:{size:11.5,color:'#cdd8e6'},hovertemplate:HT('TWh',2)},
   {x:yrs,y:yrs.map(()=>dcLoad),name:'DC load',type:'scatter',line:{color:'#94a2b1',dash:'dot'},hovertemplate:HT('TWh',2)}
- ],lay('Energy balance<br><span style="font-size:12px">RES vs grid supply to DC (TWh/yr)</span>',{barmode:'stack',showlegend:true,yaxis:{title:{text:'TWh',font:{size:12}},gridcolor:'#1c2531'},xaxis:{gridcolor:'#1c2531'}}),CFG);
+ ],lay('Energy balance',{barmode:'stack',showlegend:true,yaxis:{title:{text:'TWh',font:{size:12}},gridcolor:'#1c2531'},xaxis:{gridcolor:'#1c2531'}}),CFG);
 }
 let spvEconY=null;   // calendar year shown in the in/out waterfall; the slider moves it
 function drawSpvEcon(){
@@ -4088,13 +4092,13 @@ function drawProd(sec){
     fill:'tozeroy',fillcolor:'rgba(120,160,220,.08)',hovertemplate:'%{y:.1f}% of rated<extra></extra>'}],
    lay(p.label+' · the day in shape',
     {showlegend:false,yaxis:{title:{text:'% of rated',font:{size:12}},gridcolor:'#1c2531',rangemode:'tozero'},
-     xaxis:{title:{text:'hour of day',font:{size:12}},dtick:2,gridcolor:'#1c2531'}}),CFG);
+     xaxis:{dtick:2,gridcolor:'#1c2531'}}),CFG);
  }else if(v==='heat'){
   Plotly.react('c_pr1',[{z:p.mh,x:H,y:MONTHS,type:'heatmap',colorscale:(p.tech==='wind'?BLUESC:p.tech==='solar'?ORNGSC:GREEN),zmin:0,
     colorbar:{title:{text:'% rated',font:{size:11.5}}},
     hovertemplate:'%{y}, %{x}:00 → %{z:.1f}% of rated<extra></extra>'}],
    lay(p.label+' · mean output by month and hour',
-    {hovermode:'closest',yaxis:{autorange:'reversed'},xaxis:{title:'hour of day',dtick:2}}),CFG);
+    {hovermode:'closest',yaxis:{autorange:'reversed'},xaxis:{dtick:2}}),CFG);
  }else if(v==='trend'){
   const T=NEWD.trend, sr=T.series[key];
   Plotly.react('c_pr1',[{x:T.months,y:sr.m,type:'scatter',mode:'lines+markers',line:{color:col,width:2},
@@ -4284,7 +4288,7 @@ function profilesPage(){
  setTimeout(drawProfiles,0);
  return seg+dict+`<div class="chartWrap">${chartTools}<div class="chart tall" id="pmain"></div></div><div id="pstats"></div>`;
 }
-function beTitle(p,txt){return p.label+' \u00b7 '+txt+'<br><span style="font-size:12px">'+fmt(p.mw,2)+' MW \u00b7 '+p.from+' to '+p.to+' \u00b7 measured, % of rated capacity</span>';}
+function beTitle(p,txt){return p.label+' \u00b7 '+txt;}
 function beCol(p){return p.tech==='wind'?'#4aa8ff':p.tech==='solar'?'#ffb23e':'#46b45a';}
 function drawProfiles(){
  const el='pmain', ps=document.getElementById('pstats');
@@ -4305,7 +4309,7 @@ function drawProfiles(){
     colorbar:{title:{text:'% rated',font:{size:11.5}}},
     hovertemplate:'%{y}, %{x}:00 \u2192 %{z:.1f}% of rated<extra></extra>'}],
    lay(beTitle(p,'mean output by month and hour'),
-    {hovermode:'closest',yaxis:{autorange:'reversed'},xaxis:{title:'hour of day',dtick:2}}),CFG);
+    {hovermode:'closest',yaxis:{autorange:'reversed'},xaxis:{dtick:2}}),CFG);
   if(p.note)document.getElementById('pstats').innerHTML=`<div class="muted" style="margin-top:8px">${p.note}.</div>`;
  }else if(profView==='surf'){
   Plotly.react(el,[{z:p.mh,x:H,y:MONTHS,type:'surface',colorscale:GREEN,showscale:false,cmin:0,
@@ -4326,7 +4330,7 @@ function drawProfiles(){
   if(R12.length){document.getElementById('pstats').innerHTML=`<div class="chart tall" id="pshape2" style="margin-top:14px"></div>`;
    setTimeout(()=>Plotly.react('pshape2',[{x:R12.map(r=>r.from),y:R12.map(r=>r.flh),mode:'lines+markers',
      line:{color:col,width:2},hovertemplate:'window from %{x}: %{y:,.0f} FLH/yr<extra></extra>'}],
-    lay(p.label+' \u00b7 rolling twelve-month yield<br><span style="font-size:12px">window start on the axis \u00b7 FLH per year</span>',
+    lay(p.label+' \u00b7 rolling twelve-month yield',
      {showlegend:false,yaxis:{title:{text:'FLH/yr',font:{size:12}},gridcolor:'#1c2531'},xaxis:{gridcolor:'#1c2531'}}),CFG),0);}
   else document.getElementById('pstats').innerHTML=`<div class="muted" style="margin-top:8px">No complete twelve-month window yet.</div>`;
  }else if(profView==='shape'){
@@ -4348,7 +4352,7 @@ function drawProfiles(){
    lay(beTitle(p,'the day in shape \u00b7 twenty-four hours by season'),
     {showlegend:true,hovermode:'x unified',
      yaxis:{title:{text:'mean output, % of rated',font:{size:12}},gridcolor:'#1c2531',rangemode:'tozero'},
-     xaxis:{title:{text:'hour of day',font:{size:12}},dtick:2,gridcolor:'#1c2531'}}),CFG),0);
+     xaxis:{dtick:2,gridcolor:'#1c2531'}}),CFG),0);
  }else if(profView==='corr'){
   drawCorr(el);
  }else if(profView==='dist'){
@@ -4364,7 +4368,7 @@ function drawProfiles(){
   Plotly.react(el,keys.map(q=>({x:xPdf(q),y:D.series[q].pdf.slice(1),name:nm(q),mode:'lines',
     fill:single?'tozeroy':'none',line:{color:DCOL[q],width:q==='combined'?2.6:1.8,dash:q==='solarNS'?'dot':'solid'},
     hovertemplate:nm(q)+': %{y:.2f}% of the time near %{x}'+(mw?' MW':'%')+'<extra></extra>'})),
-   lay('Output distribution, density<br><span style="font-size:12px">share of time in each 2.5%-of-rating band · idle band (below 2.5% of rating) stated in the note below, not drawn</span>',
+   lay('Output distribution, density',
     {showlegend:!single,yaxis:{title:{text:'% of time per band',font:{size:12}},gridcolor:'#1c2531'},
      xaxis:{title:{text:xt,font:{size:12}},gridcolor:'#1c2531'}}),CFG);
   // statistical-percentile markers, drawn only when one series is selected
@@ -4400,7 +4404,7 @@ function drawProfiles(){
       text:' '+m[0],showarrow:false,font:{size:9.5,color:m[2]},bgcolor:'rgba(13,19,25,.72)'}));
    }
    Plotly.react('pcdf',tr,
-   lay('Output distribution, cumulative<br><span style="font-size:12px">share of time at or above each level \u00b7 markers are statistical percentiles</span>',
+   lay('Output distribution, cumulative',
     {showlegend:!single,shapes:sh,annotations:an,
      yaxis:{title:{text:'% of time',font:{size:12}},range:[0,101],gridcolor:'#1c2531'},
      xaxis:{title:{text:xt,font:{size:12}},gridcolor:'#1c2531'}}),CFG);},0);
@@ -4410,7 +4414,7 @@ function drawProfiles(){
     {x:EMBER.years,y:EMBER.wind,name:'Wind generation',type:'bar',marker:{color:'#4aa8ff'},hovertemplate:'%{y} TWh<extra></extra>'},
     {x:EMBER.years,y:EMBER.years.map(y=>PRICES.per_year[y]?PRICES.per_year[y].solar/PRICES.per_year[y].baseload*100:null),name:'Solar capture',type:'scatter',yaxis:'y2',line:{color:'#ffb23e',width:2.5,dash:'dot'},hovertemplate:'%{y:.0f}% of baseload<extra></extra>'},
     {x:EMBER.years,y:EMBER.years.map(y=>PRICES.per_year[y]?PRICES.per_year[y].wind/PRICES.per_year[y].baseload*100:null),name:'Wind capture',type:'scatter',yaxis:'y2',line:{color:'#4aa8ff',width:2.5,dash:'dot'},hovertemplate:'%{y:.0f}% of baseload<extra></extra>'}
-  ],lay('Austria grid mix<br><span style="font-size:12px">solar & wind generation (TWh) vs capture ratios (% of baseload)</span>',{barmode:'group',showlegend:true,yaxis:{title:{text:'TWh/yr',font:{size:11.5}}},yaxis2:{overlaying:'y',side:'right',range:[0,110],title:{text:'% of baseload',font:{size:11.5}},gridcolor:'transparent'}}),CFG);
+  ],lay('Austria grid mix',{barmode:'group',showlegend:true,yaxis:{title:{text:'TWh/yr',font:{size:11.5}}},yaxis2:{overlaying:'y',side:'right',range:[0,110],title:{text:'% of baseload',font:{size:11.5}},gridcolor:'transparent'}}),CFG);
   document.getElementById('pstats').innerHTML=`<div class="info" style="margin-top:12px"><b>The cannibalisation driver.</b> Austrian solar generation grew from ${EMBER.solar[0]} TWh (2015) to ${EMBER.solar[EMBER.solar.length-1]} TWh (2025), roughly 10x, while wind grew far less (${EMBER.wind[0]} to ${EMBER.wind[EMBER.wind.length-1]} TWh). As the red line shows, solar's capture price fell as its volume rose, the same decoupling seen across Germany and Spain. Source: Ember monthly electricity data.</div>`;
  }
 }
@@ -4490,7 +4494,7 @@ function drawCorr(el){
    {x:C.timescale.map(t=>t.label),y:C.timescale.map(t=>t.spearman),name:'Spearman rank',
     type:'scatter',mode:'lines+markers',line:{color:'#94a2b1',width:1.6,dash:'dot'},marker:{size:5},
     hovertemplate:'%{x}: rho = %{y:.3f}<extra></extra>'}],
-   lay('Wind against solar, across time scales<br><span style="font-size:12px">negative means they offset each other · each point averages both series over that window, then correlates</span>',
+   lay('Wind against solar, across time scales',
     {showlegend:true,hovermode:'x unified',
      yaxis:{title:{text:'correlation',font:{size:12}},gridcolor:'#1c2531',zeroline:true,zerolinecolor:'#4a5668',zerolinewidth:1.4},
      xaxis:{gridcolor:'#1c2531'}}),CFG);
@@ -4503,7 +4507,7 @@ function drawCorr(el){
     type:'scatter',mode:'lines+markers',line:{color:WCOL,width:2},hovertemplate:'wind %{y:.1f}%<extra></extra>'},
    {x:C.seasonal.map(s=>s.m),y:C.seasonal.map(s=>s.solar),name:'Solar mean CF',yaxis:'y2',
     type:'scatter',mode:'lines+markers',line:{color:SCOL,width:2},hovertemplate:'solar %{y:.1f}%<extra></extra>'}],
-   lay('Correlation by calendar month<br><span style="font-size:12px">correlation of daily means within each month · green bars are months where the two offset each other</span>',
+   lay('Correlation by calendar month',
     {showlegend:true,hovermode:'x unified',
      yaxis:{title:{text:'correlation of daily means',font:{size:12}},gridcolor:'#1c2531',zeroline:true,zerolinecolor:'#4a5668'},
      yaxis2:{overlaying:'y',side:'right',title:{text:'mean CF %',font:{size:11.5}},gridcolor:'transparent',rangemode:'tozero'},
@@ -4518,16 +4522,16 @@ function drawCorr(el){
    {x:C.diurnal.map(d=>d.h),y:C.diurnal.map(d=>d.solar),name:'Solar mean CF',yaxis:'y2',
     type:'scatter',mode:'lines',fill:'tozeroy',fillcolor:'rgba(255,178,62,.14)',line:{color:SCOL,width:2},
     hovertemplate:'solar %{y:.1f}%<extra></extra>'}],
-   lay('Correlation by hour of day<br><span style="font-size:12px">15-minute records grouped by hour · night hours carry no solar signal, so only daylight hours are meaningful</span>',
+   lay('Correlation by hour of day',
     {showlegend:true,hovermode:'x unified',
      yaxis:{title:{text:'correlation',font:{size:12}},gridcolor:'#1c2531',zeroline:true,zerolinecolor:'#4a5668'},
      yaxis2:{overlaying:'y',side:'right',title:{text:'mean CF %',font:{size:11.5}},gridcolor:'transparent',rangemode:'tozero'},
-     xaxis:{title:{text:'hour of day',font:{size:12}},dtick:2,gridcolor:'#1c2531'}}),CFG);
+     xaxis:{dtick:2,gridcolor:'#1c2531'}}),CFG);
  }else{
   Plotly.react(el,[{z:C.jointDay,x:C.bins,y:C.bins,type:'heatmap',colorscale:GREEN,
     hovertemplate:'wind %{y}-%{y}+5%, solar %{x}-%{x}+5% → %{z:.2f}% of daylight time<extra></extra>',
     colorbar:{title:{text:'% of time',font:{size:11.5}}},transpose:true}],
-   lay('Joint density, daylight only<br><span style="font-size:12px">where the pair actually sits · mass along the axes means one runs while the other does not</span>',
+   lay('Joint density, daylight only',
     {hovermode:'closest',yaxis:{title:{text:'wind, % of rated',font:{size:12}},gridcolor:'#1c2531'},
      xaxis:{title:{text:'solar, % of rated',font:{size:12}},gridcolor:'#1c2531'}}),CFG);
  }
@@ -4549,7 +4553,7 @@ function drawCorr(el){
    mode:'markers',type:'scatter',name:'day',
    marker:{size:5,color:'#46b45a',opacity:0.5,line:{width:0}},
    hovertemplate:'solar %{x:.1f}%, wind %{y:.1f}%<extra></extra>'}],
-  lay('Every day in the record<br><span style="font-size:12px">daily mean wind against daily mean solar · the empty top-right corner is the story: both rarely run hard on the same day</span>',
+  lay('Every day in the record',
    {showlegend:false,hovermode:'closest',
     yaxis:{title:{text:'wind, daily mean % of rated',font:{size:12}},gridcolor:'#1c2531',rangemode:'tozero'},
     xaxis:{title:{text:'solar, daily mean % of rated',font:{size:12}},gridcolor:'#1c2531',rangemode:'tozero'}}),CFG),0);
@@ -4559,13 +4563,13 @@ function drawCorr(el){
    as a dot. One headline number on top, two sentences at the bottom, nothing else. */
 function corrSection(){
  const C=NEWD.corr, rday=C.timescale.find(t=>t.label==='1 day').pearson;
- return `<div class="kpis" style="grid-template-columns:minmax(240px,380px)">
-   ${kpi('Wind–solar correlation, daily',fmt(rday,2),'negative = they offset each other')}</div>
+ return `<div class="kpis" style="grid-template-columns:minmax(240px,320px) 1fr;align-items:stretch">
+   ${kpi('Wind–solar correlation, daily',fmt(rday,2),'negative = they offset each other')}
+   <div class="info" style="margin:0;max-width:none;display:flex;align-items:center"><span><b>In short:</b> wind and solar do partly cover for each other — strongest day by day (windy days are the cloudy ones) and in the shoulder months, absent in midwinter fog and calm. Together they swing ±${fmt(C.smoothing.combSd,1)} points of nameplate instead of ±${fmt(C.smoothing.indepSd,1)} if they ignored each other, but roughly one day in nineteen is weak for both at once — so the firm-power case is sized on those days, not on the average.</span></div></div>
   <div class="chart tall" id="corr_scale"></div>
   <div class="chart tall" id="corr_season" style="margin-top:14px"></div>
   <div class="chart tall" id="corr_day" style="margin-top:14px"></div>
-  <div class="chartWrap"><div class="chart tall" id="pcorr2" style="margin-top:14px"></div></div>
-  <div class="info" style="margin-top:12px"><b>In short:</b> wind and solar do partly cover for each other — strongest day by day (windy days are the cloudy ones) and in the shoulder months, absent in midwinter fog and calm. Together they swing ±${fmt(C.smoothing.combSd,1)} points of nameplate instead of ±${fmt(C.smoothing.indepSd,1)} if they ignored each other, but roughly one day in nineteen is weak for both at once — so the firm-power case is sized on those days, not on the average.</div>`;
+  <div class="chartWrap"><div class="chart tall" id="pcorr2" style="margin-top:14px"></div></div>`;
 }
 function drawCorrAll(){
  const C=NEWD.corr, WCOL='#4aa8ff', SCOL='#ffb23e', NX='#46b45a';
@@ -4592,7 +4596,7 @@ function drawCorrAll(){
    type:'scatter',mode:'lines+markers',line:{color:WCOL,width:2},hovertemplate:'wind %{y:.1f}%<extra></extra>'},
   {x:C.seasonal.map(s=>s.m),y:C.seasonal.map(s=>s.solar),name:'Solar mean CF',yaxis:'y2',
    type:'scatter',mode:'lines+markers',line:{color:SCOL,width:2},hovertemplate:'solar %{y:.1f}%<extra></extra>'}],
-  lay('By month · green bars are months where the two offset each other',
+  lay('By month',
    {showlegend:true,hovermode:'x unified',
     yaxis:{title:{text:'correlation of daily means',font:{size:12}},gridcolor:'#1c2531',zeroline:true,zerolinecolor:'#4a5668'},
     yaxis2:{overlaying:'y',side:'right',title:{text:'mean CF %',font:{size:11.5}},gridcolor:'transparent',rangemode:'tozero'},
@@ -4606,16 +4610,16 @@ function drawCorrAll(){
   {x:C.diurnal.map(d=>d.h),y:C.diurnal.map(d=>d.solar),name:'Solar mean CF',yaxis:'y2',
    type:'scatter',mode:'lines',fill:'tozeroy',fillcolor:'rgba(255,178,62,.14)',line:{color:SCOL,width:2},
    hovertemplate:'solar %{y:.1f}%<extra></extra>'}],
-  lay('By hour of day · night hours carry no solar signal',
+  lay('By hour of day',
    {showlegend:true,hovermode:'x unified',
     yaxis:{title:{text:'correlation',font:{size:12}},gridcolor:'#1c2531',zeroline:true,zerolinecolor:'#4a5668'},
     yaxis2:{overlaying:'y',side:'right',title:{text:'mean CF %',font:{size:11.5}},gridcolor:'transparent',rangemode:'tozero'},
-    xaxis:{title:{text:'hour of day',font:{size:12}},dtick:2,gridcolor:'#1c2531'}}),CFG);
+    xaxis:{dtick:2,gridcolor:'#1c2531'}}),CFG);
  Plotly.react('pcorr2',[{x:C.scatter.map(p=>p[1]),y:C.scatter.map(p=>p[0]),
    mode:'markers',type:'scatter',name:'day',
    marker:{size:5,color:'#46b45a',opacity:0.5,line:{width:0}},
    hovertemplate:'solar %{x:.1f}%, wind %{y:.1f}%<extra></extra>'}],
-  lay('Every day in the record · the empty top-right corner is the point: both rarely run hard on the same day',
+  lay('Every day in the record',
    {showlegend:false,hovermode:'closest',
     yaxis:{title:{text:'wind, daily mean % of rated',font:{size:12}},gridcolor:'#1c2531',rangemode:'tozero'},
     xaxis:{title:{text:'solar, daily mean % of rated',font:{size:12}},gridcolor:'#1c2531',rangemode:'tozero'}}),CFG);
@@ -4638,7 +4642,7 @@ function drawRisk(){
    {x:[...Array(24).keys()],y:rH,name:'On site',type:'bar',marker:{color:NXG},hovertemplate:'on site %{y:.0f}%<extra></extra>'},
    {x:[...Array(24).keys()],y:gH,name:'Grid',type:'bar',marker:{color:GRID},hovertemplate:'grid %{y:.0f}%<extra></extra>'}
   ],lay('Through the day',
-    {barmode:'stack',showlegend:true,xaxis:{title:{text:'hour of day',font:{size:12}},dtick:2,gridcolor:FAINT},
+    {barmode:'stack',showlegend:true,xaxis:{dtick:2,gridcolor:FAINT},
      yaxis:{title:{text:'share of load',font:{size:12}},range:[0,100],ticksuffix:'%',gridcolor:FAINT}}),CFG);
   const n=S.DUR.length, xp=S.DUR.map((_,i)=>i/(n-1)*100);
   // where the mean sits on the curve, so the 27% average and the ~22% median stop looking like a contradiction
@@ -4646,7 +4650,7 @@ function drawRisk(){
   Plotly.react('pmain3',[
    {x:xp,y:S.DUR,name:'Covered on site',type:'scatter',mode:'lines',fill:'tozeroy',fillcolor:'rgba(70,180,90,.16)',line:{color:NXG,width:2.2},hovertemplate:'%{y:.0f}% of load covered<extra></extra>'},
    {x:[0,100],y:[100,100],mode:'lines',line:{color:'#5c6b7d',width:1,dash:'dot'},hoverinfo:'skip',showlegend:false}
-  ],lay('Duration curve · all '+n.toLocaleString('en-US')+' hours, worst to best',
+  ],lay('Duration curve',
     {xaxis:{title:{text:'% of hours',font:{size:12}},ticksuffix:'%',gridcolor:FAINT},
      yaxis:{title:{text:'share of load',font:{size:12}},range:[0,105],ticksuffix:'%',gridcolor:FAINT},
      shapes:[{type:'line',x0:0,x1:100,y0:meanY,y1:meanY,line:{color:'#e8eef3',width:1.2,dash:'dash'}},
@@ -4709,7 +4713,7 @@ function drawPxDist(){
  Plotly.react('pd_main',keys.map(e=>({x:PXD.centres,y:PXD.series[e].pdf,name:e,mode:'lines',
    line:{color:PDCOL[e],width:2,shape:'spline'},
    hovertemplate:e+': %{y:.2f}% of hours near €%{x}<extra></extra>'})),
-  lay('Where the hourly price sits<br><span style="font-size:12px">share of hours in each €5 band, by period</span>',
+  lay('Where the hourly price sits',
    {showlegend:true,hovermode:'x unified',
     yaxis:{title:{text:'% of hours per €5 band',font:{size:12}},gridcolor:'#1c2531'},
     xaxis:{title:{text:'price, €/MWh',font:{size:12}},range:[-120,320],gridcolor:'#1c2531',
@@ -4735,7 +4739,7 @@ function drawConc(){
    {x:CONC.grid,y:L.curve,name:'Last 12 months',mode:'lines',
     line:{color:'#46b45a',width:3},fill:'tonexty',fillcolor:'rgba(70,180,90,.08)',
     hovertemplate:'last 12m: best %{x}% of days carry %{y:.0f}% of the year<extra></extra>'}],
-  lay(D+'-hour battery · how the year’s money is spread across its days<br><span style="font-size:12px">days ranked best first · the dotted line is a year where every day pays identically · the further the curve bows, the more it depends on a few days</span>',
+  lay(D+'-hour battery · how the year’s money is spread across its days',
    {showlegend:true,hovermode:'x unified',
     yaxis:{title:{text:'cumulative % of the year’s revenue',font:{size:12}},range:[0,101],gridcolor:'#1c2531'},
     xaxis:{title:{text:'% of days, best first',font:{size:12}},range:[0,100],gridcolor:'#1c2531'}}),CFG);
@@ -4744,7 +4748,7 @@ function drawConc(){
     marker:{color:L.deciles.map(v=>v>15?'#46b45a':v>8?'#7d9e4a':'#8a6a3a')},
     text:L.deciles.map(v=>fmt(v,1)+'%'),textposition:'outside',
     hovertemplate:'%{x}: %{y:.1f}% of the year<extra></extra>'}],
-  lay('Each tenth of the year, ranked<br><span style="font-size:12px">share of annual revenue from each decile of days, last twelve months</span>',
+  lay('Each tenth of the year, ranked',
    {showlegend:false,yaxis:{title:{text:'% of annual revenue',font:{size:12}},gridcolor:'#1c2531'},
     xaxis:{gridcolor:'#1c2531'}}),CFG);
  setTimeout(()=>Plotly.react('ab_third',[
@@ -4754,7 +4758,7 @@ function drawConc(){
     hovertemplate:'%{x}: best 5% carried %{y:.0f}%<extra></extra>'},
    {x:yrs.map(r=>r.year),y:yrs.map(r=>r.gini),name:'Gini',yaxis:'y2',mode:'lines+markers',
     line:{color:'#b98cff',width:2.2},hovertemplate:'Gini %{y:.2f}<extra></extra>'}],
-  lay('Is the value getting more concentrated? No.<br><span style="font-size:12px">share of each year carried by its best days, measured as a proportion of days so part-years compare fairly</span>',
+  lay('Is the value getting more concentrated? No.',
    {barmode:'overlay',showlegend:true,hovermode:'x unified',
     yaxis:{title:{text:'% of that year’s revenue',font:{size:12}},gridcolor:'#1c2531'},
     yaxis2:{overlaying:'y',side:'right',title:{text:'Gini',font:{size:11.5}},range:[0,0.6],gridcolor:'transparent'},
@@ -4831,7 +4835,7 @@ function drawArb(){
     marker:{color:'#2c6b3a'},hovertemplate:'%{x}: €%{y:,.0f}k/MW-yr<extra></extra>'},
    {x:Y.map(r=>r.year),y:Y.map(r=>r.netSpread),name:'Net spread €/MWh',yaxis:'y2',
     type:'scatter',mode:'lines+markers',line:{color:RED,width:2.4},hovertemplate:'€%{y:.0f}/MWh<extra></extra>'}],
-   lay(D+'-hour battery, revenue by year<br><span style="font-size:12px">per MW of power · 2026 is part-year, annualised · 2022 is the gas crisis</span>',
+   lay(D+'-hour battery, revenue by year',
     {barmode:'overlay',showlegend:true,hovermode:'x unified',
      yaxis:{title:{text:'€k per MW-year',font:{size:12}},gridcolor:'#1c2531'},
      yaxis2:{overlaying:'y',side:'right',title:{text:'€/MWh',font:{size:11.5}},gridcolor:'transparent',rangemode:'tozero'},
@@ -4842,7 +4846,7 @@ function drawArb(){
    {x:Y.map(r=>r.year),y:Y.map(r=>r.discharge),name:'Discharging price',type:'scatter',mode:'lines+markers',
     line:{color:'#ffb23e',width:2.4},fill:'tonexty',fillcolor:'rgba(70,180,90,.13)',
     hovertemplate:'discharge €%{y:.0f}/MWh<extra></extra>'}],
-   lay('What it buys and sells at<br><span style="font-size:12px">volume-weighted, the shaded band is the gross spread</span>',
+   lay('What it buys and sells at',
     {showlegend:true,hovermode:'x unified',yaxis:{title:{text:'€/MWh',font:{size:12}},gridcolor:'#1c2531'},
      xaxis:{gridcolor:'#1c2531',dtick:1}}),CFG);
  }else if(arbView==='month'){
@@ -4852,7 +4856,7 @@ function drawArb(){
     marker:{color:NX},hovertemplate:'%{x}: €%{y:,.0f}/MW-day<extra></extra>'},
    {x:M.map(r=>r.month),y:M.map(r=>r.cycles),name:'Cycles per day',yaxis:'y2',
     type:'scatter',mode:'lines+markers',line:{color:'#b98cff',width:2.2},hovertemplate:'%{y:.2f} cycles<extra></extra>'}],
-   lay(D+'-hour battery, value by calendar month<br><span style="font-size:12px">2024 onward only, so the shape reflects today’s solar build-out</span>',
+   lay(D+'-hour battery, value by calendar month',
     {showlegend:true,hovermode:'x unified',
      yaxis:{title:{text:'€ per MW-day',font:{size:12}},gridcolor:'#1c2531'},
      yaxis2:{overlaying:'y',side:'right',title:{text:'cycles/day',font:{size:11.5}},gridcolor:'transparent',rangemode:'tozero'},
@@ -4863,7 +4867,7 @@ function drawArb(){
    {x:M.map(r=>r.month),y:M.map(r=>r.discharge),name:'Discharging price',type:'scatter',mode:'lines+markers',
     line:{color:'#ffb23e',width:2.4},fill:'tonexty',fillcolor:'rgba(70,180,90,.13)',
     hovertemplate:'discharge €%{y:.0f}/MWh<extra></extra>'}],
-   lay('Charge and discharge levels through the year<br><span style="font-size:12px">the spring collapse in the charging price is the solar trough</span>',
+   lay('Charge and discharge levels through the year',
     {showlegend:true,hovermode:'x unified',yaxis:{title:{text:'€/MWh',font:{size:12}},gridcolor:'#1c2531'},
      xaxis:{gridcolor:'#1c2531'}}),CFG);
  }else if(arbView==='conc'){
@@ -4876,7 +4880,7 @@ function drawArb(){
     hovertemplate:'%{x}: €%{y:,.0f}k/MW-yr<extra></extra>'},
    {x:DU.map(d=>d+'h'),y:DU.map(d=>ARB.byDuration[d].all.eurOpt/1000),type:'bar',name:'2015 to date',
     marker:{color:'#39465a'},hovertemplate:'%{x}: €%{y:,.0f}k/MW-yr<extra></extra>'}],
-   lay('Revenue against storage duration<br><span style="font-size:12px">per MW of power, optimal cycling · the curve flattens beyond six hours</span>',
+   lay('Revenue against storage duration',
     {barmode:'group',showlegend:true,yaxis:{title:{text:'€k per MW-year',font:{size:12}},gridcolor:'#1c2531'},
      xaxis:{gridcolor:'#1c2531'}}),CFG);
   Plotly.react('ab_sub',[
@@ -4887,7 +4891,7 @@ function drawArb(){
    {x:ARB.durations.map(d=>d+'h'),y:ARB.durations.map(d=>ARB.byDuration[d].last12m.cycles),name:'Cycles per day',
     yaxis:'y2',type:'scatter',mode:'lines+markers',line:{color:'#b98cff',width:2.4},
     hovertemplate:'%{y:.2f} cycles/day<extra></extra>'}],
-   lay('Marginal value of each extra two hours<br><span style="font-size:12px">last twelve months · and how often the battery turns over</span>',
+   lay('Marginal value of each extra two hours',
     {showlegend:true,yaxis:{title:{text:'€k per MW-year added',font:{size:12}},gridcolor:'#1c2531'},
      yaxis2:{overlaying:'y',side:'right',title:{text:'cycles/day',font:{size:11.5}},gridcolor:'transparent',rangemode:'tozero'},
      xaxis:{gridcolor:'#1c2531'}}),CFG);
@@ -4970,7 +4974,7 @@ function drawNeg(){
     hovertemplate:'%{x}: %{y:.2f}% of hours<extra></extra>'},
    {x:Y.map(r=>r.year),y:Y.map(r=>r.neg),name:'hours',yaxis:'y2',type:'scatter',mode:'lines+markers',
     line:{color:'#94a2b1',width:1.8,dash:'dot'},hovertemplate:'%{y} hours<extra></extra>'}],
-   lay('Negative hours by year<br><span style="font-size:12px">2026 is part-year to 7 July · 2022 is the gas crisis, when nothing cleared cheap</span>',
+   lay('Negative hours by year',
     {showlegend:true,hovermode:'x unified',yaxis:{title:{text:'% of hours',font:{size:12}},gridcolor:'#1c2531'},
      yaxis2:{overlaying:'y',side:'right',title:{text:'hours',font:{size:11.5}},gridcolor:'transparent',rangemode:'tozero'},
      xaxis:{gridcolor:'#1c2531',dtick:1}}),CFG);
@@ -4979,7 +4983,7 @@ function drawNeg(){
     hovertemplate:'%{x}: €%{y:,.0f}/MWh<extra></extra>'},
    {x:Y.map(r=>r.year),y:Y.map(r=>r.negMean),name:'Average when negative',type:'scatter',mode:'lines+markers',
     line:{color:RED,width:2.2},hovertemplate:'€%{y:.1f}/MWh<extra></extra>'}],
-   lay('How deep it goes<br><span style="font-size:12px">the worst single hour of each year, and the mean of the negative hours</span>',
+   lay('How deep it goes',
     {showlegend:true,hovermode:'x unified',yaxis:{title:{text:'€/MWh',font:{size:12}},gridcolor:'#1c2531'},
      xaxis:{gridcolor:'#1c2531',dtick:1}}),CFG);
  }else if(negView==='hour'){
@@ -4987,25 +4991,25 @@ function drawNeg(){
     type:'scatter',mode:'lines',line:{color:ECOL[e],width:e==='2025-2026'?3:2,shape:'spline'},
     fill:e==='2025-2026'?'tozeroy':'none',fillcolor:'rgba(255,107,107,.12)',
     hovertemplate:e+' %{x}:00 → %{y:.1f}%<extra></extra>'})),
-   lay('Negative hours by hour of day<br><span style="font-size:12px">the peak moved from 02:00 to 13:00 · that migration is the solar build-out</span>',
+   lay('Negative hours by hour of day',
     {showlegend:true,hovermode:'x unified',yaxis:{title:{text:'% of that hour’s slots',font:{size:12}},gridcolor:'#1c2531'},
-     xaxis:{title:{text:'hour of day',font:{size:12}},dtick:2,gridcolor:'#1c2531'}}),CFG);
+     xaxis:{dtick:2,gridcolor:'#1c2531'}}),CFG);
   Plotly.react('ng_sub',[{x:NEGP.runs.hist.map(r=>r.label||r.len),y:NEGP.runs.hist.map(r=>r.count),
     type:'bar',marker:{color:'#4aa8ff'},hovertemplate:'%{x} h long: %{y} episodes<extra></extra>'}],
-   lay('How long an episode lasts<br><span style="font-size:12px">consecutive hours below zero, whole record</span>',
+   lay('How long an episode lasts',
     {showlegend:false,yaxis:{title:{text:'episodes',font:{size:12}},gridcolor:'#1c2531'},
      xaxis:{title:{text:'consecutive hours',font:{size:12}},gridcolor:'#1c2531',type:'category'}}),CFG);
  }else if(negView==='month'){
   Plotly.react('ng_main',NEGP.eras.map(e=>({x:MONTHS,y:NEGP.byMonth[e],name:e,type:'bar',
     marker:{color:ECOL[e]},hovertemplate:e+' %{x}: %{y:.1f}%<extra></extra>'})),
-   lay('Negative hours by calendar month<br><span style="font-size:12px">winter-weighted a decade ago, spring-weighted now</span>',
+   lay('Negative hours by calendar month',
     {barmode:'group',showlegend:true,hovermode:'x unified',
      yaxis:{title:{text:'% of that month’s slots',font:{size:12}},gridcolor:'#1c2531'},
      xaxis:{gridcolor:'#1c2531'}}),CFG);
   Plotly.react('ng_sub',[{x:NEGP.runs.top.map(r=>r.start),y:NEGP.runs.top.map(r=>r.hours),type:'bar',
     marker:{color:'#b98cff'},customdata:NEGP.runs.top.map(r=>r.deepest),
     hovertemplate:'%{x}: %{y} consecutive hours, deepest €%{customdata}/MWh<extra></extra>'}],
-   lay('The five longest episodes on record<br><span style="font-size:12px">start of each run</span>',
+   lay('The five longest episodes on record',
     {showlegend:false,yaxis:{title:{text:'consecutive hours',font:{size:12}},gridcolor:'#1c2531'},
      xaxis:{gridcolor:'#1c2531',type:'category'}}),CFG);
  }else{
@@ -5013,15 +5017,15 @@ function drawNeg(){
     colorscale:[[0,'#0d1319'],[0.15,'#1d3a2a'],[0.4,'#46b45a'],[0.7,'#ffb23e'],[1,'#ff6b6b']],
     colorbar:{title:{text:'% of hours',font:{size:11.5}}},
     hovertemplate:'%{y}, %{x}:00 → %{z:.1f}% negative<extra></extra>'}],
-   lay('Every year by every hour<br><span style="font-size:12px">the bright block moving from the left edge to the middle is the duck curve arriving</span>',
+   lay('Every year by every hour',
     {hovermode:'closest',yaxis:{title:{text:'year',font:{size:12}},dtick:1},
-     xaxis:{title:{text:'hour of day',font:{size:12}},dtick:2}}),CFG);
+     xaxis:{dtick:2}}),CFG);
   Plotly.react('ng_sub',[
    {x:Y.map(r=>r.year),y:Y.map(r=>r.p05!=null?r.p05:null),name:'5th percentile price',type:'scatter',
     mode:'lines+markers',line:{color:'#4aa8ff',width:2.2},hovertemplate:'€%{y:.1f}/MWh<extra></extra>'},
    {x:Y.map(r=>r.year),y:Y.map(r=>r.mean),name:'Mean price',type:'scatter',mode:'lines+markers',
     line:{color:'#94a2b1',width:2},hovertemplate:'€%{y:.1f}/MWh<extra></extra>'}],
-   lay('The bottom of the price distribution<br><span style="font-size:12px">the cheapest 5% of hours has been collapsing toward zero since 2023</span>',
+   lay('The bottom of the price distribution',
     {showlegend:true,hovermode:'x unified',yaxis:{title:{text:'€/MWh',font:{size:12}},gridcolor:'#1c2531'},
      xaxis:{gridcolor:'#1c2531',dtick:1}}),CFG);
  }
@@ -5110,7 +5114,7 @@ function drawGridMix(){
   {x:EMBER.years,y:EMBER.wind,name:'Wind generation',type:'bar',marker:{color:'#4aa8ff'},hovertemplate:'%{y} TWh<extra></extra>'},
   {x:EMBER.years,y:EMBER.years.map(y=>PRICES.per_year[y]?PRICES.per_year[y].solar/PRICES.per_year[y].baseload*100:null),name:'Solar capture',type:'scatter',yaxis:'y2',line:{color:'#ffb23e',width:2.5,dash:'dot'},hovertemplate:'%{y:.0f}% of baseload<extra></extra>'},
   {x:EMBER.years,y:EMBER.years.map(y=>PRICES.per_year[y]?PRICES.per_year[y].wind/PRICES.per_year[y].baseload*100:null),name:'Wind capture',type:'scatter',yaxis:'y2',line:{color:'#4aa8ff',width:2.5,dash:'dot'},hovertemplate:'%{y:.0f}% of baseload<extra></extra>'}
- ],lay('What Austria is building, and what it earns<br><span style="font-size:12px">wind and solar generation (TWh) against capture ratios (% of baseload)</span>',
+ ],lay('What Austria is building, and what it earns',
   {barmode:'group',showlegend:true,yaxis:{title:{text:'TWh/yr',font:{size:11.5}}},yaxis2:{overlaying:'y',side:'right',range:[0,110],title:{text:'% of baseload',font:{size:11.5}},gridcolor:'transparent'}}),CFG);
 }
 function drawPrices(){
@@ -5119,18 +5123,18 @@ function drawPrices(){
    {x:yrs,y:yrs.map(y=>PRICES.per_year[y].baseload),name:'Baseload',type:'scatter',line:{color:'#94a2b1',width:2.5},hovertemplate:HT('€/MWh')},
    {x:yrs,y:yrs.map(y=>PRICES.per_year[y].wind),name:'Wind capture',type:'scatter',line:{color:'#4aa8ff',width:2.5},hovertemplate:HT('€/MWh')},
    {x:yrs,y:yrs.map(y=>PRICES.per_year[y].solar),name:'Solar capture',type:'scatter',line:{color:'#ffb23e',width:2.5},hovertemplate:HT('€/MWh')}
- ],lay('Austrian wholesale 2015-2025<br><span style="font-size:12px">baseload vs wind & solar capture</span>',{showlegend:true,yaxis:{title:{text:'€/MWh',font:{size:12}},gridcolor:'#1c2531'},xaxis:{gridcolor:'#1c2531'}}),CFG);
+ ],lay('Austrian wholesale 2015-2025',{showlegend:true,yaxis:{title:{text:'€/MWh',font:{size:12}},gridcolor:'#1c2531'},xaxis:{gridcolor:'#1c2531'}}),CFG);
  const py=PRICES.per_year[priceYear], H=[...Array(24).keys()];
  if(document.getElementById('pr_daily'))Plotly.react('pr_daily',[
    {x:H,y:py.ph,name:'Price '+priceYear,type:'scatter',line:{color:'#ff6b6b',width:2.6},hovertemplate:HT('€/MWh')},
    {x:H,y:PRICES.solarHr,name:'Solar, measured',type:'scatter',yaxis:'y2',mode:'lines',fill:'tozeroy',line:{color:'#ffb23e',width:2},fillcolor:'rgba(255,178,62,0.18)',hovertemplate:'solar %{y:.1%} of rating<extra></extra>'},
    {x:H,y:PRICES.windHr,name:'Wind, measured',type:'scatter',yaxis:'y2',mode:'lines',fill:'tozeroy',line:{color:'#4aa8ff',width:2},fillcolor:'rgba(74,168,255,0.14)',hovertemplate:'wind %{y:.1%} of rating<extra></extra>'}
- ],lay('Daily shape ('+priceYear+')<br><span style="font-size:12px">hourly price vs wind & solar profiles</span>',{showlegend:true,xaxis:{title:'hour of day',dtick:2,gridcolor:'#1c2531',zeroline:false},yaxis:{title:{text:'€/MWh',font:{size:12}},gridcolor:'#1c2531',zeroline:false},yaxis2:{overlaying:'y',side:'right',range:[0,0.45],title:{text:'share of rating',font:{size:11.5}},tickformat:'.0%',gridcolor:'transparent'}}),CFG);
+ ],lay('Daily shape ('+priceYear+')',{showlegend:true,xaxis:{dtick:2,gridcolor:'#1c2531',zeroline:false},yaxis:{title:{text:'€/MWh',font:{size:12}},gridcolor:'#1c2531',zeroline:false},yaxis2:{overlaying:'y',side:'right',range:[0,0.45],title:{text:'share of rating',font:{size:11.5}},tickformat:'.0%',gridcolor:'transparent'}}),CFG);
  if(document.getElementById('pr_season'))Plotly.react('pr_season',[
    {x:MONTHS,y:py.pm,name:'Price '+priceYear,type:'scatter',mode:'lines',line:{color:'#ff6b6b',width:2.6},hovertemplate:HT('€/MWh')},
    {x:MONTHS,y:PRICES.solarMo,name:'Solar, measured',type:'scatter',yaxis:'y2',mode:'lines',fill:'tozeroy',line:{color:'#ffb23e',width:2},fillcolor:'rgba(255,178,62,0.18)',hovertemplate:'solar %{y:.1%} of rating<extra></extra>'},
    {x:MONTHS,y:PRICES.windMo,name:'Wind, measured',type:'scatter',yaxis:'y2',mode:'lines',fill:'tozeroy',line:{color:'#4aa8ff',width:2},fillcolor:'rgba(74,168,255,0.14)',hovertemplate:'wind %{y:.1%} of rating<extra></extra>'}
- ],lay('Seasonal shape ('+priceYear+')<br><span style="font-size:12px">monthly price vs wind & solar profiles</span>',{showlegend:true,yaxis:{title:{text:'€/MWh',font:{size:12}},gridcolor:'#1c2531',zeroline:false},xaxis:{gridcolor:'#1c2531'},yaxis2:{overlaying:'y',side:'right',range:[0,0.42],title:{text:'share of rating',font:{size:11.5}},tickformat:'.0%',gridcolor:'transparent'}}),CFG);
+ ],lay('Seasonal shape ('+priceYear+')',{showlegend:true,yaxis:{title:{text:'€/MWh',font:{size:12}},gridcolor:'#1c2531',zeroline:false},xaxis:{gridcolor:'#1c2531'},yaxis2:{overlaying:'y',side:'right',range:[0,0.42],title:{text:'share of rating',font:{size:11.5}},tickformat:'.0%',gridcolor:'transparent'}}),CFG);
 }
 /* ===================== CONCEPT RENDERINGS (technical) =====================
    Drawings generated from live model state M. Every dimension is read from M,
@@ -5483,10 +5487,10 @@ function svgDcCampus(){
  let parcels='';
  [[xA,wA,'Parcel A',SITE.pA],[xB,wB,'Parcel B',SITE.pB],[xC,wC,'Parcel C',SITE.pC]].forEach(p=>{
   parcels+=rct(p[0],yBau,p[1]*s,bh*s,RC.gr,RC.acc,{sw:1})+
-   tx(p[0]+6,yBau+14,p[2],{f:RC.acc,s:10,w:600})+tx(p[0]+6,yBau+26,`${p[3].toFixed(2)} ha`,{f:RC.mu,s:9.5,m:1});});
+   tx(p[0]+6,yBau+14,p[2],{f:RC.acc,s:12.5,w:600})+tx(p[0]+6,yBau+26,`${p[3].toFixed(2)} ha`,{f:RC.mu,s:12,m:1});});
  parcels+=rct(xGreen,yBau,wG*s,bh*s,'#1b2a1e',RC.nex,{sw:1,d:'5 4'})+
-  tx(xGreen+6,yBau+14,'Green separation',{f:RC.nex,s:10,w:600})+
-  tx(xGreen+6,yBau+26,`${SITE.green.toFixed(2)} ha`,{f:RC.mu,s:9.5,m:1});
+  tx(xGreen+6,yBau+14,'Green separation',{f:RC.nex,s:12.5,w:600})+
+  tx(xGreen+6,yBau+26,`${SITE.green.toFixed(2)} ha`,{f:RC.mu,s:12,m:1});
  // ---------- hall slots, generated per parcel so no hall straddles a boundary ----------
  const hw=TECH.hallW*s, hd=TECH.hallD*s, PAR=[[xA,wA],[xB,wB],[xC,wC]];
  const slots=[];
@@ -5501,27 +5505,27 @@ function svgDcCampus(){
   if(placed>=g.halls)break;
   const p1=placed<g.h1;
   hallsSvg+=rct(sl[0],sl[1],hw,hd,p1?RC.bld:'#232c38',p1?RC.wind:RC.ghost,{rx:2,sw:1,d:p1?null:'4 3'})+
-   tx(sl[0]+hw/2,sl[1]+hd/2-1,`${TECH.hallMW}`,{a:'middle',f:p1?RC.wind:RC.ghost,s:11,w:700,m:1})+
-   tx(sl[0]+hw/2,sl[1]+hd/2+11,'MW IT',{a:'middle',f:p1?RC.wind:RC.ghost,s:7.5,m:1});
+   tx(sl[0]+hw/2,sl[1]+hd/2-1,`${TECH.hallMW}`,{a:'middle',f:p1?RC.wind:RC.ghost,s:13.5,w:700,m:1})+
+   tx(sl[0]+hw/2,sl[1]+hd/2+11,'MW IT',{a:'middle',f:p1?RC.wind:RC.ghost,s:10,m:1});
   placed++;}
  const over=g.halls-placed;
  // ---------- substation, south of parcel C ----------
  const ssW=100*s, ssH=90*s, ssX=xC+(wC*s-ssW)/2, ssY=yBau+280*s;
  const sst=rct(ssX,ssY,ssW,ssH,'#1e2733',RC.cab,{sw:1.3,rx:2})+
-  tx(ssX+ssW/2,ssY+ssH/2-8,'110 kV GIS',{a:'middle',f:RC.cab,s:9.5,w:700})+
-  tx(ssX+ssW/2,ssY+ssH/2+4,'Schaltwerk',{a:'middle',f:RC.cab,s:8.5})+
-  tx(ssX+ssW/2,ssY+ssH/2+15,'Nickelsdorf',{a:'middle',f:RC.cab,s:8.5});
+  tx(ssX+ssW/2,ssY+ssH/2-8,'110 kV GIS',{a:'middle',f:RC.cab,s:12,w:700})+
+  tx(ssX+ssW/2,ssY+ssH/2+4,'Schaltwerk',{a:'middle',f:RC.cab,s:11})+
+  tx(ssX+ssW/2,ssY+ssH/2+15,'Nickelsdorf',{a:'middle',f:RC.cab,s:11});
  // ---------- HV trench along the south perimeter, label below the line ----------
  const trenchY=yAgri+10;
  const trench=ln(ox,trenchY,ox+Wm*s,trenchY,RC.cab,2.4,'8 4')+
-  tx(ox+8,trenchY+15,'HS-Kabel Trasse RES, buried 110 kV along the south perimeter',{f:RC.cab,s:9.5});
+  tx(ox+8,trenchY+15,'HS-Kabel Trasse RES, buried 110 kV along the south perimeter',{f:RC.cab,s:12});
  // ---------- agri strip, drawn broken ----------
  const brk=yAgri+agriDrawn*s*0.62;
  let zig='M '+ox.toFixed(1)+' '+brk.toFixed(1);
  for(let i=1;i<=24;i++) zig+=' L '+(ox+i*Wm*s/24).toFixed(1)+' '+(brk+(i%2?4.5:-4.5)).toFixed(1);
  const agri=rct(ox,yAgri,Wm*s,agriDrawn*s,RC.crop,RC.ln,{d:'4 4'})+
   rct(ox+1,brk-7,Wm*s-2,14,RC.bg)+`<path d="${zig}" fill="none" stroke="${RC.ln}" stroke-width="1.2"/>`+
-  tx(ox+8,yEnd-8,`Remaining agricultural, ${SITE.agri.toFixed(2)} ha, outside the development plan`,{f:RC.mu,s:10});
+  tx(ox+8,yEnd-8,`Remaining agricultural, ${SITE.agri.toFixed(2)} ha, outside the development plan`,{f:RC.mu,s:12.5});
  // ---------- fibre entries ----------
  const fib=[[ox+Wm*s*0.18,yRoad,-1],[ox+Wm*s*0.72,yRoad,-1],[ox+Wm*s*0.18,yEnd,1],[ox+Wm*s*0.72,yEnd,1]]
   .map(f=>`<path d="M ${f[0].toFixed(1)} ${(f[1]+f[2]*20).toFixed(1)} L ${f[0].toFixed(1)} ${f[1].toFixed(1)}" stroke="${RC.solar}" stroke-width="1.6" stroke-dasharray="3 2"/>`+
@@ -5532,34 +5536,34 @@ function svgDcCampus(){
   ['Parcel C · Bauland',SITE.pC,RC.acc,0],['Bauland total',g.bauland,RC.tx,1],
   ['Access road',SITE.road,RC.mu,0],['Green separation',SITE.green,RC.nex,0],
   ['Remaining agricultural',SITE.agri,RC.mu,0],['Site total',totHa,RC.tx,1]];
- let sched=tx(rX,Y+38,'AREA SCHEDULE',{f:RC.tx,s:10.5,w:700})+tx(rX+rW,Y+38,'ha',{a:'end',f:RC.dim,s:9.5,m:1});
+ let sched=tx(rX,Y+38,'AREA SCHEDULE',{f:RC.tx,s:13,w:700})+tx(rX+rW,Y+38,'ha',{a:'end',f:RC.dim,s:12,m:1});
  AR.forEach((r,i)=>{const y=Y+58+i*17;
   if(r[3])sched+=ln(rX,y-12,rX+rW,y-12,RC.ln,1);
-  sched+=tx(rX+(r[3]?0:8),y,r[0],{f:r[3]?RC.tx:RC.mu,s:10,w:r[3]?600:400})+
-   tx(rX+rW,y,r[1].toFixed(2),{a:'end',f:r[2],s:10.5,w:r[3]?700:400,m:1});});
+  sched+=tx(rX+(r[3]?0:8),y,r[0],{f:r[3]?RC.tx:RC.mu,s:12.5,w:r[3]?600:400})+
+   tx(rX+rW,y,r[1].toFixed(2),{a:'end',f:r[2],s:13,w:r[3]?700:400,m:1});});
  const sbY=Y+228, sbW=rW, smax=Math.max(g.cap,g.sealed,1), over2=g.sealed>g.cap;
  const capX=rX+sbW*g.cap/smax;
- const seal=tx(rX,sbY,'SEALING ENVELOPE',{f:RC.tx,s:10.5,w:700})+
+ const seal=tx(rX,sbY,'SEALING ENVELOPE',{f:RC.tx,s:13,w:700})+
   rct(rX,sbY+12,sbW,18,RC.gr,RC.ln,{rx:3})+
   rct(rX,sbY+12,sbW*g.sealed/smax,18,over2?RC.red:RC.acc,null,{rx:3,op:.75})+
   ln(capX,sbY+6,capX,sbY+36,RC.tx,1.4,'3 2')+
-  tx(rX+4,sbY+25,`${g.sealed.toFixed(1)} ha sealed`,{f:'#04120f',s:10,w:700,m:1})+
-  tx(capX+(g.cap/smax>0.8?-4:4),sbY+46,`cap ${g.cap.toFixed(1)} ha`,{a:g.cap/smax>0.8?'end':'start',f:RC.tx,s:9.5,m:1})+
+  tx(rX+4,sbY+25,`${g.sealed.toFixed(1)} ha sealed`,{f:'#04120f',s:12.5,w:700,m:1})+
+  tx(capX+(g.cap/smax>0.8?-4:4),sbY+46,`cap ${g.cap.toFixed(1)} ha`,{a:g.cap/smax>0.8?'end':'start',f:RC.tx,s:12,m:1})+
   wrapT(rX,sbY+62,over2
    ?`Over the ${pct(SITE.sealTot,0)} overall limit. Phase 2 needs denser halls, a second storey or more parcel.`
    :`Within the ${pct(SITE.sealTot,0)} overall limit (${pct(SITE.sealPar,0)} per parcel). Headroom ${(g.cap-g.sealed).toFixed(1)} ha.`,
-   46,13,{s:12,f:over2?RC.red:RC.mu});
+   46,13,{s:14,f:over2?RC.red:RC.mu});
  const hY=Y+340;
- const halls2=tx(rX,hY,'HALLS AND LOAD',{f:RC.tx,s:10.5,w:700})+
-  tx(rX,hY+20,`${g.h1} × Phase 1`,{f:RC.wind,s:10.5,w:600,m:1})+
-  tx(rX+rW,hY+20,`${nfm(g.p1)} MW`,{a:'end',f:RC.wind,s:10.5,m:1})+
-  tx(rX,hY+37,`${g.h2} × Phase 2`,{f:RC.ghost,s:10.5,w:600,m:1})+
-  tx(rX+rW,hY+37,`${nfm(g.p2)} MW`,{a:'end',f:RC.ghost,s:10.5,m:1})+
+ const halls2=tx(rX,hY,'HALLS AND LOAD',{f:RC.tx,s:13,w:700})+
+  tx(rX,hY+20,`${g.h1} × Phase 1`,{f:RC.wind,s:13,w:600,m:1})+
+  tx(rX+rW,hY+20,`${nfm(g.p1)} MW`,{a:'end',f:RC.wind,s:13,m:1})+
+  tx(rX,hY+37,`${g.h2} × Phase 2`,{f:RC.ghost,s:13,w:600,m:1})+
+  tx(rX+rW,hY+37,`${nfm(g.p2)} MW`,{a:'end',f:RC.ghost,s:13,m:1})+
   ln(rX,hY+45,rX+rW,hY+45,RC.ln,1)+
-  tx(rX,hY+59,`${g.halls} halls · ${nfm(TECH.hallM2)} m² each`,{f:RC.tx,s:10,w:600})+
-  tx(rX+rW,hY+59,`${nfm(g.it)} MW IT`,{a:'end',f:RC.tx,s:10.5,w:700,m:1})+
-  (over>0?tx(rX,hY+76,`${over} hall${over>1?'s':''} beyond what the zoning fits`,{f:RC.red,s:9.5,w:600}):
-   tx(rX,hY+76,`4 fibre entries, 2 north and 2 south`,{f:RC.solar,s:9.5}));
+  tx(rX,hY+59,`${g.halls} halls · ${nfm(TECH.hallM2)} m² each`,{f:RC.tx,s:12.5,w:600})+
+  tx(rX+rW,hY+59,`${nfm(g.it)} MW IT`,{a:'end',f:RC.tx,s:13,w:700,m:1})+
+  (over>0?tx(rX,hY+76,`${over} hall${over>1?'s':''} beyond what the zoning fits`,{f:RC.red,s:12,w:600}):
+   tx(rX,hY+76,`4 fibre entries, 2 north and 2 south`,{f:RC.solar,s:12}));
  const nY=Y+436;
  const notes='';
  const body=frame(X,Y,W,H,'SITE PLAN · Businesspark Nickelsdorf, Mönchhofer Landesstraße')+
@@ -5569,7 +5573,7 @@ function svgDcCampus(){
   dimV(yRoad,yAgri,ox-16,`${nfm(roadH+bh)} m`,RC.mu)+
   northArrow(ox+Wm*s-22,Y+34,10,0)+scaleBar(ox,yEnd+40,s,200,'m')+
   sched+seal+halls2+notes;
- const svg=sv(1100,584,rct(0,0,1100,584,RC.bg)+body,640);
+ const svg=sv(1100,584,rct(0,0,1100,584,RC.bg)+body,860);
  const sub=`<b>${g.halls} data halls</b> at ${TECH.hallMW} MW IT each carry the <b>${nfm(g.firm)} MW</b> firm offtake (${nfm(g.it)} MW IT at PUE ${TECH.pue}). `+
   `Building footprint <b>${g.hallHa.toFixed(1)} ha</b>; with the substation, yards and roads about <b>${g.sealed.toFixed(1)} ha</b> sealed against the <b>${g.cap.toFixed(1)} ha</b> the plan allows `+
   `<span style="color:${g.sealed>g.cap?RC.red:RC.acc}">(${g.sealed>g.cap?'over — denser halls or more parcel needed':'within the limit'})</span>.`+
