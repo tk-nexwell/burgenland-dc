@@ -1,7 +1,7 @@
 // Full-formula Excel model generator — READABLE/AUDITABLE build.
 // Runs identically in Node (test) and browser (ExcelJS). buildFullModel(ExcelJSlib, S) -> workbook.
 //
-// Design rules (per Thomas's Formula & Layout Standards, Jul 2026):
+// Design rules (Formula & Layout Standards):
 //  - NO named ranges. Each calc sheet carries its own LOCAL ASSUMPTIONS block whose cells are
 //    linked (=Inputs!$B$n) and shown in RED, so F2 traces to a nearby labelled cell.
 //  - NO IF(). Conditions are 0/1 flags built by boolean multiplication ((y>=cod)*(y<cod+life));
