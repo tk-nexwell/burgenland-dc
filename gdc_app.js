@@ -347,13 +347,13 @@ const M={
  macro:{infl:0.02,tax:0.23,gearing:0.70,merchReal:100,tenor:20,allInRate:0.047,ppaTermY:20,amort:'annuity'},
  v3:{wind:false,solar:false,battery:false},
  wind:{on:true,mw:320,capexPerMW:1.45,grossCF:0.290636,loss:0.02,lineLoss:0.045,opexPerMW:0.04,gridFee:0,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2029},
- solar:{on:true,mw:357,capexPerMW:0.60,grossCF:0.1566,loss:0.02,lineLoss:0.033,opexPerMW:0.032,gridFee:0,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2030},
+ solar:{on:true,mw:357,capexPerMW:0.60,grossCF:0.1566,loss:0.02,lineLoss:0.033,opexPerMW:0.032,gridFee:0,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2029},
  battery:{on:true,powerMW:500,durationH:8,capexPerKWh:130,rte:0.87,opexPct:0.02,degr:0.015,socFloor:0.10,gridYear:2035,priceYear:'2025',captureFactor:1.0,cyclesDay:1,ancPerMW:20,capChargeMWyr:40,mktCapFee:false,compression:0.02,gearing:0.60,debtRate:0.05,substation:24.25,interconnect:17,gridCapFee:0,gridEnergyFee:0,btmCharge:0,lifeY:25}, // defaults: 8h · behind-the-meter charging via direct line → grid fees 0 (sliders remain) · DC reliability charge 40 k€/MW/yr
  dc:{curtail:0,firmMW:500,dcPrice:120,spvMode:'pass',spvMargin:0.03,marginMode:'pct',marginEur:3.5,
    revPerMW:5.00,powerPass:true,claimShare:0.40,firmTermY:3,   // DC revenue EUR m per MW of connection a year; powerPass = the data center bills power on to its tenant
 srcMode:'fixed',resFix:99,beMargin:0.03,gridEnergyFee:8.4,gridCapFeeKW:42.84,feeEsc:0.04,resMode:'ppa'}, // feeEsc: BE Trading 14-Jul-26 tariff path = ~4%/yr from 2028 (Arbeitspreis 8.4→18.4, Leistungspreis 42.84→93.87 k€/MW by 2048)
  site:{leasePre:1.0,leasePost:5.0,partPct:0.05,partCapM:0,oneOff:100.0,leaseY:20,on:true}, // leasePost = our own July record of a ~EUR 100m upfront, spread over the 20-year term // land bucket. partPct 5% is our own July record; partCapM 0 = uncapped
- conn:{directPer100:7.54,dcac:1.20,clip:true,lineBasis:'vdr7',wideInfra:0} // private tie-lines, €m per 100 MW. The written cable-plough estimate is carried; the spoken lump total is the alternative, one click away. NEB Netzzutritt & customer DC connection live as battery.substation / battery.interconnect
+ conn:{directPer100:7.54,dcac:1.20,clip:false,lineBasis:'vdr7',wideInfra:0} // base yields are already delivered FLH, so a second clipping deduction would double count; private tie-lines, €m per 100 MW. NEB Netzzutritt & customer DC connection live as battery.substation / battery.interconnect
 };
 const DEFAULTS_JSON=JSON.stringify(M);
 const Y0=2026,YN=2070,COD=2028,FF=2029,DEPRY=20;
@@ -466,6 +466,18 @@ function computeAsset(a){
  const lcoeSimple=(annuity+p29.opex)*1e6/p29.prod;
  return{rows,totalCapex,equity,debt,debtAtCod,idc,gearEff,irr,moic:divs/inj,prod:p29.prod,rev:p29.rev,
   ebitda:p29.ebitda,ebitdaMargin:p29.ebitda/p29.rev,lcoe,lcoeSimple,pvC,pvE,netCF,life,cod};
+}
+// Add the dated wind and solar equity cash flows, then calculate one portfolio XIRR.
+// Private direct-line capex is deliberately outside this scope; only its physical delivery
+// losses remain in generation. This is the return convention used in the treasury deck.
+function computePlantPortfolio(){
+ const W=computeAsset(M.wind),S=computeAsset(M.solar),wOn=M.wind.on!==false,sOn=M.solar.on!==false;
+ const rows=W.rows.map((r,i)=>({y:r.y,fcfe:(wOn?r.fcfe:0)+(sOn?S.rows[i].fcfe:0)}));
+ const irr=xirr(rows.map(r=>r.fcfe),rows.map(r=>r.y+0.99));
+ return{rows,irr,wind:W,solar:S,
+  totalCapex:(wOn?W.totalCapex:0)+(sOn?S.totalCapex:0),
+  equity:(wOn?W.equity:0)+(sOn?S.equity:0),
+  debt:(wOn?W.debt:0)+(sOn?S.debt:0)};
 }
 function computeBattery(b){
  const energy=b.powerMW*b.durationH; const cellCapex=energy*1000*b.capexPerKWh/1e6; const sub=(b.substation||0), inter=(b.interconnect||0), icx=sub+inter; const capex=cellCapex+icx;
@@ -747,8 +759,9 @@ function assetPage(sec){
  const kpis=`<div class="kpis">
   ${kpiM([['Installed',fmt(a.mw,0),unit],['Production yr1',fmt(R.prod/1000,0),'GWh']],col)}
   ${kpiM([['Total capex','€'+fmt(R.totalCapex,0),'m'],['Equity','€'+fmt(R.equity,0),'m'],['Debt ('+pct(M.macro.gearing,0)+')','€'+fmt(R.debt,0),'m']])}
-  ${kpiM([['Yield',fmt(R.prod/a.mw,0),isWind?'MWh/MW<sub>AC</sub>':'MWh/MWp'],['Capacity factor',pct(effCFc(a),1),'net']])}
+ ${kpiM([['Yield',fmt(R.prod/a.mw,0),isWind?'MWh/MW<sub>AC</sub>':'MWh/MWp'],['Capacity factor',pct(effCFc(a),1),'net']])}
   ${kpiM([['Equity IRR',fmt(R.irr*100,1),'%'],['MOIC',fmt(R.moic,1),'x'],['LCOE',fmt(R.lcoe,0),'€/MWh']],col)}</div>`;
+ const returnScope=`<div class="info" style="margin:0 0 12px"><b>Return scope: plant capital only.</b> The equity IRR excludes private direct-line capex. Direct-line losses still reduce delivered production; the cable investment is shown and financed separately at Power SPV.</div>`;
  const view=assetView[sec];
  const HEADS={
   wind:{t:`${fmt(a.mw,0)} MW of wind, wired straight to the data center.`,l:''},
@@ -759,7 +772,7 @@ function assetPage(sec){
  if(view==='prod')return seg+prodPanel(sec);
  if(view==='tech')return seg+bridgePanel(sec)+renderBlock(sec);
  setTimeout(()=>{drawAssetCharts(R,col);},0);
- return seg+kpis+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr 1fr">
+ return seg+kpis+returnScope+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr 1fr">
    <div class="chart" id="c_prod"></div><div class="chart" id="c_pl"></div>
    <div class="chart" id="c_fin"></div><div class="chart" id="c_debt"></div>
    <div class="chart" id="c_eq"></div><div class="chart" id="c_sens"></div></div>${inputsR}</div>`;
@@ -1177,7 +1190,7 @@ function scoreCard(){
   windLCOE:W.lcoe, solarLCOE:S.lcoe,
   selfPct:SS.selfPct, capex:SP.capex, equity:SP.equity, genGWh:(W.prod+S.prod)/1000};
 }
-const SCORE=[['spvIRR','SPV equity IRR','pct'],['dc9','Margin needed for a 9% return','pctpt'],
+const SCORE=[['spvIRR','SPV equity IRR, ex direct-line capex','pct'],['dc9','Margin needed for a 9% return','pctpt'],
  ['windIRR','Wind equity IRR','pct'],['solarIRR','Solar equity IRR','pct'],['battIRR','Battery equity IRR','pct'],
  ['windLCOE','Wind LCOE','eur'],['solarLCOE','Solar LCOE','eur'],['selfPct','Self-supply','pctpt'],
  ['genGWh','Generation','gwh'],['capex','SPV capex','eurm'],['equity','SPV equity','eurm']];
@@ -1913,7 +1926,7 @@ function summaryPage(){
  if(spvView==='tech')return seg+renderBlock('battery')+saidiPanel();
  if(spvView==='supply')return seg+supplyPage();
  if(spvView==='corr')return seg+corrSection();
- const W=computeAsset(M.wind),S=computeAsset(M.solar),B=computeBattery(M.battery);
+ const P=computePlantPortfolio(),W=P.wind,S=P.solar,B=computeBattery(M.battery);
  const SP=computeSPV(M.dc.dcPrice), spvIRR=SP.irr;
  const y1=SP.rows.find(r=>r.y===FF)||{rev:0,bRev:0,gridCost:0,resPPA:0,opex:0,ebitda:0};
  const mw=fleetAC(), t1=Math.min(TRANCHE.t1MW,mw), blend=mw>0?(t1*TRANCHE.p1+Math.max(0,mw-t1)*TRANCHE.p2)/mw:TRANCHE.p1;
@@ -1942,7 +1955,7 @@ function summaryPage(){
   ${sliderHTML('macro','infl','Inflation',0,0.05,0.005,'%',100)}
   ${sliderHTML('battery','compression','Battery rev compression',0,0.2,0.005,'%/yr',100)}</div>`;
  const kpis=`<div class="kpis">
-  ${kpiM([['Equity IRR',isNaN(spvIRR)?'n/m':fmt(spvIRR*100,1),'%'],['Equity','€'+fmt(SP.equity,0),'m']],'var(--acc)')}
+  ${kpiM([['Equity IRR, ex line capex',isNaN(spvIRR)?'n/m':fmt(spvIRR*100,1),'%'],['Equity, ex line capex','€'+fmt(SP.equity,0),'m']],'var(--acc)')}
   ${kpiM([['Data center pays','€'+fmt(SP.unit,1),'/MWh in '+FF],['EBITDA yr 1','€'+fmt(y1.ebitda,0),'m']])}
   ${kpiM([['Buys from the parks','€'+fmt(blend,1),'/MWh blended'],['Margin',M.dc.marginMode==='flat'?'€'+fmt(M.dc.marginEur,2)+'/MWh':pct(M.dc.spvMargin,2),'on energy']])}
   ${kpiM([['Battery',fmt(M.battery.powerMW,0)+' MW',''+fmt(M.battery.powerMW*M.battery.durationH/1000,1)+' GWh'],['Lines, substation, tie-in','€'+fmt(lineMW()*M.conn.directPer100/100+M.battery.substation+M.battery.interconnect,0),'m']])}</div>`;
@@ -1954,9 +1967,10 @@ function summaryPage(){
  const table=`<div class="panel" style="margin-top:14px"><h3>Portfolio</h3><table><thead><tr><th>Asset</th><th>Capex €m</th><th>Equity €m</th><th>Debt €m</th><th>Gen GWh/yr</th><th>Rev €m</th><th>EBITDA €m</th><th>IRR</th><th>LCOE / LCOS</th></tr></thead><tbody>
   ${row('Wind','var(--wind)',fmt(W.totalCapex,0),fmt(W.equity,0),fmt(W.debt,0),fmt(W.prod/1000,0),fmt(W.rev,1),fmt(W.ebitda,1),fmt(W.irr*100,1)+'%',fmt(W.lcoe,0))}
   ${row('Solar','var(--solar)',fmt(S.totalCapex,0),fmt(S.equity,0),fmt(S.debt,0),fmt(S.prod/1000,0),fmt(S.rev,1),fmt(S.ebitda,1),fmt(S.irr*100,1)+'%',fmt(S.lcoe,0))}
+  ${row('Wind + solar','var(--acc)',fmt(P.totalCapex,0),fmt(P.equity,0),fmt(P.debt,0),fmt((W.prod+S.prod)/1000,0),fmt(W.rev+S.rev,1),fmt(W.ebitda+S.ebitda,1),fmt(P.irr*100,1)+'%','—')}
   ${row('Battery','var(--batt)',fmt(B.capex,0),fmt(BF.equity,0),fmt(BF.debt,0),fmt(battGen/1000,0),fmt(battRev,1),fmt(battEbitda,1),(isNaN(BF.irr)?'n/m':fmt(BF.irr*100,1)+'%'),'LCOS')}
   </tbody></table>
-  <div class="muted" style="margin-top:8px">Wind and solar are Burgenland Energie's build; the SPV buys their output under the PPA. The battery and the lines sit inside the SPV.</div></div>`;
+  <div class="muted" style="margin-top:8px"><b>IRR scope:</b> every return quoted on this page excludes private direct-line capex. The line cost remains visible in total system capex and the lines KPI; line losses remain in delivered generation. The wind + solar return is one XIRR on their aggregated dated equity cash flows, not an arithmetic average.</div></div>`;
  const yrCtl=`<div class="panel" style="padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
    <span style="font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)">Year</span>
    <input type="range" min="${FF}" max="${FF+19}" step="1" value="${spvEconY||FF}" style="flex:1;min-width:180px;accent-color:var(--acc);height:4px"
@@ -1995,7 +2009,9 @@ function drawSpvEcon(){
    connector:{line:{color:'#39465a'}},hovertemplate:'%{x}: €%{y:,.0f}m<br>%{customdata}<extra></extra>'
  }],lay(y+' · year '+(y-FF+1)+', €m',{showlegend:false,margin:{l:54,r:26,t:76,b:70}}),CFG);
 }
-// Consolidated SPV: owns RES+battery+line, buys grid ride-through, sells to DC. Levered equity IRR.
+// Consolidated SPV: owns RES+battery+line, buys grid ride-through, sells to DC. The quoted levered
+// equity IRR deliberately excludes private direct-line capex, which is financed and recovered as a
+// separate Power SPV infrastructure scope. The full line cost remains reported in system capex.
 function computeSPV(dcP){
  const mac=M.macro,infl=mac.infl,allIn=mac.allInRate,g=mac.gearing,tenor=mac.tenor,comp=M.battery.compression,gy=M.battery.gridYear,bdeg=M.battery.degr;
  const owned=(M.dc.resMode||'lcoe')==='lcoe';
@@ -2009,11 +2025,11 @@ function computeSPV(dcP){
  const lineCx=lineMW()*M.conn.directPer100/100+wideEx;
  const resOpex=(wOn?M.wind.opexPerMW*M.wind.mw:0)+(sOn?M.solar.opexPerMW*M.solar.mw:0);
  // owned: SPV builds & finances RES (capex in SPV, no PPA). bought: SPV buys RES at PPA (no RES capex, PPA is a COGS).
- const cap=owned?{2027:0.30*resCx,2028:0.70*resCx+battCx+lineCx}:{2027:0,2028:battCx+lineCx};
+ const cap=owned?{2027:0.30*resCx,2028:0.70*resCx+battCx}:{2027:0,2028:battCx};
  const battG=(M.battery.gearing!=null?M.battery.gearing:g);
- const resIn=owned?resCx:0, totCap=resIn+battCx+lineCx, totDebt=g*(resIn+lineCx)+battG*battCx, blendG=totCap>0?totDebt/totCap:g;
- const bRate=(M.battery.debtRate||allIn), xRate=totDebt>0?((g*(resIn+lineCx))*allIn+(battG*battCx)*bRate)/totDebt:allIn; // debt-weighted blended rate (audit fix: battery debt was priced at the RES all-in rate here, 4.5% vs its own 5.0%)
- const lev=cap, depBase=owned?(resCx+battCx+lineCx):(battCx+lineCx);
+ const resIn=owned?resCx:0, irrCapex=resIn+battCx, totDebt=g*resIn+battG*battCx, blendG=irrCapex>0?totDebt/irrCapex:g;
+ const bRate=(M.battery.debtRate||allIn), xRate=totDebt>0?(g*resIn*allIn+battG*battCx*bRate)/totDebt:allIn; // debt-weighted blended rate; direct-line financing is outside the quoted IRR
+ const lev=cap, depBase=irrCapex;
  let bal=0,nol=0,ppy=0,annDS=0; const rows=[];
  const resLife=Math.max(M.wind.lifeY||25,M.solar.lifeY||25), spvEnd=FF+resLife, effTen=Math.min(tenor,resLife), depN=Math.min(20,resLife), battEnd=COD+(M.battery.lifeY||25);
  for(let y=Y0;y<=YN;y++){
@@ -2053,7 +2069,7 @@ function computeSPV(dcP){
  // what the data center ends up paying, as an output rather than an input
  const y1=rows.find(r=>r.y===FF)||{rev:0};
  const unit=dcLoad>0?y1.rev*1e6/dcLoad:0;
- return{rows,irr,equity,capex:(owned?resCx:0)+battCx+lineCx,owned,unit,
+ return{rows,irr,equity,capex:irrCapex+lineCx,irrCapex,lineCapex:lineCx,owned,unit,
    pass:(M.dc.spvMode||'pass')==='pass'};
 }
 function solveDcFor(target){let a=40,b=220;for(let i=0;i<48;i++){const m=(a+b)/2,r=computeSPV(m).irr;if(isNaN(r)||r<target)a=m;else b=m;}return (a+b)/2;}

@@ -11,3 +11,9 @@ wait for the Pages build, and then mirror the exact committed files to OneDrive.
 
 The mirror manifest and detailed operating rules are in `MIRROR_MANIFEST.json` and
 `DEPLOY_INSTRUCTIONS.md`.
+
+## Return convention
+
+Wind and solar both use a 2029 first-generation year. Every equity IRR displayed by the dashboard
+excludes private direct-line capex. The line investment remains visible in total system capex and is
+financed separately at Power SPV; direct-line losses remain in delivered generation.
