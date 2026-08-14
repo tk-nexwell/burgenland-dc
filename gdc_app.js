@@ -3495,10 +3495,10 @@ function splashHTML(){
    </div>
    <button class="splashBtn" onclick="closeSplash()">Explore the project<span class="arr">→</span></button>
   </div>
-  <div class="splashFoot">
-   <a class="brandLink" href="https://nexwell.com" target="_blank" rel="noopener noreferrer" title="Nexwell">${NXLOGO('height:150px')}</a>
+  <div class="splashFoot" aria-label="Project partners">
+   <a class="brandLink splashPartner splashPartnerNx" href="https://nexwell.com" target="_blank" rel="noopener noreferrer" title="Nexwell">${NXLOGO('')}</a>
    <span style="color:#3d5164;font-size:26px">×</span>
-   <a class="brandLink" href="https://www.burgenlandenergie.at" target="_blank" rel="noopener noreferrer" title="Burgenland Energie">${BELOGO('height:96px',true,34)}</a>
+   <a class="brandLink splashPartner splashPartnerBe" href="https://www.burgenlandenergie.at" target="_blank" rel="noopener noreferrer" title="Burgenland Energie">${BELOGO('',true)}</a>
   </div>
  </div>`;
 }

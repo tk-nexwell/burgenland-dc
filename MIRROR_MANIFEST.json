@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "source": {
+    "repository": "tk-nexwell/burgenland-dc",
+    "branch": "main"
+  },
+  "destination": "OneDrive/Output/Austria DC/github-pages-deploy",
+  "direction": "github-to-onedrive-only",
+  "exclude": [
+    ".git"
+  ],
+  "files": [
+    "index.html",
+    "gdc.css",
+    "gdc_data.js",
+    "gdc_app.js",
+    "model_export.js",
+    "bedata_enc.bin",
+    "prices_hourly.csv",
+    "README.md",
+    "CNAME",
+    "DEPLOY_INSTRUCTIONS.md",
+    "deploy.bat",
+    "MIRROR_MANIFEST.json"
+  ]
+}

@@ -361,13 +361,15 @@ svg text::selection{background:rgba(0,154,68,.42)}
 .brandLink:hover{background:var(--hair4)}
 .brandLink:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
-#splash{position:fixed;inset:0;z-index:60;background:#070b10;display:flex;flex-direction:column;
+#splash{position:fixed;inset:0;z-index:60;background:#070b10;display:grid;
+ grid-template-rows:minmax(min-content,1fr) auto;overflow:auto;
+ padding:clamp(18px,3vh,34px) 24px clamp(14px,2.2vh,26px);
  opacity:1;transition:opacity .65s ease}
 #splash.out{opacity:0;pointer-events:none}
 .splashScene{position:absolute;inset:0;overflow:hidden}
 .sceneFill{display:block;width:100%;height:100%}
-.splashInner{position:relative;z-index:2;margin:auto;text-align:center;padding:0 24px;
- transform:translateY(-4vh)}
+.splashInner{position:relative;z-index:2;align-self:center;width:min(1120px,100%);
+ margin:auto;text-align:center;padding:0 24px}
 .splashKicker{font-size:11.5px;letter-spacing:.42em;text-transform:uppercase;color:#8fa6bb;margin-bottom:22px}
 .splashWm{font-size:clamp(38px,7.4vw,104px);line-height:1.02;color:#fff;margin:0}
 .splashWm .nk{display:block;font-size:.42em;font-style:italic;font-weight:400;color:#a8c0d4;
@@ -380,8 +382,12 @@ svg text::selection{background:rgba(0,154,68,.42)}
 .splashBtn:hover{transform:translateY(-1px);box-shadow:0 8px 26px rgba(70,180,90,.32)}
 .splashSkip{display:block;margin:18px auto 0;background:none;border:none;color:#7d93a8;font-size:12px;cursor:pointer}
 .splashSkip:hover{color:#cdd8e6}
-.splashFoot{position:absolute;left:0;right:0;bottom:22px;z-index:2;display:flex;justify-content:center;
- gap:26px;align-items:center;flex-wrap:wrap}
+.splashFoot{position:relative;z-index:2;display:flex;justify-content:center;
+ gap:clamp(18px,3vw,38px);align-items:center;flex-wrap:wrap;margin-top:clamp(18px,3vh,34px)}
+.splashPartner{flex:0 0 auto}
+.splashPartnerNx svg{height:clamp(78px,11vh,112px)!important;width:auto}
+.splashPartnerBe{font-size:clamp(20px,2.8vh,27px)}
+.splashPartnerBe svg{height:clamp(52px,7.2vh,72px)!important;width:auto}
 
 .heroWrap{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);
  background:#070b10;margin-bottom:16px}
@@ -884,7 +890,39 @@ footer{font-size:12px}
 .splashBtn:hover::after{transform:translateX(130%)}
 .splashBtn .arr{display:inline-block;margin-left:10px;transition:transform .2s var(--ease-out)}
 .splashBtn:hover .arr{transform:translateX(5px)}
-.splashFoot{bottom:44px;gap:38px}
+.splashFoot{gap:clamp(18px,3vw,38px)}
+
+/* Short laptop screens need a denser composition. The partner row stays in normal flow,
+   so it can never cover or steal clicks from the call-to-action. */
+@media(max-height:850px){
+ #splash{padding:12px 22px 10px}
+ .splashKicker{margin-bottom:8px}
+ .splashWm{font-size:clamp(36px,5.5vw,72px)}
+ .splashWm .nk{margin-bottom:.14em}
+ .splashRule{margin:13px auto 12px}
+ .splashStats{gap:8px;margin-bottom:14px}
+ .sChip{gap:9px;padding:8px 12px 8px 9px;border-radius:11px}
+ .sChip .ic{width:34px;height:34px;border-radius:9px}
+ .sChip .ic svg{width:19px;height:19px}
+ .sChip .sv{font-size:18px}
+ .sChip .sl{font-size:9.5px}
+ .splashBtn{padding:12px 34px;font-size:15px}
+ .splashFoot{margin-top:10px;gap:20px}
+ .splashPartnerNx svg{height:70px!important}
+ .splashPartnerBe{font-size:19px}
+ .splashPartnerBe svg{height:47px!important}
+}
+@media(max-width:680px){
+ #splash{padding-left:12px;padding-right:12px}
+ .splashInner{padding-left:4px;padding-right:4px}
+ .splashStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-width:520px}
+ .sChip{min-width:0}
+ .sChip:last-child{grid-column:1/-1;justify-self:center}
+ .splashFoot{gap:12px;flex-wrap:nowrap}
+ .splashPartnerNx svg{height:58px!important}
+ .splashPartnerBe{font-size:16px}
+ .splashPartnerBe svg{height:39px!important}
+}
 
 /* ================= motion upgrade pack ================= */
 /* faint drifting grid behind everything; the two soft glows sit below it at -2 */
