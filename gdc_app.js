@@ -3879,7 +3879,7 @@ function overviewPage(){
     ${BELOGO('height:72px',true,26)}</a>
   </div>`;
 
- return hero+masterplanSection()+introSection()+castSection()+topologyPanel()+evidence+euLabelCard()+next+foot;
+ return hero+masterplanSection()+topologyPanel()+introSection()+castSection()+evidence+euLabelCard()+next+foot;
 }
 
 /* ============ 15 · RENDER RUNTIME & BOOT ============ */
