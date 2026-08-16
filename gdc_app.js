@@ -2221,10 +2221,10 @@ function drawRisk(){
    <div class="chart" id="pmain3" style="margin-top:14px"></div>`;
  setTimeout(()=>{
   Plotly.react('pmain2',[
-   {x:[...Array(24).keys()],y:rH,name:'On site',type:'bar',marker:{color:NXG},hovertemplate:'on site %{y:.0f}%<extra></extra>'},
-   {x:[...Array(24).keys()],y:gH,name:'Grid',type:'bar',marker:{color:GRID},hovertemplate:'grid %{y:.0f}%<extra></extra>'}
+   {x:[...Array(24).keys()],y:rH,name:'On site',type:'bar',marker:{color:NXG},text:rH.map(v=>fmt(v,0)+'%'),textposition:'inside',insidetextanchor:'middle',constraintext:'inside',textfont:{size:11.5,color:'#04120f'},hovertemplate:'on site %{y:.0f}%<extra></extra>'},
+   {x:[...Array(24).keys()],y:gH,name:'Grid',type:'bar',marker:{color:GRID},text:gH.map(v=>fmt(v,0)+'%'),textposition:'inside',insidetextanchor:'middle',constraintext:'inside',textfont:{size:11.5,color:'#cdd8e6'},hovertemplate:'grid %{y:.0f}%<extra></extra>'}
   ],lay('Through the day',
-    {barmode:'stack',showlegend:true,xaxis:{dtick:2,gridcolor:FAINT},
+    {barmode:'stack',showlegend:true,uniformtext:{minsize:10,mode:'hide'},xaxis:{dtick:2,gridcolor:FAINT},
      yaxis:{title:{text:'share of load',font:{size:12}},range:[0,100],ticksuffix:'%',gridcolor:FAINT}}),CFG);
   const n=S.DUR.length, xp=S.DUR.map((_,i)=>i/(n-1)*100);
   // where the mean sits on the curve, so the 27% average and the ~22% median stop looking like a contradiction
