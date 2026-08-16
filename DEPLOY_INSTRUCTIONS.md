@@ -2,14 +2,16 @@
 
 ## One source, one direction
 
-GitHub repository `tk-nexwell/burgenland-dc`, branch `main`, is the definitive source. The OneDrive
-folder `Output/Austria DC/github-pages-deploy` is a one-way mirror for convenience and backup.
+GitHub repository `tk-nexwell/burgenland-dc`, branch `main`, is the definitive source. Work from
+`Documents/GitHub/burgenland-dc`. The OneDrive folder `Output/Austria DC/github-pages-deploy` is a
+one-way mirror for convenience and backup.
 
 - Make every dashboard change in GitHub.
+- Run `powershell -File scripts/check_release.ps1` and resolve every blocker.
 - Commit the complete change to `main`.
 - GitHub Pages deploys automatically after the push.
 - Verify the Pages build succeeded and the live site returns the new assets.
-- Mirror the exact committed files listed in `MIRROR_MANIFEST.json` to OneDrive.
+- Run `powershell -File scripts/sync_onedrive.ps1` to mirror the verified clean commit to OneDrive.
 - Never push an OneDrive edit back to GitHub and never deploy from OneDrive.
 - Do not modify or synchronize the legacy `.git` directory in OneDrive.
 
@@ -23,6 +25,8 @@ successful deployment.
 
 ## Confidentiality
 
-This repository is public. Raw 15-minute metering is published only as encrypted
-`bedata_enc.bin`. Model assumptions and outputs present in JavaScript remain visible to anyone who
-reads the public repository, regardless of the dashboard's client-side access gate.
+This repository and every GitHub Pages asset are public. The browser access code does not provide
+security because the JavaScript and data are downloaded before the gate is applied. `bedata_enc.bin`
+protects one raw series, but clear-text aggregates or NDA-derived labels in `gdc_data.js` are also a
+disclosure and are blocked by the release check. Publish only a sanitized public data module; host a
+full counterparty model behind real server-side authentication.

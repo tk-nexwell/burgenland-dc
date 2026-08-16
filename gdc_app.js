@@ -399,7 +399,21 @@ function dlXLSX(){withXL(()=>{
 });}
 
 /* ============ 4 · MODEL ENGINE ============ */
-function xirr(cfs,dt){const npv=r=>cfs.reduce((s,c,i)=>s+c/Math.pow(1+r,dt[i]-dt[0]),0);if(npv(0)<=0)return NaN;let a=0,b=0,f=false;for(let r=0.005;r<=10;r+=0.005){if(npv(r)<=0){a=r-0.005;b=r;f=true;break;}}if(!f)return NaN;for(let i=0;i<200;i++){const m=(a+b)/2,v=npv(m);if(Math.abs(v)<1e-7)return m;(v>0)?(a=m):(b=m);}return (a+b)/2;}
+function xirr(cfs,dt){
+ if(!cfs.length||cfs.length!==dt.length||cfs.some((v,i)=>!isFinite(v)||!isFinite(dt[i])))return NaN;
+ const signs=cfs.filter(v=>Math.abs(v)>1e-10).map(v=>Math.sign(v));
+ if(!signs.includes(-1)||!signs.includes(1))return NaN;
+ let changes=0;for(let i=1;i<signs.length;i++)if(signs[i]!==signs[i-1])changes++;
+ if(changes!==1)return NaN; // multiple sign changes can produce multiple, economically ambiguous IRRs
+ const npv=r=>cfs.reduce((s,c,i)=>s+c/Math.pow(1+r,dt[i]-dt[0]),0);
+ const rates=[-.999,-.95,-.9,-.8,-.65,-.5,-.35,-.2,-.1,-.05,0];
+ for(let i=1;i<=120;i++)rates.push(Math.exp(i/25*Math.log(11))-1);
+ let a=NaN,b=NaN,fa=npv(rates[0]);
+ for(let i=1;i<rates.length;i++){const fb=npv(rates[i]);if(fa===0)return rates[i-1];if(isFinite(fa)&&isFinite(fb)&&fa*fb<0){a=rates[i-1];b=rates[i];break;}fa=fb;}
+ if(!isFinite(a))return NaN;
+ let va=npv(a);for(let i=0;i<160;i++){const m=(a+b)/2,vm=npv(m);if(Math.abs(vm)<1e-8)return m;if(va*vm<=0)b=m;else{a=m;va=vm;}}
+ return (a+b)/2;
+}
 // Net delivered CF = gross × (1 − plant losses) × (1 − direct-line losses). Line-loss basis per BE 15-Jul-26 (Wallern-Tadten operational): 4.0% @ 12.5 km incl LV/MV trafo 0.70% + AC cable 0.72% + MV cable 2.07% + auxiliary 0.50% → ~1.2% fixed + ~0.224%/km. Capacity-weighted route km from BE project list: wind ~14.7 km → ~4.5%, solar ~9.1 km → ~3.3%.
 function effCF(a){ const ll=(1-(a.lineLoss||0)); return a.grossCF*(1-a.loss)*ll;} // net delivered CF = slider gross CF × (1−plant loss) × (1−line loss)
 /* What the plant's own ceiling costs it. Scale the measured shape to the assumed capacity factor,
@@ -658,7 +672,28 @@ const TABICON={
  prices:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 6.5c-1-1.4-2.9-2.2-5-2.2-2.8 0-4.6 1.3-4.6 3.3 0 4.6 10 2.5 10 7.2 0 2.1-2 3.5-5 3.5-2.4 0-4.4-.9-5.4-2.4"/></svg>'
 };
 
-function buildNav(){document.getElementById('nav').innerHTML=TABS.map(t=>`<button class="${t[0]===active?'on':''}" onclick="go('${t[0]}',event)" title="${t[1]}${gateLocked(t[0])?' · access code required':''}">${TABICON[t[0]]||''}<span>${t[1]}</span>${gateLocked(t[0])?'<span class="lockDot">&#128274;</span>':''}</button>`).join('');}
+const PROJECT_JUMPS=[
+ ['overview','masterplan','Masterplan'],
+ ['overview','deal-structure','Parties & risk'],
+ ['overview','project-pipeline','Project pipeline'],
+ ['wind','','Wind model'],
+ ['solar','','Solar model'],
+ ['summary','','Power SPV model'],
+ ['datacentre','','Data center brief'],
+ ['prices','','Market evidence']
+];
+function buildNav(){
+ const explorer=`<details class="projectMenu"><summary>${TABICON.overview}<span>Project explorer</span><span class="pmArr">⌄</span></summary>
+  <div class="projectMenuPop"><div class="pmK">Jump to</div>${PROJECT_JUMPS.map(j=>`<button onclick="projectJump('${j[0]}','${j[1]}',event)">${j[2]}<span>→</span></button>`).join('')}</div></details>`;
+ document.getElementById('nav').innerHTML=explorer+TABS.map(t=>`<button class="${t[0]===active?'on':''}" onclick="go('${t[0]}',event)" title="${t[1]}${gateLocked(t[0])?' · access code required':''}">${TABICON[t[0]]||''}<span>${t[1]}</span>${gateLocked(t[0])?'<span class="lockDot">&#128274;</span>':''}</button>`).join('');
+}
+function projectJump(t,id,e){
+ if(e){e.preventDefault();e.stopPropagation();}
+ const menu=document.querySelector('.projectMenu'); if(menu)menu.open=false;
+ const move=()=>{const el=id&&document.getElementById(id);if(el)el.scrollIntoView({behavior:reduceMo()?'auto':'smooth',block:'start'});else scrollTo({top:0,behavior:reduceMo()?'auto':'smooth'});};
+ if(t===active){move();return;}
+ go(t,null);setTimeout(move,reduceMo()?20:420);
+}
 function go(t,e){if(e)ripple(e);
  if(t==='battery'){t='summary';spvView='batt';}          // the battery lives inside Power SPV now
  _pgNav=true;
@@ -1190,7 +1225,7 @@ function scoreCard(){
   windLCOE:W.lcoe, solarLCOE:S.lcoe,
   selfPct:SS.selfPct, capex:SP.capex, equity:SP.equity, genGWh:(W.prod+S.prod)/1000};
 }
-const SCORE=[['spvIRR','SPV equity IRR, ex direct-line capex','pct'],['dc9','Margin needed for a 9% return','pctpt'],
+const SCORE=[['spvIRR','SPV equity IRR, incl. private line','pct'],['dc9','Margin needed for a 9% return','pctpt'],
  ['windIRR','Wind equity IRR','pct'],['solarIRR','Solar equity IRR','pct'],['battIRR','Battery equity IRR','pct'],
  ['windLCOE','Wind LCOE','eur'],['solarLCOE','Solar LCOE','eur'],['selfPct','Self-supply','pctpt'],
  ['genGWh','Generation','gwh'],['capex','SPV capex','eurm'],['equity','SPV equity','eurm']];
@@ -1790,7 +1825,7 @@ function saidiPanel(){
        <text x="${x+26}" y="256" font-size="13" fill="#6d7f74" text-anchor="middle" font-family="Inter,sans-serif">${r[2]}</text>`;}).join('')}
    <line x1="52" y1="225" x2="1060" y2="225" stroke="#313733" stroke-width="1"/>
    <line x1="52" y1="${(225-minsFloor/mx*195).toFixed(0)}" x2="1060" y2="${(225-minsFloor/mx*195).toFixed(0)}" stroke="#b98cff" stroke-width="1.6" stroke-dasharray="6 4"/>
-   <text x="1056" y="${(219-minsFloor/mx*195).toFixed(0)}" font-size="13" fill="#b98cff" text-anchor="end" font-family="Inter,sans-serif">the reserved floor rides through ${fmt(minsFloor,0)} minutes at full load</text>
+   <text x="1056" y="${(219-minsFloor/mx*195).toFixed(0)}" font-size="13" fill="#b98cff" text-anchor="end" font-family="Inter,sans-serif">the modelled reserve floor provides ${fmt(minsFloor,0)} minutes at full load</text>
    <text x="8" y="120" font-size="13" fill="#7d8f84" font-family="Inter,sans-serif" transform="rotate(-90 14,120)">minutes per year</text>
   </svg>`;
  return `<div class="panel" style="margin-top:14px"><h3>Ride-through, against the outages this network actually has</h3>
@@ -1955,7 +1990,7 @@ function summaryPage(){
   ${sliderHTML('macro','infl','Inflation',0,0.05,0.005,'%',100)}
   ${sliderHTML('battery','compression','Battery rev compression',0,0.2,0.005,'%/yr',100)}</div>`;
  const kpis=`<div class="kpis">
-  ${kpiM([['Equity IRR, ex line capex',isNaN(spvIRR)?'n/m':fmt(spvIRR*100,1),'%'],['Equity, ex line capex','€'+fmt(SP.equity,0),'m']],'var(--acc)')}
+  ${kpiM([['Power SPV equity IRR',isNaN(spvIRR)?'n/m':fmt(spvIRR*100,1),'incl. private line'],['Power SPV equity','€'+fmt(SP.equity,0),'m incl. private line']],'var(--acc)')}
   ${kpiM([['Data center pays','€'+fmt(SP.unit,1),'/MWh in '+FF],['EBITDA yr 1','€'+fmt(y1.ebitda,0),'m']])}
   ${kpiM([['Buys from the parks','€'+fmt(blend,1),'/MWh blended'],['Margin',M.dc.marginMode==='flat'?'€'+fmt(M.dc.marginEur,2)+'/MWh':pct(M.dc.spvMargin,2),'on energy']])}
   ${kpiM([['Battery',fmt(M.battery.powerMW,0)+' MW',''+fmt(M.battery.powerMW*M.battery.durationH/1000,1)+' GWh'],['Lines, substation, tie-in','€'+fmt(lineMW()*M.conn.directPer100/100+M.battery.substation+M.battery.interconnect,0),'m']])}</div>`;
@@ -1969,8 +2004,9 @@ function summaryPage(){
   ${row('Solar','var(--solar)',fmt(S.totalCapex,0),fmt(S.equity,0),fmt(S.debt,0),fmt(S.prod/1000,0),fmt(S.rev,1),fmt(S.ebitda,1),fmt(S.irr*100,1)+'%',fmt(S.lcoe,0))}
   ${row('Wind + solar','var(--acc)',fmt(P.totalCapex,0),fmt(P.equity,0),fmt(P.debt,0),fmt((W.prod+S.prod)/1000,0),fmt(W.rev+S.rev,1),fmt(W.ebitda+S.ebitda,1),fmt(P.irr*100,1)+'%','—')}
   ${row('Battery','var(--batt)',fmt(B.capex,0),fmt(BF.equity,0),fmt(BF.debt,0),fmt(battGen/1000,0),fmt(battRev,1),fmt(battEbitda,1),(isNaN(BF.irr)?'n/m':fmt(BF.irr*100,1)+'%'),'LCOS')}
+  ${row('Private line + interface','var(--acc)',fmt(line,0),fmt(line*(1-M.macro.gearing),0),fmt(line*M.macro.gearing,0),'—','—','—','included in SPV','—')}
   </tbody></table>
-  <div class="muted" style="margin-top:8px"><b>IRR scope:</b> every return quoted on this page excludes private direct-line capex. The line cost remains visible in total system capex and the lines KPI; line losses remain in delivered generation. The wind + solar return is one XIRR on their aggregated dated equity cash flows, not an arithmetic average.</div></div>`;
+  <div class="muted" style="margin-top:8px"><b>IRR scope:</b> wind, solar and battery rows are asset-only returns. The consolidated Power SPV return includes every asset that the selected structure assigns to it, including the private line and interface scope. The wind + solar return is one XIRR on aggregated dated equity cash flows, not an arithmetic average.</div></div>`;
  const yrCtl=`<div class="panel" style="padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
    <span style="font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)">Year</span>
    <input type="range" min="${FF}" max="${FF+19}" step="1" value="${spvEconY||FF}" style="flex:1;min-width:180px;accent-color:var(--acc);height:4px"
@@ -2009,9 +2045,8 @@ function drawSpvEcon(){
    connector:{line:{color:'#39465a'}},hovertemplate:'%{x}: €%{y:,.0f}m<br>%{customdata}<extra></extra>'
  }],lay(y+' · year '+(y-FF+1)+', €m',{showlegend:false,margin:{l:54,r:26,t:76,b:70}}),CFG);
 }
-// Consolidated SPV: owns RES+battery+line, buys grid ride-through, sells to DC. The quoted levered
-// equity IRR deliberately excludes private direct-line capex, which is financed and recovered as a
-// separate Power SPV infrastructure scope. The full line cost remains reported in system capex.
+// Consolidated SPV: owns the assets assigned to it, buys grid balancing energy and sells to the DC.
+// Its return must include the private line and interface capex whenever those assets sit in the SPV.
 function computeSPV(dcP){
  const mac=M.macro,infl=mac.infl,allIn=mac.allInRate,g=mac.gearing,tenor=mac.tenor,comp=M.battery.compression,gy=M.battery.gridYear,bdeg=M.battery.degr;
  const owned=(M.dc.resMode||'lcoe')==='lcoe';
@@ -2021,14 +2056,15 @@ function computeSPV(dcP){
  const resCx=(wOn?W.totalCapex:0)+(sOn?S.totalCapex:0), battCx=bOn?B.capex:0;
  // Wide perimeter: if the data center-side electrical scope sits in the SPV rather than with the tenant,
  // it is carried here on top of the private lines. Zero means the narrow perimeter we have modelled.
- const wideEx=Math.max(0,(M.conn.wideInfra||0)-(M.battery.substation+M.battery.interconnect));
+ const wideEx=Math.max(0,(Number(M.conn.wideInfra)||0)-((Number(M.battery.substation)||0)+(Number(M.battery.interconnect)||0)));
  const lineCx=lineMW()*M.conn.directPer100/100+wideEx;
  const resOpex=(wOn?M.wind.opexPerMW*M.wind.mw:0)+(sOn?M.solar.opexPerMW*M.solar.mw:0);
  // owned: SPV builds & finances RES (capex in SPV, no PPA). bought: SPV buys RES at PPA (no RES capex, PPA is a COGS).
- const cap=owned?{2027:0.30*resCx,2028:0.70*resCx+battCx}:{2027:0,2028:battCx};
+ const resIn=owned?resCx:0;
+ const cap={2027:0.30*(resIn+lineCx),2028:0.70*(resIn+lineCx)+battCx};
  const battG=(M.battery.gearing!=null?M.battery.gearing:g);
- const resIn=owned?resCx:0, irrCapex=resIn+battCx, totDebt=g*resIn+battG*battCx, blendG=irrCapex>0?totDebt/irrCapex:g;
- const bRate=(M.battery.debtRate||allIn), xRate=totDebt>0?(g*resIn*allIn+battG*battCx*bRate)/totDebt:allIn; // debt-weighted blended rate; direct-line financing is outside the quoted IRR
+ const irrCapex=resIn+lineCx+battCx, totDebt=g*(resIn+lineCx)+battG*battCx, blendG=irrCapex>0?totDebt/irrCapex:g;
+ const bRate=(M.battery.debtRate||allIn), xRate=totDebt>0?(g*(resIn+lineCx)*allIn+battG*battCx*bRate)/totDebt:allIn;
  const lev=cap, depBase=irrCapex;
  let bal=0,nol=0,ppy=0,annDS=0; const rows=[];
  const resLife=Math.max(M.wind.lifeY||25,M.solar.lifeY||25), spvEnd=FF+resLife, effTen=Math.min(tenor,resLife), depN=Math.min(20,resLife), battEnd=COD+(M.battery.lifeY||25);
@@ -2069,7 +2105,7 @@ function computeSPV(dcP){
  // what the data center ends up paying, as an output rather than an input
  const y1=rows.find(r=>r.y===FF)||{rev:0};
  const unit=dcLoad>0?y1.rev*1e6/dcLoad:0;
- return{rows,irr,equity,capex:irrCapex+lineCx,irrCapex,lineCapex:lineCx,owned,unit,
+ return{rows,irr,equity,capex:irrCapex,irrCapex,lineCapex:lineCx,owned,unit,
    pass:(M.dc.spvMode||'pass')==='pass'};
 }
 function solveDcFor(target){let a=40,b=220;for(let i=0;i<48;i++){const m=(a+b)/2,r=computeSPV(m).irr;if(isNaN(r)||r<target)a=m;else b=m;}return (a+b)/2;}
@@ -3570,7 +3606,7 @@ function flowDiagram(){
    <circle r="3.1" fill="${col}" opacity=".55"><animateMotion dur="${dur}s" begin="${dur/3}s" repeatCount="indefinite" path="${d}"/></circle>
    <circle r="3.1" fill="${col}" opacity=".3"><animateMotion dur="${dur}s" begin="${2*dur/3}s" repeatCount="indefinite" path="${d}"/></circle>`;
  return `<svg viewBox="0 0 ${W} ${H}" class="flowSVG" style="display:block;width:100%;height:auto" role="img"
-   aria-label="Wind and solar feed a private direct line into the data center, with storage in the middle and the grid used only to balance">
+   aria-label="Planning concept in which wind and solar connect through private lines, with storage and the public grid providing balancing services">
   <g class="fSeg fF-wind">${flow(`M262,58 C360,58 380,104 452,104`,wind,3.2)}</g>
   <g class="fSeg fF-sol">${flow(`M262,150 C360,150 380,110 452,110`,sol,3.8)}</g>
   <g class="fSeg fF-linedc">${flow(`M700,107 C760,107 790,107 858,107`,gh,2.9)}</g>
@@ -3583,14 +3619,14 @@ function flowDiagram(){
   <g class="fNode fSeg fN-line"><rect x="452" y="60" width="248" height="98" rx="11" fill="#16211c" stroke="${g}" stroke-width="1.4"/>
    <g transform="translate(468,72)">${GLY.pylon}</g>
    <text x="590" y="93" font-size="14.5" font-weight="640" fill="${txt}" text-anchor="middle" font-family="Inter,sans-serif">Private direct line</text>
-   <text x="590" y="114" font-size="12.5" fill="${mut}" text-anchor="middle" font-family="Inter,sans-serif">built &amp; owned by the Power SPV · no grid fees</text>
-   <text x="590" y="136" font-size="12.5" fill="${gh}" text-anchor="middle" font-family="Inter,sans-serif">9.1 to 14.7 km · ${pct(M.wind.lineLoss,1)} / ${pct(M.solar.lineLoss,1)} loss</text></g>
-  <g class="fSeg fN-batt">${box(452,190,248,52,`${fmt(M.battery.powerMW,0)} MW storage`,`${fmt(M.battery.powerMW*M.battery.durationH/1000,1)} GWh · ${fmt(M.battery.durationH,0)} h · ${pct(M.battery.socFloor,0)} held as ride-through`,line,bat,GLY.batt)}</g>
+   <text x="590" y="114" font-size="12.5" fill="${mut}" text-anchor="middle" font-family="Inter,sans-serif">proposed Power SPV scope · tariff treatment to confirm</text>
+   <text x="590" y="136" font-size="12.5" fill="${gh}" text-anchor="middle" font-family="Inter,sans-serif">candidate routes · ${pct(M.wind.lineLoss,1)} / ${pct(M.solar.lineLoss,1)} modelled loss</text></g>
+  <g class="fSeg fN-batt">${box(452,190,248,52,`${fmt(M.battery.powerMW,0)} MW storage scenario`,`${fmt(M.battery.powerMW*M.battery.durationH/1000,1)} GWh · ${fmt(M.battery.durationH,0)} h · ${pct(M.battery.socFloor,0)} reserve floor`,line,bat,GLY.batt)}</g>
   <g class="fNode fSeg fN-dc"><rect x="858" y="46" width="294" height="122" rx="12" fill="#16211c" stroke="${g}" stroke-width="1.6"/>
    <rect x="858" y="46" width="4" height="122" rx="2" fill="${g}"/>
    <g transform="translate(874,60)">${GLY.dc}</g>
-   <text x="904" y="78" font-size="17" font-weight="640" fill="#fff" font-family="Inter,sans-serif">${fmt(M.dc.firmMW,0)} MW data center</text>
-   <text x="878" y="101" font-size="12.5" fill="${mut}" font-family="Inter,sans-serif">firm, round the clock, 8,760 hours a year</text>
+   <text x="904" y="78" font-size="17" font-weight="640" fill="#fff" font-family="Inter,sans-serif">${fmt(M.dc.firmMW,0)} MW target campus</text>
+   <text x="878" y="101" font-size="12.5" fill="${mut}" font-family="Inter,sans-serif">target load · phasing and SLA to be agreed</text>
    <text x="878" y="124" font-size="12.5" fill="${mut}" font-family="Inter,sans-serif">${fmt(M.dc.firmMW*8.76,0)} GWh of demand</text>
    <text x="878" y="147" font-size="12.5" fill="${gh}" font-family="Inter,sans-serif">Nickelsdorf, Burgenland</text></g>
  </svg>`;
@@ -3648,10 +3684,10 @@ function topologySVG(){
    <line x1="${gx+75}" y1="${gy+42}" x2="${gx+75}" y2="${gy+56}" stroke="${GRID}" stroke-width="1.4"/></g>`;
  const sy=228;
  const feeders=[0,1,2].map(i=>`<path d="M ${gx+118} ${gy+42} C ${gx+190} ${gy+96+i*10}, ${gx+40+i*14} ${sy-58}, ${gx+62+i*38} ${sy}" fill="none" stroke="${ACC}" stroke-width="1.5" opacity=".8"/>`).join('')
-  +t(gx+188,gy+118,'3 × 3.5 km',{f:ACC,s:11.5,w:700})+t(gx+188,gy+131,'110 kV feeders → 3N/2',{f:ACC,s:10.5});
+  +t(gx+188,gy+118,'multi-feeder option',{f:ACC,s:11.5,w:700})+t(gx+188,gy+131,'voltage + redundancy open',{f:ACC,s:10.5});
  const sub=`<g class="tpN">${bx(gx,sy,224,54,ACC,'#12241a')}
-   ${t(gx+112,sy+20,'Campus substation · Power SPV',{a:'middle',f:TXT,s:12.5,w:700})}
-   ${t(gx+112,sy+38,'110 kV · built, owned &amp; financed by the SPV',{a:'middle',f:ACC,s:10.5})}</g>`;
+   ${t(gx+112,sy+20,'Campus substation · proposed scope',{a:'middle',f:TXT,s:12.5,w:700})}
+   ${t(gx+112,sy+38,'voltage, ownership and financing to be agreed',{a:'middle',f:ACC,s:10.5})}</g>`;
  const by=sy+78;
  const batt=`<g class="tpN"><line x1="${gx+112}" y1="${sy+54}" x2="${gx+112}" y2="${by}" stroke="${BAT}" stroke-width="1.8"/>
    ${bx(gx,by,224,52,BAT,'#1b1526')}
@@ -3660,7 +3696,7 @@ function topologySVG(){
  const dy=by+76;
  const dc=`<g class="tpN"><line x1="${gx+112}" y1="${by+52}" x2="${gx+112}" y2="${dy}" stroke="${TXT}" stroke-width="1.6"/>
    ${bx(gx,dy,224,54,'#eaf2f8','#161e26')}
-   ${t(gx+112,dy+21,`${nfm(M.dc.firmMW)} MW data center`,{a:'middle',f:'#ffffff',s:13.5,w:700})}
+   ${t(gx+112,dy+21,`${nfm(M.dc.firmMW)} MW target campus`,{a:'middle',f:'#ffffff',s:13.5,w:700})}
    ${t(gx+112,dy+39,`${nfm(Math.round(M.dc.firmMW/TECH.pue))} MW IT · Nickelsdorf`,{a:'middle',s:10.5})}</g>`;
  const trunkY=sy+27;
  const trunk=`<path d="M ${gx+224} ${trunkY} C ${gx+330} ${trunkY}, ${x0-90} ${trunkY}, ${x0-2} ${trunkY}" fill="none" stroke="${ACC}" stroke-width="2.2" stroke-dasharray="7 4" opacity=".85"/>
@@ -3683,11 +3719,72 @@ function topologySVG(){
 }
 function topologyPanel(){
  const S=projStats();
- return `<section class="sect">
+ return `<section class="sect" id="project-pipeline">
    <div class="kick">The parks and the line</div>
-   <h2 class="dsp">Fifteen parks feed one substation. Half the capacity sits within five kilometres.</h2>
+   <h2 class="dsp">Planning pipeline: fifteen candidate parks, shown against one campus interface.</h2>
+   <p class="lede">This is a distance schematic based on the supplied project list, not an agreed electrical single-line design. Final feeders, tie-in points, ownership and route costs remain to be engineered and contracted.</p>
    <div class="flowWrap" style="margin-top:18px;padding:14px 10px 6px">${topologySVG()}</div>
   </section>`;
+}
+
+const MASTERPLAN_POINTS={
+ dc:{n:'01',label:'Data center campus',x:38,y:57,scope:'system delivery risk',status:'Target brief',
+  text:'A phased 500 MW target load. The IT load, PUE, ramp profile, redundancy standard and final site footprint still require the operator brief.',
+  ask:'Close the load ramp, uptime tier and electrical interface specification.'},
+ battery:{n:'02',label:'Battery campus',x:63,y:68,scope:'system delivery risk',status:'Sizing scenario',
+  text:'The current case uses a 500 MW / 4 GWh battery for short-duration reserve and market optimization. It is not 8,760-hour firm generation.',
+  ask:'Separate ride-through reserve, grid services and trading capacity in the design.'},
+ substation:{n:'03',label:'Grid interface',x:79,y:55,scope:'system delivery risk',status:'Engineering open',
+  text:'A multi-feeder campus interface is illustrated. Feeder count, N-1 or 3N/2 architecture, protection and point of connection are not yet agreed.',
+  ask:'Obtain the utility single-line, fault levels, outage data and connection offer.'},
+ solar:{n:'04',label:'Solar portfolio',x:78,y:30,scope:'system',status:'Candidate portfolio',
+  text:'Nearby solar projects can provide directly contracted energy. Capacities, CODs and routes remain a project pipeline rather than one committed plant.',
+  ask:'Confirm project-by-project capacity, route, status, losses and PPA tranche.'},
+ wind:{n:'05',label:'Wind portfolio',x:24,y:20,scope:'system',status:'Candidate portfolio',
+  text:'Wind complements solar across more hours and supports the hourly clean-energy objective. It does not remove the need for grid balancing.',
+  ask:'Confirm production cases, curtailment, availability guarantees and direct-line routes.'},
+ line:{n:'06',label:'Private electrical corridor',x:60,y:43,scope:'system delivery risk',status:'Proposed structure',
+  text:'Private lines could connect selected plants to the campus and reduce public-network exposure where legally permitted. Routing and tariff treatment need confirmation.',
+  ask:'Price actual routes and establish which entity owns, operates and insures each asset.'}
+};
+let mpLayer='system',mpPoint='dc';
+function masterplanCard(key){const p=MASTERPLAN_POINTS[key]||MASTERPLAN_POINTS.dc;return `<div class="mpStatus">${p.status}</div><div class="mpNum">${p.n}</div><h3>${p.label}</h3><p>${p.text}</p><div class="mpAsk"><span>Decision to close</span>${p.ask}</div>`;}
+function masterplanSection(){
+ const points=Object.entries(MASTERPLAN_POINTS).map(([k,p])=>`<button class="mpHot ${k===mpPoint?'on':''}" data-key="${k}" data-scope="${p.scope}" style="--x:${p.x}%;--y:${p.y}%" onclick="mpSelect('${k}',event)" aria-label="Open ${p.label}"><span>${p.n}</span><b>${p.label}</b></button>`).join('');
+ return `<section class="sect" id="masterplan">
+  <div class="mpHead"><div><div class="kick">Future-state campus</div><h2 class="dsp">Explore the project as a place, not just a wiring diagram.</h2></div>
+   <label class="mpLayer">View<select onchange="mpLayerSet(this.value)"><option value="system" ${mpLayer==='system'?'selected':''}>Whole system</option><option value="delivery" ${mpLayer==='delivery'?'selected':''}>Delivery infrastructure</option><option value="risk" ${mpLayer==='risk'?'selected':''}>Open decisions</option></select></label></div>
+  <p class="lede">An interactive concept view of how the generation portfolio, private electrical corridor, battery, grid interface and data center could fit together.</p>
+  <div class="masterplan">
+   <div class="mpStage" data-layer="${mpLayer}"><img src="assets/nickelsdorf-masterplan-concept.png" loading="lazy" alt="Illustrative isometric concept of the Nickelsdorf data center, battery, substation, solar fields and wind farms"><div class="mpWash"></div>${points}
+    <div class="mpCaption">Illustrative concept only · not a surveyed site plan · dimensions and locations are not to scale</div></div>
+   <aside class="mpInfo" id="mpInfo">${masterplanCard(mpPoint)}</aside>
+  </div>
+ </section>`;
+}
+function mpSelect(key,e){
+ if(e){e.preventDefault();ripple(e);} if(!MASTERPLAN_POINTS[key])return;mpPoint=key;
+ document.querySelectorAll('.mpHot').forEach(b=>b.classList.toggle('on',b.dataset.key===key));
+ const info=document.getElementById('mpInfo');if(info)info.innerHTML=masterplanCard(key);
+}
+function mpLayerSet(layer){
+ if(!['system','delivery','risk'].includes(layer))return;mpLayer=layer;
+ const stage=document.querySelector('.mpStage');if(stage)stage.dataset.layer=layer;
+}
+
+function dealStructureSection(){
+ const roles=[
+  {name:'Burgenland Energie',tag:'Generator + utility',earns:'PPA revenue and agreed balancing or grid-service charges.',pays:'Its contracted generation and utility-scope assets.',risk:'Plant delivery and availability only within its agreed scope.'},
+  {name:'Power SPV · proposed',tag:'Integration + infrastructure',earns:'A transparent infrastructure, reliability and optimization fee.',pays:'Only the lines, battery and interface assets it actually owns.',risk:'Financing, integration and contracted service levels, backed by capital or guarantees.'},
+  {name:'Data center operator',tag:'Campus + load',earns:'Data-center operating revenue from its customer contracts.',pays:'Delivered energy, campus electrical works and agreed capacity services.',risk:'Site, construction, load ramp, IT operations and uncovered energy demand.'},
+  {name:'Tenant / credit support',tag:'Long-term demand',earns:'Contracted compute capacity and service performance.',pays:'Lease or capacity payments under the final tenant structure.',risk:'Credit and offtake obligations after a binding commitment.'}
+ ];
+ return `<section class="sect" id="deal-structure">
+  <div class="kick">Why a third party</div><h2 class="dsp">The Power SPV earns its place only by taking real integration risk.</h2>
+  <div class="dealThesis"><b>The test:</b> if Nexwell only introduces TerraWulf and Burgenland Energie or resells the same bilateral PPA, there is no durable role. The role becomes defensible when one funded counterparty delivers a defined power product across multiple plants, private infrastructure, storage, balancing and performance obligations.</div>
+  <div class="dealGrid">${roles.map(r=>`<article class="dealCard"><div class="dealTag">${r.tag}</div><h3>${r.name}</h3><dl><dt>Earns</dt><dd>${r.earns}</dd><dt>Pays</dt><dd>${r.pays}</dd><dt>Bears</dt><dd>${r.risk}</dd></dl></article>`).join('')}</div>
+  <div class="decisionBar"><span>Structure still to close</span><b>Asset ownership</b><b>Service-level guarantee</b><b>Payment security</b><b>Line tariff treatment</b><b>Step-in rights</b></div>
+ </section>`;
 }
 /* small inline flags: Austria red-white-red, United States simplified */
 const FLAG={
@@ -3732,7 +3829,7 @@ function euLabelCard(){
      <div class="euWho">The current best practice for a large corporate buyer</div></div>
    <div class="euCol strong"><div class="euRank">Strongest</div><h4>On-site and direct-line generation</h4>
      <p>Dedicated plants wired to the load by private cable. Nothing is certificated, netted or matched after the fact, because the electrons have nowhere else to go.</p>
-     <div class="euWho">Where this project sits</div></div>
+     <div class="euWho">Where the proposed structure aims to sit, subject to final routing and metering</div></div>
   </div>
  </div>`;
 }
@@ -3741,17 +3838,17 @@ function introSection(){
  const gwh=(W.prod+S.prod)/1000, load=M.dc.firmMW*8760/1000, SS=supplyStats();
  return `<section class="sect">
    <div class="kick">What this is</div>
-   <h2 class="dsp">A ${fmt(M.dc.firmMW,0)} MW data center in eastern Austria, supplied by its own wind, solar and storage.</h2>
-   <p class="lede">Nickelsdorf sits next to one of the densest concentrations of wind and solar in Austria. It is wired <span class="hl">directly</span> to ${fmt(fleetAC(),0)} MW of nearby wind and solar farms by private cable, with a <span class="hl">${fmt(M.battery.powerMW,0)} MW battery</span> alongside and the grid for the balance.</p>
+   <h2 class="dsp">A planning case for a ${fmt(M.dc.firmMW,0)} MW data center campus in eastern Austria.</h2>
+   <p class="lede">The concept combines a candidate portfolio of nearby wind and solar, proposed private electrical links, a <span class="hl">${fmt(M.battery.powerMW,0)} MW battery scenario</span> and a full grid interface. The final capacity, routes, ownership and service guarantees remain subject to engineering and contract.</p>
    <div class="figRow">
     <div><div class="n">${fmt(fleetAC(),0)}<small>MW<sub>AC</sub></small></div><div class="l">Wind and solar</div>
-      <div class="d">${fmt(M.wind.mw,0)} MW<sub>AC</sub> of wind and ${fmt(M.solar.mw,0)} MWp<sub>DC</sub> of solar across ${PROJ.length} nearby parks, connected by private line.</div></div>
+      <div class="d">${fmt(M.wind.mw,0)} MW<sub>AC</sub> of wind and ${fmt(M.solar.mw,0)} MWp<sub>DC</sub> of solar selected from ${PROJ.length} candidate projects in the supplied pipeline.</div></div>
     <div><div class="n">${fmt(SS.selfPct,0)}<small>%</small></div><div class="l">Comes from those parks</div>
       <div class="d">The grid supplies the other ${fmt(SS.gridPct,0)}%.</div></div>
     <div><div class="n">€${fmt(W.totalCapex+S.totalCapex+B.capex,0)}<small>m</small></div><div class="l">To be built</div>
       <div class="d">Wind (€${fmt(W.totalCapex,0)}m), solar (€${fmt(S.totalCapex,0)}m) and storage (€${fmt(B.capex,0)}m, incl. €${fmt(B.icx,0)}m substation &amp; data center tie-in), before the private direct lines (≈€${fmt(lineMW()*M.conn.directPer100/100,0)}m).</div></div>
-    <div><div class="n">20<small>years</small></div><div class="l">Contract</div>
-      <div class="d">Supply to the data center under a twenty-year contract, from first power around ${FF}.</div></div>
+    <div><div class="n">20<small>years</small></div><div class="l">Modelled term</div>
+      <div class="d">The financial scenario assumes a twenty-year supply term from first power around ${FF}; this is not yet an executed contract.</div></div>
    </div>
   </section>`;
 }
@@ -3761,20 +3858,20 @@ function castSection(){
  const gwh=(W.prod+S.prod)/1000, PS=projStats();
  const cards=[
   {name:'Burgenland Energie',flag:FLAG.at,ico:ICO.utility,col:'#4aa8ff',tint:'rgba(74,168,255,.13)',
-   role:'The provincial utility. Builds and owns the wind and solar parks and sells their output under a 20-year contract.',
-   mets:[['Brings',fmt(fleetAC(),0)+' MW AC'],['Across',PROJ.length+' parks'],['Gets','a 20-year price'],['Local outages','13.7 min a year']],
+   role:'The provincial utility and generation developer. The working case has it developing or supplying selected renewable projects and grid balancing services.',
+   mets:[['Candidate supply',fmt(fleetAC(),0)+' MW AC'],['Pipeline',PROJ.length+' projects'],['Commercial term','to be agreed'],['Grid interface','technical offer needed']],
    go:'wind',jump:'Wind'},
   {name:'Power SPV \u00b7 Nexwell',ico:ICO.spv,col:'#12b95a',tint:'rgba(0,154,68,.15)',
-   role:'The company in the middle, structured and financed by Nexwell. Buys from the parks and the grid, builds, owns and finances the direct lines and the battery, and supplies the data center.',
-   mets:[['Buys',fmt(gwh,0)+' GWh from the parks'],['Tops up with',fmt(SS.gridPct,0)+'% from the grid'],['Battery',fmt(M.battery.powerMW,0)+' MW / '+fmt(B.energy/1000,1)+' GWh'],['Direct lines','builds \u00b7 owns \u00b7 pays']],
+   role:'A proposed integration company structured by Nexwell. It is relevant only if it funds or guarantees a defined service across generation, balancing, storage and private infrastructure.',
+   mets:[['Portfolio case',fmt(gwh,0)+' GWh/yr'],['Grid balance',fmt(SS.gridPct,0)+'% modelled'],['Battery case',fmt(M.battery.powerMW,0)+' MW / '+fmt(B.energy/1000,1)+' GWh'],['Ownership','to be agreed']],
    go:'summary',jump:'Power SPV'},
   {name:'The data center',flag:FLAG.us,ico:ICO.dc,col:'#eaf2f8',tint:'rgba(234,242,248,.10)',
-   role:'A confidential tenant from the U.S.',
-   mets:[['Takes',fmt(M.dc.firmMW,0)+' MW, firm'],['Every year',fmt(M.dc.firmMW*8.76,0)+' GWh'],['Hours a year','8,760']],
+   role:'A prospective U.S. data center operator developing the campus and contracting the delivered-power product.',
+   mets:[['Target load',fmt(M.dc.firmMW,0)+' MW'],['At full run-rate',fmt(M.dc.firmMW*8.76,0)+' GWh/yr'],['Load ramp','operator brief needed']],
    go:'datacentre',jump:'Data Center'}];
  return `<section class="sect">
    <div class="kick">Who is who</div>
-   <h2 class="dsp">The three parties.</h2>
+   <h2 class="dsp">The working counterparty structure.</h2>
    <div class="castGrid">${cards.map(castCard).join('')}</div>
   </section>`;
 }
@@ -3793,21 +3890,21 @@ function overviewPage(){
  const hero=`<div class="heroWrap">${landingScene('scHero')}
    <div style="position:absolute;inset:0;background:linear-gradient(96deg,rgba(6,11,9,.78) 0%,rgba(6,11,9,.40) 34%,rgba(6,11,9,.02) 60%,rgba(6,11,9,.18) 100%)"></div><div style="position:absolute;left:0;bottom:0;width:min(760px,72%);height:62%;background:radial-gradient(120% 100% at 0% 100%,rgba(4,9,7,.86) 0%,rgba(4,9,7,.62) 38%,rgba(4,9,7,0) 78%)"></div>
    <div class="heroCap"><h1 class="wmk"><span class="nk">Green Data Campus</span>Nickelsdorf</h1>
-    <p>A 500 MW data center supplied by dedicated wind, solar and storage.
+    <p>A future 500 MW campus integrating wind, solar, storage and grid capacity.
     <span style="display:inline-flex;align-items:center;gap:7px;margin-top:9px">${FLAG.at}<span style="color:var(--t2)">Burgenland, Austria</span></span></p></div>
    <div class="heroFoot"><div class="heroStrip">
      <div><div class="v">${fmt(M.wind.mw,0)}<small>MW</small></div><div class="k">Wind</div></div>
      <div><div class="v">${fmt(M.solar.mw,0)}<small>MWp</small></div><div class="k">Solar</div></div>
      <div><div class="v">${fmt(M.battery.powerMW,0)}<small>MW / ${fmt(M.battery.durationH,0)}h</small></div><div class="k">Storage</div></div>
      <div><div class="v">${fmt(gwh,0)}<small>GWh/yr</small></div><div class="k">Generation</div></div>
-     <div><div class="v">${fmt(M.dc.firmMW,0)}<small>MW firm</small></div><div class="k">The load</div></div>
+     <div><div class="v">${fmt(M.dc.firmMW,0)}<small>MW target</small></div><div class="k">Campus load</div></div>
    </div></div>
   </div>`;
 
  const flow=`<section class="sect">
    <div class="kick">How the power moves</div>
-   <h2 class="dsp">Generation behind the meter, the grid for balance.</h2>
-   <p class="lede" style="margin-bottom:18px">The parks do not sell into the market. They sell to the data center over direct lines the Power SPV builds and owns, so PPA volumes carry no network charge. A full ${fmt(M.dc.firmMW,0)} MW grid connection covers the gap.</p>
+   <h2 class="dsp">A proposed direct-line portfolio, with the grid for balance.</h2>
+   <p class="lede" style="margin-bottom:18px">The planning case routes selected renewable output to the campus over private lines and uses a full ${fmt(M.dc.firmMW,0)} MW grid interface for the residual load. Ownership, routing and any exemption from public-network charges require legal and technical confirmation.</p>
    <div class="flowWrap">${flowDiagram()}</div>
   </section>`;
 
@@ -3830,10 +3927,10 @@ function overviewPage(){
      <button class="go" onclick="go('prices',event)">When, how often, how deep →</button>
     </div>
     <div class="evCard">
-     <h5>Storage spreads are widening</h5>
+     <h5>Historical storage spreads widened</h5>
      ${spark(arbY,{col:'#b98cff'})}
      <div class="figure">€${fmt(arbLast,0)}<small>k per MW, last 12 months</small></div>
-     <p>A four-hour battery backtested on every day since 2015 earned €${fmt(arb19,0)}k per MW in 2019. Over the last twelve months it earned €${fmt(arbLast,0)}k. The conditions that lower solar capture raise storage revenue, and this project holds both.</p>
+     <p>A four-hour battery optimized with perfect day-ahead hindsight produced a gross backtest of €${fmt(arb19,0)}k per MW in 2019 and €${fmt(arbLast,0)}k over the last twelve months. This is an optimizer ceiling, not a bankable forecast; execution limits and future spread compression still need to be applied.</p>
      <button class="go" onclick="spvView='spread';go('summary',event)">Arbitrage, cycles and seasonality →</button>
     </div>
    </div>
@@ -3842,7 +3939,7 @@ function overviewPage(){
  const NAVC=[['wind','Wind',fmt(M.wind.mw,0)+' MW. The resource, the losses, the returns.'],
    ['solar','Solar',fmt(M.solar.mw,0)+' MWp. Trackers, agri-PV and the capture problem.'],
    ['summary','Power SPV','The '+fmt(M.battery.powerMW,0)+' MW battery, the lines, and how the SPV and the data center settle up.'],
-   ['datacentre','Data Center',fmt(M.dc.firmMW,0)+' MW firm. The bill, the build, the players.'],
+   ['datacentre','Data Center',fmt(M.dc.firmMW,0)+' MW target. The bill, the build and the open operator brief.'],
    ['prices','Prices','Austrian day-ahead since 2015, spreads and negative hours.']];
  const next=`<section class="sect">
    <div class="kick">Where to go next</div>
@@ -3863,7 +3960,7 @@ function overviewPage(){
     ${BELOGO('height:72px',true,26)}</a>
   </div>`;
 
- return hero+introSection()+castSection()+storySection(flow)+topologyPanel()+evidence+euLabelCard()+next+foot;
+ return hero+masterplanSection()+introSection()+castSection()+dealStructureSection()+storySection(flow)+topologyPanel()+evidence+euLabelCard()+next+foot;
 }
 
 /* ============ 15 · RENDER RUNTIME & BOOT ============ */
@@ -4555,12 +4652,12 @@ function railUpd(){
 function storySection(staticHTML){
  if(reduceMo()||innerWidth<1000||innerHeight<620||document.body.classList.contains('printing'))return staticHTML;
  const beats=[
-  ['The parks',fmt(M.wind.mw,0)+' MW of wind and '+fmt(M.solar.mw,0)+' MWp of solar sell to the data center over private lines, not into the market.'],
-  ['The line','A private 110 kV line, built, owned and financed by the Power SPV. PPA volumes carry no network charges.'],
-  ['The load',fmt(M.dc.firmMW,0)+' MW firm, 8,760 hours a year. The battery rides through the gaps and the grid connection covers the balance.']];
+  ['The parks',fmt(M.wind.mw,0)+' MW of wind and '+fmt(M.solar.mw,0)+' MWp of solar form the current candidate portfolio. Final projects and routes remain open.'],
+  ['The line','Private electrical links are proposed. Their voltage, ownership, routing, tariff treatment and service obligations need to be agreed.'],
+  ['The load',fmt(M.dc.firmMW,0)+' MW is the target campus load. Storage provides short-duration reserve; the grid balances the residual energy.']];
  return '<section class="story"><div class="storyPin" data-step="0">'
   +'<div class="kick">How the power moves</div>'
-  +'<h2 class="dsp">Generation behind the meter, the grid for balance.</h2>'
+  +'<h2 class="dsp">A proposed direct-line portfolio, with the grid for balance.</h2>'
   +'<div class="flowWrap" style="margin-top:14px">'+flowDiagram()+'</div>'
   +'<div class="stBeats">'+beats.map((b,i)=>'<div class="stBeat'+(i===0?' on':'')+'"><div class="stNum">0'+(i+1)+'</div><b>'+b[0]+'</b><p>'+b[1]+'</p></div>').join('')+'</div>'
   +'</div></section>';

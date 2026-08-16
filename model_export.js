@@ -360,8 +360,8 @@ function buildFullModel(ExcelJS, S){
  // ================= SPV =================
  function spvSheet(){
   const ws=wb.addWorksheet('SPV'); ws.getColumn(1).width=40; ws.getColumn(2).width=13; ws.getColumn(3).width=24; ws.views=[{state:'frozen',xSplit:1}];
-  ws.getCell(1,1).value='CONSOLIDATED POWER SPV — owns RES (per mode), battery & line; quoted IRR excludes direct-line capex'; ws.getCell(1,1).font={bold:true,size:12};
-  ws.getCell(2,1).value='Red = linked. Direct-line capex is shown as a memorandum item but excluded from the IRR cash flows, debt and depreciation.';
+  ws.getCell(1,1).value='CONSOLIDATED POWER SPV — owns RES (per mode), battery and private electrical infrastructure'; ws.getCell(1,1).font={bold:true,size:12};
+  ws.getCell(2,1).value='Red = linked. The consolidated return includes every asset assigned to the Power SPV, including the private line.';
   ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
   const L={}, D={}, R={};
   let rr=4; rr=sect(ws,rr,'LOCAL ASSUMPTIONS (linked from Inputs, red)');
@@ -384,19 +384,19 @@ function buildFullModel(ExcelJS, S){
   rr=derRow(ws,rr,D,'RESCX', 'RES capex owned (€m)', `${A('RES_OWN')}*(${A('W_MW')}*${A('W_CAPEX')}+${A('S_MW')}*${A('S_CAPEX')})`, eurF);
   rr=derRow(ws,rr,D,'LINECX','Line capex (€m)', `(${A('W_MW')}+${A('S_MW')}/${A('DCAC')})*${A('LINE_C')}/100`, eurF,'export capacity: solar enters at AC');
   rr=derRow(ws,rr,D,'SPVCX', 'SPV total capex (€m)', `$B$${D.RESCX}+${BXL('TCAPEX')}+$B$${D.LINECX}`, eurF);
-  rr=derRow(ws,rr,D,'IRRCX', 'IRR capex, ex direct line (€m)', `$B$${D.RESCX}+${BXL('TCAPEX')}`, eurF);
-  rr=derRow(ws,rr,D,'SENDBT','Senior RES debt base (€m)', `${A('GEAR')}*$B$${D.RESCX}`, eurF);
+  rr=derRow(ws,rr,D,'IRRCX', 'Financed SPV capex, incl. line (€m)', `$B$${D.SPVCX}`, eurF);
+  rr=derRow(ws,rr,D,'SENDBT','Senior RES + line debt base (€m)', `${A('GEAR')}*($B$${D.RESCX}+$B$${D.LINECX})`, eurF);
   rr=derRow(ws,rr,D,'BATDBT','Battery debt base (€m)', `${A('B_GEAR')}*${BXL('TCAPEX')}`, eurF);
-  rr=derRow(ws,rr,D,'BGEAR', 'Blended gearing, ex direct line', `($B$${D.SENDBT}+$B$${D.BATDBT})/MAX(0.0001,$B$${D.IRRCX})`, '0.0000');
-  rr=derRow(ws,rr,D,'BRATE', 'Blended debt rate, ex direct line', `(${A('GEAR')}*$B$${D.RESCX}*${A('RATE')}+${A('B_GEAR')}*${BXL('TCAPEX')}*${A('B_RATE')})/MAX(0.0001,$B$${D.SENDBT}+$B$${D.BATDBT})`, '0.0000');
+  rr=derRow(ws,rr,D,'BGEAR', 'Blended SPV gearing, incl. line', `($B$${D.SENDBT}+$B$${D.BATDBT})/MAX(0.0001,$B$${D.IRRCX})`, '0.0000');
+  rr=derRow(ws,rr,D,'BRATE', 'Blended SPV debt rate, incl. line', `(${A('GEAR')}*($B$${D.RESCX}+$B$${D.LINECX})*${A('RATE')}+${A('B_GEAR')}*${BXL('TCAPEX')}*${A('B_RATE')})/MAX(0.0001,$B$${D.SENDBT}+$B$${D.BATDBT})`, '0.0000');
   rr=derRow(ws,rr,D,'RESLIFE','RES life (yrs)', `MAX(${A('W_LIFE')},${A('S_LIFE')})`, intF);
   rr=derRow(ws,rr,D,'DEPY',  'Depreciation period (yrs)', `MIN(20,$B$${D.RESLIFE})`, intF);
-  rr=derRow(ws,rr,D,'ANNDEP','Annual depreciation, ex direct line (€m)', `$B$${D.IRRCX}/$B$${D.DEPY}`, numF);
+  rr=derRow(ws,rr,D,'ANNDEP','Annual SPV depreciation (€m)', `$B$${D.IRRCX}/$B$${D.DEPY}`, numF);
   rr=derRow(ws,rr,D,'REPY',  'Debt amortisation period (yrs)', `MIN(${A('TENOR')},$B$${D.RESLIFE})`, intF);
-  rr=derRow(ws,rr,D,'DRAW1', 'Constr. draw @ FF-2 (€m)', `0.3*$B$${D.RESCX}*$B$${D.BGEAR}`, numF);
+  rr=derRow(ws,rr,D,'DRAW1', 'Constr. draw @ FF-2 (€m)', `0.3*($B$${D.RESCX}+$B$${D.LINECX})*$B$${D.BGEAR}`, numF);
   rr=derRow(ws,rr,D,'IDC1',  'Constr. IDC year 1 (€m)', `$B$${D.DRAW1}/2*$B$${D.BRATE}`, numF);
   rr=derRow(ws,rr,D,'BAL1',  'Debt after FF-2 (€m)', `$B$${D.DRAW1}+$B$${D.IDC1}`, numF);
-  rr=derRow(ws,rr,D,'CAPFF1','IRR capex @ FF-1, ex direct line (€m)', `0.7*$B$${D.RESCX}+${BXL('TCAPEX')}`, numF);
+  rr=derRow(ws,rr,D,'CAPFF1','SPV capex @ FF-1 (€m)', `0.7*($B$${D.RESCX}+$B$${D.LINECX})+${BXL('TCAPEX')}`, numF);
   rr=derRow(ws,rr,D,'DRAW2', 'Constr. draw @ FF-1 (€m)', `$B$${D.CAPFF1}*$B$${D.BGEAR}`, numF);
   rr=derRow(ws,rr,D,'IDC2',  'Constr. IDC year 2 (€m)', `($B$${D.BAL1}+$B$${D.DRAW2}/2)*$B$${D.BRATE}`, numF);
   rr=derRow(ws,rr,D,'DEBTFF','Debt drawn by SPV_FF (€m)', `$B$${D.BAL1}+$B$${D.DRAW2}+$B$${D.IDC2}`, numF);
@@ -436,8 +436,8 @@ function buildFullModel(ExcelJS, S){
   R.batgf=tsRow(ws,rr++,'Battery grid fees (€m)',Yrow,numF,X=>`${X}$${R.op}*(${yr(X)}>=${A('B_GY')})*(${BXL('GFCAP')}+${BXL('GFENE')})*(1+${A('FEESC')})^MAX(0,${yr(X)}-2028)`);
   R.opex =tsRow(ws,rr++,'Opex — total (€m)',Yrow,numF,X=>`${X}$${R.resox}+${X}$${R.batox}+${X}$${R.batgf}`);
   R.ebit =tsRow(ws,rr++,'EBITDA (€m)',Yrow,numF,X=>`${X}$${R.dcrev}+${X}$${R.brev}-${X}$${R.resc}-${X}$${R.resppa}-${X}$${R.opex}`);
-  R.cshr =tsRow(ws,rr++,'RES capex draw share',Yrow,'0.00',X=>`0.3*(${yr(X)}=${A('SPV_FF')}-2)+0.7*(${yr(X)}=${A('SPV_FF')}-1)`);
-  R.capex=tsRow(ws,rr++,'IRR capex, ex direct line (€m)',Yrow,numF,X=>`${X}$${R.cshr}*$B$${D.RESCX}+(${yr(X)}=${A('SPV_FF')}-1)*${BXL('TCAPEX')}`);
+  R.cshr =tsRow(ws,rr++,'RES + line capex draw share',Yrow,'0.00',X=>`0.3*(${yr(X)}=${A('SPV_FF')}-2)+0.7*(${yr(X)}=${A('SPV_FF')}-1)`);
+  R.capex=tsRow(ws,rr++,'SPV capex, incl. direct line (€m)',Yrow,numF,X=>`${X}$${R.cshr}*($B$${D.RESCX}+$B$${D.LINECX})+(${yr(X)}=${A('SPV_FF')}-1)*${BXL('TCAPEX')}`);
   R.draw =tsRow(ws,rr++,'Debt draw (€m)',Yrow,numF,X=>`${X}$${R.capex}*$B$${D.BGEAR}`);
   R.cflag=tsRow(ws,rr++,'Construction flag',Yrow,intF,X=>`(${yr(X)}>=${A('SPV_FF')}-2)*(${yr(X)}<${A('SPV_FF')})`);
   R.idc=rr++; R.intr=rr++; R.prin=rr++; R.bal=rr++; R.dep=rr++; R.ebt=rr++; R.nol=rr++; R.tax=rr++; R.fcfe=rr++; R.date=rr++; R.xcf=rr++;
@@ -458,11 +458,11 @@ function buildFullModel(ExcelJS, S){
   for(let i=1;i<NY;i++){const c=ws.getCell(R.xcf,c0+i);c.value={formula:`${colL(c0+i)}${R.fcfe}`};c.numFmt=numF;}
 
   let k=rr+1; k=sect(ws,k,'RESULTS');
-  const IRR=k; ws.getCell(k,1).value='SPV equity IRR, ex direct-line capex (XIRR)'; ws.getCell(k,2).value={formula:`IFERROR(XIRR(B${R.xcf}:${lastC}${R.xcf},B${R.date}:${lastC}${R.date}),"n/m")`}; ws.getCell(k,2).numFmt=pctF; ws.getCell(k,2).font=bold; k++;
+  const IRR=k; ws.getCell(k,1).value='SPV equity IRR, incl. direct-line capex (XIRR)'; ws.getCell(k,2).value={formula:`IFERROR(XIRR(B${R.xcf}:${lastC}${R.xcf},B${R.date}:${lastC}${R.date}),"n/m")`}; ws.getCell(k,2).numFmt=pctF; ws.getCell(k,2).font=bold; k++;
   ws.getCell(k,1).value='Dashboard SPV IRR at export'; ws.getCell(k,2).value=S.spvIRR; ws.getCell(k,2).numFmt=pctF; ws.getCell(k,2).fill=CHK; k++;
-  ws.getCell(k,1).value='IRR capex, ex direct line (€m)'; ws.getCell(k,2).value={formula:`$B$${D.IRRCX}`}; ws.getCell(k,2).numFmt=eurF; k++;
+  ws.getCell(k,1).value='Financed SPV capex, incl direct line (€m)'; ws.getCell(k,2).value={formula:`$B$${D.IRRCX}`}; ws.getCell(k,2).numFmt=eurF; k++;
   ws.getCell(k,1).value='SPV total capex, incl direct line (€m)'; ws.getCell(k,2).value={formula:`$B$${D.SPVCX}`}; ws.getCell(k,2).numFmt=eurF; k++;
-  ws.getCell(k,1).value='Note'; ws.getCell(k,2).value='Direct-line capex is memorandum-only for the quoted IRR. Small diffs vs dashboard are timing conventions.';
+  ws.getCell(k,1).value='Note'; ws.getCell(k,2).value='Asset-only returns remain on the Wind, Solar and Battery sheets. The SPV return includes its complete owned perimeter. Small diffs vs dashboard are timing conventions.';
   return {irr:`SPV!B${IRR}`};
  }
  // asset builders must expose their production row for the SPV pull — patch refs:
@@ -475,7 +475,7 @@ function buildFullModel(ExcelJS, S){
  let ro=3;
  [['Wind equity IRR',windRef.irr,pctF],['Wind MOIC',windRef.moic,xF],['Wind LCOE (€/MWh)',windRef.lcoe,eurF],
   ['Solar equity IRR',solarRef.irr,pctF],['Solar MOIC',solarRef.moic,xF],['Solar LCOE (€/MWh)',solarRef.lcoe,eurF],
-  ['Battery equity IRR',batteryRef.irr,pctF],['SPV equity IRR, ex direct-line capex',spvRef.irr,pctF]
+  ['Battery equity IRR',batteryRef.irr,pctF],['SPV equity IRR, incl. direct-line capex',spvRef.irr,pctF]
  ].forEach(o=>{ wo.getCell(ro,1).value=o[0]; wo.getCell(ro,2).value={formula:o[1]}; wo.getCell(ro,2).numFmt=o[2]; wo.getCell(ro,2).font=bold; ro++; });
  wo.getCell(ro+1,1).value='All inputs live on the Inputs sheet (yellow). Change one → every sheet recalculates.';
  wo.getCell(ro+2,1).value='Each calc sheet: red rows = linked inputs (F2 to trace); helper rows show every step; no IF, no named ranges.';
