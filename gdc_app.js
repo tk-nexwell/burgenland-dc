@@ -2545,7 +2545,7 @@ function negPage(){
   <div id="ngDrill"></div>`;
 }
 function drawNeg(){
- const Y=NEGP.byYear, NX='#009a44', RED='#ff6b6b';
+ const Y=NEGP.byYear, NX='#009a44', RED='#ff6b6b', compactLabels=window.innerWidth<700;
  setTimeout(wireNegClicks,60);
  const ECOL={'2015-2019':'#5b6b7d','2020-2022':'#7fb2ff','2023-2024':'#ffb23e','2025-2026':'#ff6b6b'};
  if(negView==='year'){
@@ -2562,11 +2562,15 @@ function drawNeg(){
      xaxis:{gridcolor:'#1c2531',dtick:1}}),CFG);
   Plotly.react('ng_sub',[
    {x:Y.map(r=>r.year),y:Y.map(r=>r.deepest),name:'Deepest print',type:'bar',marker:{color:'#b98cff'},
+    text:Y.map(r=>'−€'+fmt(Math.abs(r.deepest),0)),textposition:Y.map(r=>Math.abs(r.deepest)<45?'outside':'inside'),
+    constraintext:'none',cliponaxis:false,textfont:{size:11.5,color:'#f4eaff'},
     hovertemplate:'%{x}: €%{y:,.0f}/MWh<extra></extra>'},
-   {x:Y.map(r=>r.year),y:Y.map(r=>r.negMean),name:'Average when negative',type:'scatter',mode:'lines+markers',
+   {x:Y.map(r=>r.year),y:Y.map(r=>r.negMean),name:'Average when negative',type:'scatter',mode:'lines+markers+text',
+    text:Y.map((r,i)=>compactLabels&&i%4!==0&&i!==Y.length-1?'':'−€'+fmt(Math.abs(r.negMean),1)),textposition:'top center',textfont:{size:11.5,color:RED},
     line:{color:RED,width:2.2},hovertemplate:'€%{y:.1f}/MWh<extra></extra>'}],
    lay('How deep it goes',
-    {showlegend:true,hovermode:'x unified',yaxis:{title:{text:'€/MWh',font:{size:12}},gridcolor:'#1c2531'},
+    {showlegend:true,hovermode:'x unified',uniformtext:{minsize:10,mode:'hide'},
+     yaxis:{title:{text:'€/MWh',font:{size:12}},range:[Math.min(...Y.map(r=>r.deepest))*1.12,8],gridcolor:'#1c2531'},
      xaxis:{gridcolor:'#1c2531',dtick:1}}),CFG);
  }else if(negView==='hour'){
   Plotly.react('ng_main',NEGP.eras.map(e=>({x:[...Array(24).keys()],y:NEGP.byHour[e],name:e,
