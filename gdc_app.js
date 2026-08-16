@@ -761,7 +761,7 @@ function pageHead(kick,title,lede,seg){
   </div>${seg||''}</header>`;
 }
 function kpi(l,v,u){return `<div class="kpi"><div class="l">${l}</div><div class="v">${v}<small> ${u||''}</small></div></div>`;}
-function kpiM(pairs,accent){return `<div class="kpi"${accent?` style="border-color:${accent}"`:''}><div class="mlt">`+pairs.map(p=>`<div class="mr"><span class="ml2">${p[0]}</span><span class="mu2">${p[2]||''}</span><span class="mv2"${p[3]?` style="color:${p[3]}"`:''}>${p[1]}</span></div>`).join('')+`</div></div>`;}
+function kpiM(pairs,accent){return `<div class="kpi"${accent?` style="border-color:${accent}"`:''}><div class="mlt">`+pairs.map(p=>`<div class="mr"><span class="mk2"><span class="ml2">${p[0]}</span>${p[2]?`<span class="mu2">${p[2]}</span>`:''}</span><span class="mv2"${p[3]?` style="color:${p[3]}"`:''}>${p[1]}</span></div>`).join('')+`</div></div>`;}
 
 /* ============ 8 · ASSET PAGES · WIND & SOLAR ============ */
 function assetPage(sec){
@@ -1989,23 +1989,23 @@ function summaryPage(){
   ${amortSeg()}
   ${sliderHTML('macro','infl','Inflation',0,0.05,0.005,'%',100)}
   ${sliderHTML('battery','compression','Battery rev compression',0,0.2,0.005,'%/yr',100)}</div>`;
- const kpis=`<div class="kpis">
-  ${kpiM([['Power SPV equity IRR',isNaN(spvIRR)?'n/m':fmt(spvIRR*100,1),'incl. private line'],['Power SPV equity','€'+fmt(SP.equity,0),'m incl. private line']],'var(--acc)')}
-  ${kpiM([['Data center pays','€'+fmt(SP.unit,1),'/MWh in '+FF],['EBITDA yr 1','€'+fmt(y1.ebitda,0),'m']])}
-  ${kpiM([['Buys from the parks','€'+fmt(blend,1),'/MWh blended'],['Margin',M.dc.marginMode==='flat'?'€'+fmt(M.dc.marginEur,2)+'/MWh':pct(M.dc.spvMargin,2),'on energy']])}
-  ${kpiM([['Battery',fmt(M.battery.powerMW,0)+' MW',''+fmt(M.battery.powerMW*M.battery.durationH/1000,1)+' GWh'],['Lines, substation, tie-in','€'+fmt(lineMW()*M.conn.directPer100/100+M.battery.substation+M.battery.interconnect,0),'m']])}</div>`;
+ const kpis=`<div class="kpis kpis-finance">
+   ${kpiM([['Equity IRR',isNaN(spvIRR)?'n/m':fmt(spvIRR*100,1)+'%','incl. private line'],['Equity','€'+fmt(SP.equity,0)+'m','incl. private line']],'var(--acc)')}
+   ${kpiM([['Data center tariff · '+FF,'€'+fmt(SP.unit,1),'/MWh'],['EBITDA · year 1','€'+fmt(y1.ebitda,0)+'m','']])}
+   ${kpiM([['Park purchase price','€'+fmt(blend,1),'/MWh · blended'],['Energy margin',M.dc.marginMode==='flat'?'€'+fmt(M.dc.marginEur,2):pct(M.dc.spvMargin,2),M.dc.marginMode==='flat'?'/MWh':'on energy']])}
+   ${kpiM([['Battery power',fmt(M.battery.powerMW,0)+' MW',fmt(M.battery.powerMW*M.battery.durationH/1000,1)+' GWh energy'],['Grid interface capex','€'+fmt(lineMW()*M.conn.directPer100/100+M.battery.substation+M.battery.interconnect,0)+'m','lines · substation · tie-in']])}</div>`;
  const battGen=B.thru;
  const BF=computeBatteryFin();
  const battRev=B.totalRev, battEbitda=B.totalRev-B.opex-B.gridFee;
  const line=lineMW()*M.conn.directPer100/100;
  const row=(n,c,cap,eq,dbt,prod,rev,ebd,irr,lc)=>`<tr><td><b style="color:${c}">${n}</b></td><td>${cap}</td><td>${eq}</td><td>${dbt}</td><td>${prod}</td><td>${rev}</td><td>${ebd}</td><td>${irr}</td><td>${lc}</td></tr>`;
- const table=`<div class="panel" style="margin-top:14px"><h3>Portfolio</h3><table><thead><tr><th>Asset</th><th>Capex €m</th><th>Equity €m</th><th>Debt €m</th><th>Gen GWh/yr</th><th>Rev €m</th><th>EBITDA €m</th><th>IRR</th><th>LCOE / LCOS</th></tr></thead><tbody>
+ const table=`<div class="panel" style="margin-top:14px"><h3>Portfolio</h3><div class="tableScroll"><table><thead><tr><th>Asset</th><th>Capex €m</th><th>Equity €m</th><th>Debt €m</th><th>Gen GWh/yr</th><th>Rev €m</th><th>EBITDA €m</th><th>IRR</th><th>LCOE / LCOS</th></tr></thead><tbody>
   ${row('Wind','var(--wind)',fmt(W.totalCapex,0),fmt(W.equity,0),fmt(W.debt,0),fmt(W.prod/1000,0),fmt(W.rev,1),fmt(W.ebitda,1),fmt(W.irr*100,1)+'%',fmt(W.lcoe,0))}
   ${row('Solar','var(--solar)',fmt(S.totalCapex,0),fmt(S.equity,0),fmt(S.debt,0),fmt(S.prod/1000,0),fmt(S.rev,1),fmt(S.ebitda,1),fmt(S.irr*100,1)+'%',fmt(S.lcoe,0))}
   ${row('Wind + solar','var(--acc)',fmt(P.totalCapex,0),fmt(P.equity,0),fmt(P.debt,0),fmt((W.prod+S.prod)/1000,0),fmt(W.rev+S.rev,1),fmt(W.ebitda+S.ebitda,1),fmt(P.irr*100,1)+'%','—')}
   ${row('Battery','var(--batt)',fmt(B.capex,0),fmt(BF.equity,0),fmt(BF.debt,0),fmt(battGen/1000,0),fmt(battRev,1),fmt(battEbitda,1),(isNaN(BF.irr)?'n/m':fmt(BF.irr*100,1)+'%'),'LCOS')}
   ${row('Private line + interface','var(--acc)',fmt(line,0),fmt(line*(1-M.macro.gearing),0),fmt(line*M.macro.gearing,0),'—','—','—','included in SPV','—')}
-  </tbody></table>
+  </tbody></table></div>
   <div class="muted" style="margin-top:8px"><b>IRR scope:</b> wind, solar and battery rows are asset-only returns. The consolidated Power SPV return includes every asset that the selected structure assigns to it, including the private line and interface scope. The wind + solar return is one XIRR on aggregated dated equity cash flows, not an arithmetic average.</div></div>`;
  const yrCtl=`<div class="panel" style="padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
    <span style="font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)">Year</span>
