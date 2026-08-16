@@ -1882,20 +1882,20 @@ function dcPage(){
    <div class="mets">${rows2.mets.map(m=>`<div class="met"><span>${m[0]}</span><b>${m[1]}</b></div>`).join('')}</div>
    <div class="jump" style="color:${col}">${rows2.foot}</div>
   </button>`;
- const players=`<div class="panel" style="margin-bottom:14px"><h3>The data center universe · who builds what, who pays what</h3>
+ const players=`<div class="panel" style="margin-bottom:14px"><h3>Three parties · one high-level structure</h3>
   <div class="castGrid" style="margin-top:6px">
+   ${pcard('Burgenland Energy','#4aa8ff','rgba(74,168,255,.13)',ICO.utility,{
+     role:'The Austrian utility supplies the contracted renewable portfolio and the grid balance required by the campus.',
+     mets:[['Renewable supply',fmt(resGen/1000,0)+' GWh/yr'],['PPA revenue /yr','€'+fmt(y1b.resPPA,0)+'m'],['Commercial term','to be agreed']],
+     foot:'Utility and generation scope shown as one party'})}
    ${pcard('Power SPV','#12b95a','rgba(0,154,68,.15)',ICO.spv,{
-     role:'The working case assigns the private lines, interface substation, battery and coordinated controls to the Power SPV. It combines contracted park and grid supply into a defined campus service.',
+     role:'Owns or contracts the private power assets and manages the agreed energy service between Burgenland Energy and the campus.',
      mets:[['CAPEX','€'+fmt(powerCap/1000,1)+'bn'],['Revenue /yr','€'+fmt(spvRev,0)+'m'],['OPEX /yr (energy in)','€'+fmt(spvCost,0)+'m'],['EBITDA /yr','€'+fmt(spvEb,0)+'m'],['Margin',fmt(spvRev>0?spvEb/spvRev*100:0,0)+'%']],
      foot:'Working allocation · ownership and guarantees to close'})}
-   ${pcard('The landlord','#eaf2f8','rgba(234,242,248,.10)',ICO.state,{
-     role:'Builds the powered shell and leases it. Power is passed through to the tenant.',
+   ${pcard('U.S. AI data center landlord','#eaf2f8','rgba(234,242,248,.10)',ICO.state,{
+     role:'Develops and leases the land, buildings, powered shell and campus electrical infrastructure. Chip ownership and compute operations sit outside this role.',
      mets:[['CAPEX (shell)','€'+fmt(it*shellLo/1000,1)+'–'+fmt(it*shellHi/1000,1)+'bn'],['Per MW of IT','€'+shellLo+'–'+shellHi+'m'],['OPEX /yr (facility)','€'+fmt(opsLo,0)+'–'+fmt(opsHi,0)+'m']],
-     foot:'Market benchmarks per MW of IT'})}
-   ${pcard('The compute tenant','#ffb23e','rgba(255,178,62,.12)',ICO.dc,{
-     role:'Owns the chips, buys the power, pays the lease.',
-     mets:[['CAPEX (chips)','€'+fmt(it*chipLo/1000,1)+'–'+fmt(it*chipHi/1000,1)+'bn'],['Per MW of IT','€'+chipLo+'–'+chipHi+'m'],['Power /yr','€'+fmt(total,0)+'m']],
-     foot:'Market benchmarks per MW of IT'})}
+     foot:'Compute hardware and operations are not shown separately'})}
   </div>
  </div>`;
 
@@ -3544,8 +3544,8 @@ function flowDiagram(){
   <g class="fNode fSeg fN-line"><rect x="452" y="60" width="248" height="98" rx="11" fill="#16211c" stroke="${g}" stroke-width="1.4"/>
    <g transform="translate(468,72)">${GLY.pylon}</g>
    <text x="590" y="93" font-size="14.5" font-weight="640" fill="${txt}" text-anchor="middle" font-family="Inter,sans-serif">Private direct line</text>
-   <text x="590" y="114" font-size="12.5" fill="${mut}" text-anchor="middle" font-family="Inter,sans-serif">proposed Power SPV scope · tariff treatment to confirm</text>
-   <text x="590" y="136" font-size="12.5" fill="${gh}" text-anchor="middle" font-family="Inter,sans-serif">candidate routes · ${pct(M.wind.lineLoss,1)} / ${pct(M.solar.lineLoss,1)} modelled loss</text></g>
+   <text x="590" y="114" font-size="12" fill="${mut}" text-anchor="middle" font-family="Inter,sans-serif">Power SPV route · scope to agree</text>
+   <text x="590" y="136" font-size="11.5" fill="${gh}" text-anchor="middle" font-family="Inter,sans-serif">modelled loss · ${pct(M.wind.lineLoss,1)} wind · ${pct(M.solar.lineLoss,1)} solar</text></g>
   <g class="fSeg fN-batt">${box(452,190,248,52,`${fmt(M.battery.powerMW,0)} MW storage scenario`,`${fmt(M.battery.powerMW*M.battery.durationH/1000,1)} GWh · ${fmt(M.battery.durationH,0)} h · ${pct(M.battery.socFloor,0)} reserve floor`,line,bat,GLY.batt)}</g>
   <g class="fNode fSeg fN-dc"><rect x="858" y="46" width="294" height="122" rx="12" fill="#16211c" stroke="${g}" stroke-width="1.6"/>
    <rect x="858" y="46" width="4" height="122" rx="2" fill="${g}"/>
@@ -3602,9 +3602,9 @@ function topologySVG(){
  const GRID='#8fa3bb', ACC='#46b45a', BAT='#b98cff', TXT='#e6efe9';
  const gx=36, gy=64;
  const grid=`<g class="tpN">
-   ${t(gx+75,gy-26,'APG 380 kV',{a:'middle',f:'#ff8b8b',s:11.5,w:700})}${t(gx+75,gy-13,'Netzverstärkung Ost',{a:'middle',f:'#ff8b8b',s:10.5})}
+   ${t(gx+75,gy-26,'Austrian grid',{a:'middle',f:'#ff8b8b',s:11.5,w:700})}${t(gx+75,gy-13,'high-voltage interface',{a:'middle',f:'#ff8b8b',s:10.5})}
    <line x1="${gx+75}" y1="${gy-8}" x2="${gx+75}" y2="${gy}" stroke="#ff6b6b" stroke-width="2"/>
-   ${bx(gx,gy,150,42,GRID)}${t(gx+75,gy+18,'UW Zurndorf',{a:'middle',f:TXT,s:12.5,w:700})}${t(gx+75,gy+33,'grid connection · APG / NEB',{a:'middle',s:10.5})}
+   ${bx(gx,gy,150,42,GRID)}${t(gx+75,gy+18,'UW Zurndorf',{a:'middle',f:TXT,s:12.5,w:700})}${t(gx+75,gy+33,'utility connection',{a:'middle',s:10.5})}
    ${bx(gx,gy+56,150,36,GRID)}${t(gx+75,gy+72,'UW Andau',{a:'middle',f:'#b9c6d2',s:12,w:600})}${t(gx+75,gy+85,'fed through Zurndorf',{a:'middle',s:10})}
    <line x1="${gx+75}" y1="${gy+42}" x2="${gx+75}" y2="${gy+56}" stroke="${GRID}" stroke-width="1.4"/></g>`;
  const sy=228;
@@ -3697,97 +3697,6 @@ function mpLayerSet(layer){
  const stage=document.querySelector('.mpStage');if(stage)stage.dataset.layer=layer;
 }
 
-const POWER_BOUNDARY={
- grid:{label:'Grid gives',eyebrow:'Network operator scope',title:'An agreed electrical boundary, not server uptime.',
-  intro:'The connection agreement defines how much power may be imported, at what voltage, where ownership changes and how the site must interact with the network.',
-  items:[
-   ['Connection envelope','Maximum import capacity, voltage level, point of connection and ownership boundary.'],
-   ['Network parameters','Expected voltage range, frequency range, short-circuit levels and protection settings used to design the campus.'],
-   ['System operation','Planned operating coordination, metering, communications and the right to protect or disconnect the network in defined conditions.'],
-   ['Power at the boundary','Quality governed by applicable standards and the project agreement, but with planned outages, faults and emergency actions still possible.']
-  ],
-  foot:'Not included: rack continuity, UPS autonomy, campus redundancy, tenant uptime or correction of disturbances created by the data center.'},
- campus:{label:'Campus must',eyebrow:'Powered-shell scope',title:'Convert a grid connection into a data-center-grade power product.',
-  intro:'The private electrical system must absorb normal grid disturbances without destabilizing the network or dropping the IT load.',
-  items:[
-   ['Control the ramp','Sequence data halls and use UPS or BESS controls so the net load stays inside the agreed ramp and step-change limits.'],
-   ['Clean the waveform','Study and mitigate harmonics, flicker and resonance; provide reactive-power and voltage control where required.'],
-   ['Ride through faults','Coordinate protection, transformers, UPS, BESS and generators so faults do not create a mass trip or uncontrolled restart.'],
-   ['Engineer continuity','Choose N+1, 2N or 3N/2 architecture, backup duration, fuel strategy, maintenance regime and 24/7 operating procedures.']
-  ],
-  foot:'This is where UPS, BESS, generators, STATCOM or SVC equipment, harmonic filters, campus EMS and redundant switchgear belong.'},
- spv:{label:'Power SPV scope',eyebrow:'Proposed interface scope',title:'Coordinate the private power interface as one accountable package.',
-  intro:'The working structure places defined infrastructure, controls and operating coordination in a Power SPV between the energy supplier and the campus.',
-  items:[
-   ['Coordinate','Maintain the connection workstream, responsibility matrix and technical data room through design and commissioning.'],
-   ['Build or fund','Potentially invest in the private line, substation, BESS, reactive-power or filtering scope assigned to the SPV.'],
-   ['Operate','Coordinate dispatch, balancing and control functions within the agreed operating boundary and asset perimeter.'],
-   ['Measure','Translate agreed MW, ramp, power-quality and response requirements into monitored service levels and reporting.']
-  ],
-  foot:'Final ownership and guarantees remain to be agreed. The Power SPV does not replace regulated grid duties or the campus operator’s rack-level uptime obligations.'}
-};
-let boundaryView='grid';
-function boundaryPanel(view){
- const p=POWER_BOUNDARY[view]||POWER_BOUNDARY.grid;
- return `<div class="bdEyebrow">${p.eyebrow}</div><h3>${p.title}</h3><p class="bdIntro">${p.intro}</p>
-  <div class="bdItems">${p.items.map((x,i)=>`<div class="bdItem"><span>0${i+1}</span><div><b>${x[0]}</b><p>${x[1]}</p></div></div>`).join('')}</div>
-  <div class="bdFoot">${p.foot}</div>`;
-}
-function boundarySet(view,e){
- if(e){e.preventDefault();ripple(e);} if(!POWER_BOUNDARY[view])return;boundaryView=view;
- document.querySelectorAll('.boundaryTab').forEach(b=>{const on=b.dataset.view===view;b.classList.toggle('on',on);b.setAttribute('aria-selected',on?'true':'false');});
- const panel=document.getElementById('boundaryPanel');if(panel)panel.innerHTML=boundaryPanel(view);
- const shell=document.querySelector('.boundaryShell');if(shell)shell.dataset.view=view;
-}
-function boundarySection(){
- const tabs=Object.entries(POWER_BOUNDARY).map(([k,p])=>`<button class="boundaryTab ${k===boundaryView?'on':''}" data-view="${k}" role="tab" aria-selected="${k===boundaryView?'true':'false'}" onclick="boundarySet('${k}',event)">${p.label}</button>`).join('');
- const metrics=[
-  ['Net-load ramp','&le;40% of P<sub>max</sub> per minute','APG transmission requirement'],
-  ['Fault recovery','&ge;90% within 2 seconds','After voltage returns within &plusmn;10%'],
-  ['Harmonic allocation','&le;10% of planning levels','Campus-caused share at APG interface'],
-  ['RoCoF ride-through','Up to &plusmn;2.0 Hz/s','Stay connected unless protection acts']
- ];
- const path=['Connection request','Grid studies','Connection concept','Connection agreement','RMS / EMT / harmonics','Detailed design + EPC','Commissioning evidence','24/7 compliance'];
- return `<section class="sect" id="responsibility-boundary">
-  <div class="kick">At the meter</div><h2 class="dsp">A grid connection is permission to import power. It is not a 500 MW uptime guarantee.</h2>
-  <p class="lede">The point of connection divides regulated network duties from the private campus. The commercially useful question is not who sells the electricity; it is who owns and guarantees each interface between that point and the racks.</p>
-  <div class="boundaryDiagram" aria-label="Responsibility boundary between the public grid and private data-center campus">
-   <div class="bdNode bdPublic"><span>Public network</span><b>APG / Netz Burgenland</b><small>Grid capacity, voltage, protection, system operation</small></div>
-   <div class="bdFlow"><i></i><span>Connection agreement</span></div>
-   <div class="bdMeter"><span>Contractual boundary</span><b>Point of connection</b><small>MW &middot; kV &middot; fault level &middot; ownership</small></div>
-   <div class="bdFlow"><i></i><span>Private electrical system</span></div>
-   <div class="bdNode bdPrivate"><span>Powered shell</span><b>Campus + tenant</b><small>Substation, power quality, UPS, BESS, redundancy</small></div>
-  </div>
-  <div class="boundaryShell" data-view="${boundaryView}">
-   <div class="boundaryTabs" role="tablist" aria-label="Responsibility perspective">${tabs}</div>
-   <article class="boundaryPanel" id="boundaryPanel" role="tabpanel" aria-live="polite">${boundaryPanel(boundaryView)}</article>
-  </div>
-  <div class="obligationHead"><span>Transmission-grid benchmark</span><p>APG's May 2026 data-center requirements make the load obligations explicit. Final limits depend on the actual connection level and project studies.</p></div>
-  <div class="obligationGrid">${metrics.map(m=>`<div><span>${m[0]}</span><b>${m[1]}</b><small>${m[2]}</small></div>`).join('')}</div>
-  <div class="pathway"><div class="pathwayTitle"><span>From request to operation</span><b>Eight gates, not one approval</b></div><div class="pathwaySteps">${path.map((p,i)=>`<div><span>${String(i+1).padStart(2,'0')}</span><b>${p}</b></div>`).join('')}</div></div>
-  <div class="officialLinks"><span>Official requirements</span>
-   <a href="https://pb1-medien.apg.at/im/dl/apg-1258266677/f%2Cp/Anforderungen_Rechenzentren_APG_Homepage.pdf" target="_blank" rel="noopener noreferrer">APG: data centers</a>
-   <a href="https://www.e-control.at/de/marktteilnehmer/strom/marktregeln/tor" target="_blank" rel="noopener noreferrer">E-Control: TOR</a>
-   <a href="https://eur-lex.europa.eu/eli/reg/2016/1388/oj/eng" target="_blank" rel="noopener noreferrer">EU Demand Connection Code</a>
-  </div>
- </section>`;
-}
-
-function dealStructureSection(){
- const roles=[
-  {name:'APG / Netz Burgenland',tag:'Network operator',earns:'Regulated connection and network charges.',pays:'Only the public-network works assigned to it.',risk:'Safe system operation and the network-side connection scope.'},
-  {name:'Burgenland Energie',tag:'Generator + supplier',earns:'PPA revenue and agreed balancing or energy-service charges.',pays:'Its contracted generation and supplier-scope assets.',risk:'Plant delivery and availability only within its agreed scope.'},
-  {name:'Power SPV · proposed',tag:'Power infrastructure',earns:'Agreed infrastructure, availability and optimization fees.',pays:'The lines, battery, controls and interface assets assigned to its perimeter.',risk:'Financing and performance for the assets and services allocated in the final contracts.'},
-  {name:'Campus landlord / powered shell',tag:'Site + electrical campus',earns:'Lease or powered-capacity revenue.',pays:'Campus construction, HV-to-rack electrical works and agreed continuity systems.',risk:'Site, construction, power architecture and service availability within the lease.'},
-  {name:'Compute tenant / operator',tag:'IT load + demand',earns:'Compute revenue and customer service performance.',pays:'Lease, capacity and energy charges.',risk:'Chip operations, workload behavior, demand ramp and offtake or credit obligations.'}
- ];
- return `<section class="sect" id="deal-structure">
-  <div class="kick">Power SPV structure</div><h2 class="dsp">One coordinated interface between energy supply and the campus.</h2>
-  <div class="dealThesis"><b>Working structure:</b> the Power SPV coordinates the private-line portfolio, storage, controls and operating interfaces between Burgenland Energie and the campus. Its final scope should track the assets it owns and services it can measure, without displacing regulated network duties or campus uptime responsibilities.</div>
-  <div class="dealGrid">${roles.map(r=>`<article class="dealCard"><div class="dealTag">${r.tag}</div><h3>${r.name}</h3><dl><dt>Earns</dt><dd>${r.earns}</dd><dt>Pays</dt><dd>${r.pays}</dd><dt>Bears</dt><dd>${r.risk}</dd></dl></article>`).join('')}</div>
-  <div class="decisionBar"><span>Structure still to close</span><b>Asset ownership</b><b>Service-level guarantee</b><b>Payment security</b><b>Line tariff treatment</b><b>Step-in rights</b></div>
- </section>`;
-}
 /* small inline flags: Austria red-white-red, United States simplified */
 const FLAG={
  at:'<svg class="flag" viewBox="0 0 3 2" aria-label="Austria"><rect width="3" height="2" fill="#fff"/><rect width="3" height="0.667" fill="#ED2939"/><rect y="1.333" width="3" height="0.667" fill="#ED2939"/></svg>',
@@ -3859,29 +3768,21 @@ function castSection(){
  const W=computeAsset(M.wind), S=computeAsset(M.solar), B=computeBattery(M.battery), SS=supplyStats();
  const gwh=(W.prod+S.prod)/1000, PS=projStats();
  const cards=[
-  {name:'APG / Netz Burgenland',ico:ICO.grid,col:'#8fd3ff',tint:'rgba(74,168,255,.12)',
-   role:'The network operator sets the connection envelope, protection, studies and operating conditions. It is distinct from the company selling renewable electricity.',
-   mets:[['Connection capacity','to be confirmed'],['Voltage level','study dependent'],['Fault + PQ limits','project specific'],['Operating interface','24/7 required']],
-   note:'Connection offer and grid studies are the critical evidence'},
-  {name:'Burgenland Energie',flag:FLAG.at,ico:ICO.utility,col:'#4aa8ff',tint:'rgba(74,168,255,.13)',
-   role:'The provincial energy company and generation developer. The working case has it developing or supplying selected renewable projects and energy services.',
-   mets:[['Candidate supply',fmt(fleetAC(),0)+' MW AC'],['Pipeline',PROJ.length+' projects'],['Commercial term','to be agreed'],['Grid interface','technical offer needed']],
+  {name:'Burgenland Energy',flag:FLAG.at,ico:ICO.utility,col:'#4aa8ff',tint:'rgba(74,168,255,.13)',
+   role:'The Austrian utility, shown as one party for both the contracted renewable portfolio and the grid balance required by the campus.',
+   mets:[['Candidate supply',fmt(fleetAC(),0)+' MW AC'],['Pipeline',PROJ.length+' projects'],['Grid balance',fmt(SS.gridPct,0)+'% modelled'],['Commercial term','to be agreed']],
    go:'wind',jump:'Wind'},
-  {name:'Power SPV · proposed',ico:ICO.spv,col:'#12b95a',tint:'rgba(0,154,68,.15)',
-   role:'The proposed coordinating vehicle for the private-line portfolio, storage, controls and defined operating interfaces between supply and campus.',
-   mets:[['Portfolio case',fmt(gwh,0)+' GWh/yr'],['Grid balance',fmt(SS.gridPct,0)+'% modelled'],['Battery case',fmt(M.battery.powerMW,0)+' MW / '+fmt(B.energy/1000,1)+' GWh'],['Ownership','to be agreed']],
+  {name:'Power SPV',ico:ICO.spv,col:'#12b95a',tint:'rgba(0,154,68,.15)',
+   role:'Owns or contracts the private power assets and manages the agreed energy service between Burgenland Energy and the campus.',
+   mets:[['Portfolio case',fmt(gwh,0)+' GWh/yr'],['Private assets','line + storage'],['Battery case',fmt(M.battery.powerMW,0)+' MW / '+fmt(B.energy/1000,1)+' GWh'],['Final scope','to be agreed']],
    go:'summary',jump:'Power SPV'},
-  {name:'Campus landlord / powered shell',flag:FLAG.us,ico:ICO.dc,col:'#eaf2f8',tint:'rgba(234,242,248,.10)',
-   role:'Develops the site, buildings and HV-to-rack electrical platform. This role is not automatically the owner of the chips or the compute business.',
-   mets:[['Target load',fmt(M.dc.firmMW,0)+' MW'],['At full run-rate',fmt(M.dc.firmMW*8.76,0)+' GWh/yr'],['Electrical topology','operator brief needed'],['Uptime product','scope to define']],
-   go:'datacentre',jump:'Data Center'},
-  {name:'Compute tenant / operator',ico:ICO.dc,col:'#ffcf70',tint:'rgba(255,178,62,.11)',
-   role:'Owns or operates the IT load and determines workload ramps, chip behavior, uptime demand and the credit behind long-term capacity payments.',
-   mets:[['Tenant identity','not yet confirmed'],['Ramp profile','required input'],['Redundancy need','tenant decision'],['Credit support','to be agreed']],
-   note:'A bankable load brief must come from this layer'}];
+  {name:'U.S. AI data center landlord',flag:FLAG.us,ico:ICO.dc,col:'#eaf2f8',tint:'rgba(234,242,248,.10)',
+   role:'Develops and leases the land, buildings, powered shell and campus electrical infrastructure. Chip ownership and compute operations sit outside this role.',
+   mets:[['Target load',fmt(M.dc.firmMW,0)+' MW'],['At full run-rate',fmt(M.dc.firmMW*8.76,0)+' GWh/yr'],['Built scope','land + powered shell'],['Lease + service','to be agreed']],
+   go:'datacentre',jump:'Data Center'}];
  return `<section class="sect">
    <div class="kick">Who is who</div>
-   <h2 class="dsp">The working counterparty structure.</h2>
+   <h2 class="dsp">Three parties, one high-level structure.</h2>
    <div class="castGrid">${cards.map(castCard).join('')}</div>
   </section>`;
 }
@@ -3970,7 +3871,7 @@ function overviewPage(){
     ${BELOGO('height:72px',true,26)}</a>
   </div>`;
 
- return hero+masterplanSection()+boundarySection()+introSection()+castSection()+dealStructureSection()+storySection(flow)+topologyPanel()+evidence+euLabelCard()+next+foot;
+ return hero+masterplanSection()+introSection()+castSection()+storySection(flow)+topologyPanel()+evidence+euLabelCard()+next+foot;
 }
 
 /* ============ 15 · RENDER RUNTIME & BOOT ============ */
