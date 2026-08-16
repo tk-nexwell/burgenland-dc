@@ -2695,13 +2695,23 @@ function pxDl(filtered){
 
 function drawGridMix(){
  if(!document.getElementById('mixmain'))return;
+ const compactLabels=window.innerWidth<700;
+ const solarCapture=EMBER.years.map(y=>PRICES.per_year[y]?PRICES.per_year[y].solar/PRICES.per_year[y].baseload*100:null);
+ const windCapture=EMBER.years.map(y=>PRICES.per_year[y]?PRICES.per_year[y].wind/PRICES.per_year[y].baseload*100:null);
+ const captureLabels=values=>values.map((v,i)=>v==null||compactLabels&&i%4!==0&&i!==values.length-1?'':fmt(v,0)+'%');
  Plotly.react('mixmain',[
-  {x:EMBER.years,y:EMBER.solar,name:'Solar generation',type:'bar',marker:{color:'#ffb23e'},hovertemplate:'%{y} TWh<extra></extra>'},
-  {x:EMBER.years,y:EMBER.wind,name:'Wind generation',type:'bar',marker:{color:'#4aa8ff'},hovertemplate:'%{y} TWh<extra></extra>'},
-  {x:EMBER.years,y:EMBER.years.map(y=>PRICES.per_year[y]?PRICES.per_year[y].solar/PRICES.per_year[y].baseload*100:null),name:'Solar capture',type:'scatter',yaxis:'y2',line:{color:'#ffb23e',width:2.5,dash:'dot'},hovertemplate:'%{y:.0f}% of baseload<extra></extra>'},
-  {x:EMBER.years,y:EMBER.years.map(y=>PRICES.per_year[y]?PRICES.per_year[y].wind/PRICES.per_year[y].baseload*100:null),name:'Wind capture',type:'scatter',yaxis:'y2',line:{color:'#4aa8ff',width:2.5,dash:'dot'},hovertemplate:'%{y:.0f}% of baseload<extra></extra>'}
+  {x:EMBER.years,y:EMBER.solar,name:'Solar generation',type:'bar',marker:{color:'#ffb23e'},
+   text:EMBER.solar.map(v=>fmt(v,1)),textposition:'inside',insidetextanchor:'end',constraintext:'inside',textfont:{size:11.5,color:'#211303'},hovertemplate:'%{y} TWh<extra></extra>'},
+  {x:EMBER.years,y:EMBER.wind,name:'Wind generation',type:'bar',marker:{color:'#4aa8ff'},
+   text:EMBER.wind.map(v=>fmt(v,1)),textposition:'inside',insidetextanchor:'end',constraintext:'inside',textfont:{size:11.5,color:'#061522'},hovertemplate:'%{y} TWh<extra></extra>'},
+  {x:EMBER.years,y:solarCapture,name:'Solar capture',type:'scatter',mode:'lines+markers+text',yaxis:'y2',
+   text:captureLabels(solarCapture),textposition:solarCapture.map((v,i)=>v>=windCapture[i]?'top center':'bottom center'),textfont:{size:11.5,color:'#ffb23e'},cliponaxis:false,
+   line:{color:'#ffb23e',width:2.5,dash:'dot'},hovertemplate:'%{y:.0f}% of baseload<extra></extra>'},
+  {x:EMBER.years,y:windCapture,name:'Wind capture',type:'scatter',mode:'lines+markers+text',yaxis:'y2',
+   text:captureLabels(windCapture),textposition:windCapture.map((v,i)=>v>solarCapture[i]?'top center':'bottom center'),textfont:{size:11.5,color:'#4aa8ff'},cliponaxis:false,
+   line:{color:'#4aa8ff',width:2.5,dash:'dot'},hovertemplate:'%{y:.0f}% of baseload<extra></extra>'}
  ],lay('What Austria is building, and what it earns',
-  {barmode:'group',showlegend:true,yaxis:{title:{text:'TWh/yr',font:{size:11.5}}},yaxis2:{overlaying:'y',side:'right',range:[0,110],title:{text:'% of baseload',font:{size:11.5}},gridcolor:'transparent'}}),CFG);
+  {barmode:'group',showlegend:true,uniformtext:{minsize:10,mode:'hide'},yaxis:{title:{text:'TWh/yr',font:{size:11.5}}},yaxis2:{overlaying:'y',side:'right',range:[0,112],title:{text:'% of baseload',font:{size:11.5}},gridcolor:'transparent'}}),CFG);
 }
 function drawPrices(){
  const yrs=Object.keys(PRICES.per_year).filter(y=>+y>=2015&&+y<=2025);
