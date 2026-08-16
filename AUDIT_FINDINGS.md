@@ -1,60 +1,79 @@
-# Independent Dashboard Audit
+# GDC Nickelsdorf dashboard — independent review
 
-Review date: 16 August 2026
+Review date: 17 August 2026
 
-## Release decision
+## Release assessment
 
-The current release files have been sanitized for a public narrative dashboard. Project-meter
-aggregates, NDA source markers, and the encrypted meter archive have been removed; production
-charts now use a deterministic planning profile labelled as illustrative. The browser access screen
-remains a presentation control, not authentication.
+The revised current files are suitable as a public, illustrative planning dashboard, subject to the
+two unresolved publication decisions below. They are not an authenticated data room, an agreed
+commercial model, an engineering design, or investment advice.
 
-The public Git history may still retain earlier versions. Current-file remediation therefore does
-not replace a repository-history and confidentiality review. Choose one of these paths for full
-remediation:
+Release checks and desktop/mobile browser walkthroughs pass. The live release should be mirrored
+one way from the clean GitHub checkout; the OneDrive folder must not be used as a second Git worktree.
 
-1. Publish a sanitized public narrative dashboard and move the detailed model to an authenticated
-   private application. This is the recommended approach.
-2. Move the complete dashboard to private hosting with server-side authentication and restrict the
-   repository. GitHub Pages alone cannot provide that control.
+## Critical findings corrected
 
-Any history cleanup, repository visibility change, or data classification decision should be
-approved by the relevant owner before it is performed.
+- **PPA tranche logic:** the interface described the first 200 MW at €100/MWh and the balance at
+  €80/MWh, but the default wind and solar models still used €100/MWh. The calculated default blend
+  is now applied consistently, including reset and scenario flows. On the reviewed case this changes
+  wind equity IRR from roughly 18.5% to 12.8% and solar from 23.4% to 15.9%.
+- **Battery integrity:** the hourly supply simulation previously began with a half-full battery,
+  contributing about 1.68 GWh that was never charged. State of charge now starts at zero.
+- **Workbook parity:** the workbook now uses the dashboard's day-by-day spread inputs, self-charge
+  share, network-charge toggle and discounted LCOE method rather than a different average-day model.
+- **Scenario safety:** imported and URL-carried scenarios now pass through a typed allowlist with
+  size limits. Unknown keys, non-finite values and markup-bearing strings are rejected before render.
+- **Browser confidentiality:** encrypted terms and in-browser decryption were removed. A browser
+  access code is explicitly described as a presentation/navigation gate, not authentication.
+- **Claims:** counterparty approval, fixed pricing, network-charge exemptions, route/topology,
+  redundancy, delivery dates and contract status are no longer stated as established facts. The
+  dashboard distinguishes published, counterparty-stated, modeled and illustrative material.
+- **Navigation and accessibility:** every main view has a shareable hash route; tab changes open at
+  the page heading; browser back/forward works; semantic buttons, focus states, active-state labels,
+  compact mobile navigation and safer chart labels were added.
+- **Solar control:** the range input now accepts 357 MWp exactly instead of snapping to the nearest
+  five-megawatt step on first interaction.
 
-## Commercial and model findings
+## Model limitations that remain visible
 
-- The previous consolidated Power SPV return omitted private-line and interface capex while the
-  narrative assigned that infrastructure to the SPV. The consolidated return now includes it;
-  wind, solar, and battery views remain plant-only returns.
-- Several statements presented planning assumptions as agreed facts, including firm delivery,
-  ownership, network-charge treatment, technical topology, and delivery dates. The dashboard now
-  labels these as targets, candidate structures, or open decisions.
-- The Power SPV proposition is strongest when its contracted scope follows assets and services it
-  can finance, coordinate, operate, and measure. The dashboard now presents that proposed interface
-  positively while preserving the network operator's and campus operator's distinct duties.
-- The battery dispatch result is a perfect-foresight gross optimizer ceiling, not a forecast of
-  achievable trading returns or proof of continuous firm power. It is now labelled accordingly.
-- The proposed 500 MW / 4 GWh battery provides eight hours at full discharge. It cannot by itself
-  support an 8,760-hour firm-power promise; grid import, generation diversity, curtailment rules,
-  reserve margins, and contractual remedies remain open.
+- The consolidated Power SPV case still uses annual renewable/load netting. Hourly battery dispatch,
+  losses, grid imports and delivery obligations are not yet integrated into the SPV cash flow.
+- Battery arbitrage remains a historical perfect-foresight gross ceiling, not a forecast or a
+  bankable revenue case. Revenue stacking and operational conflicts need a dispatch optimizer.
+- A 500 MW / 4 GWh battery is an eight-hour reserve. It is not proof of campus uptime, Tier compliance
+  or an independent electrical source.
+- Connection design, route, permits, grid tariffs, tax, PPA terms, credit support and risk allocation
+  require adviser and counterparty confirmation.
 
-## Experience improvements
+## Visual and product review
 
-- Added an interactive isometric masterplan with selectable layers and decision-focused hotspots.
-- Added a project explorer for direct navigation across the commercial and technical views.
-- Added a party, payment, and risk matrix so the business proposition is visible alongside the
-  engineering story.
-- Reduced dense and repetitive copy, strengthened planning-status labels, and corrected mobile
-  overflow, tooltip, segmented-control, and splash-screen behavior.
-- Added release and one-way mirror checks so GitHub remains the source of truth and OneDrive becomes
-  a verified snapshot rather than a competing codebase.
+The dark-green Nexwell system, aerial masterplan and page-specific technical diagrams now form a
+coherent visual language. The largest improvement is the future-state masterplan: recognizable halls,
+solar fields, turbines, substation, storage and agricultural context make the project legible before
+the user enters financial detail. The electrical route is deliberately subordinate rather than the
+dominant visual feature.
 
-## Decisions still required
+Recommended next phase: evolve the masterplan into a lightweight digital twin.
 
-- Decide whether to make the repository private or perform an approved history rewrite for earlier
-  sensitive versions.
-- Confirm the proposed Power SPV ownership, payment flows, credit support, and risk allocation.
-- Confirm the direct-line route, connection topology, redundancy standard, capex ownership, and
-  network-charge treatment with qualified Austrian legal and grid advisers.
-- Replace illustrative performance assumptions with sourced, dated inputs and show confidence or
-  sensitivity ranges for every investment-critical output.
+1. Add a phase slider: existing land → first power → 200 MW → 500 MW build-out.
+2. Add layer toggles for generation, grid, storage, campus, land/permits and water/fibre.
+3. Let a selected building or asset open a small status card with capacity, phase, evidence status,
+   owner and unresolved decision—not a paragraph of prose.
+4. Animate energy flow only when the user requests it, with reduced-motion support.
+5. Add two camera modes: investor overview and engineering schematic. Avoid pretending that an
+   illustrative rendering is a surveyed or permitted site design.
+
+## Publication decisions still required
+
+1. **Repository history:** earlier public commits may retain material removed from current files.
+   Restrict the repository or authorize a clean-history public replacement after a confidentiality
+   review. Do not rewrite history without the owner's explicit approval.
+2. **Real restricted access:** if detailed commercial or source material is to return, move it behind
+   server-side identity and authorization. GitHub Pages and client-side JavaScript cannot protect it.
+
+## Source-of-truth rule
+
+- Canonical working source: clean GitHub checkout of `tk-nexwell/burgenland-dc`.
+- Published source: reviewed commit on `main` after release checks pass.
+- OneDrive: generated, hash-verified mirror of that exact commit, without `.git`, bundles or extras.
+- Any intentional change starts in the canonical checkout, is reviewed and published, then mirrored.

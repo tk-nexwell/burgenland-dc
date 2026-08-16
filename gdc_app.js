@@ -101,18 +101,18 @@ async function gateTry(){
  }
 }
 function gatePage(t){
- const name = t==='summary' ? 'SPV economics' : t==='profiles' ? 'Production planning profile' : 'Battery dispatch';
+ const name = t==='summary' ? 'SPV economics' : t==='datacentre' ? 'Data center brief' : 'restricted planning content';
  return `<div id="gateWrap"><canvas id="gateCv"></canvas>
   <div class="gateCard">
    <div class="gateRing"><span>&#9679;</span></div>
    <h2>RESTRICTED</h2>
-   <p>${name} is not open on this link.<br>Enter the access code to continue.</p>
+   <p>${name} is not open in the presentation flow.<br>Enter the presentation code to continue.</p>
    <div class="gateRow">
     <input id="gatePw" type="password" placeholder="Access code" autocomplete="off"
       onkeydown="if(event.key==='Enter')gateTry()">
     <button onclick="gateTry()">Unlock</button>
    </div>
-   <div class="gateMsg" id="gateMsg"></div>
+   <div class="gateMsg" id="gateMsg">This is a navigation gate, not secure authentication.</div>
   </div></div>`;
 }
 function gateAnimate(){
@@ -361,8 +361,8 @@ const M={
  view:'INT',
  macro:{infl:0.02,tax:0.23,gearing:0.70,merchReal:100,tenor:20,allInRate:0.047,ppaTermY:20,amort:'annuity'},
  v3:{wind:false,solar:false,battery:false},
- wind:{on:true,mw:320,capexPerMW:1.45,grossCF:0.290636,loss:0.02,lineLoss:0.045,opexPerMW:0.04,gridFee:0,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2029},
- solar:{on:true,mw:357,capexPerMW:0.60,grossCF:0.1566,loss:0.02,lineLoss:0.033,opexPerMW:0.032,gridFee:0,degr:0.003,ppa:100,contr:1,basis:'model',lifeY:25,codY:2029},
+ wind:{on:true,mw:320,capexPerMW:1.45,grossCF:0.290636,loss:0.02,lineLoss:0.045,opexPerMW:0.04,gridFee:0,degr:0.003,ppa:86.5,contr:1,basis:'model',lifeY:25,codY:2029},
+ solar:{on:true,mw:357,capexPerMW:0.60,grossCF:0.1566,loss:0.02,lineLoss:0.033,opexPerMW:0.032,gridFee:0,degr:0.003,ppa:86.5,contr:1,basis:'model',lifeY:25,codY:2029},
  battery:{on:true,powerMW:500,durationH:8,capexPerKWh:130,rte:0.87,opexPct:0.02,degr:0.015,socFloor:0.10,gridYear:2035,priceYear:'2025',captureFactor:1.0,cyclesDay:1,ancPerMW:20,capChargeMWyr:40,mktCapFee:false,compression:0.02,gearing:0.60,debtRate:0.05,substation:24.25,interconnect:17,gridCapFee:0,gridEnergyFee:0,btmCharge:0,lifeY:25}, // defaults: 8h · behind-the-meter charging via direct line → grid fees 0 (sliders remain) · DC reliability charge 40 k€/MW/yr
  dc:{curtail:0,firmMW:500,dcPrice:120,spvMode:'pass',spvMargin:0.03,marginMode:'pct',marginEur:3.5,
    revPerMW:5.00,powerPass:true,claimShare:0.40,firmTermY:3,   // DC revenue EUR m per MW of connection a year; powerPass = the data center bills power on to its tenant
@@ -371,8 +371,18 @@ srcMode:'fixed',resFix:99,beMargin:0.03,gridEnergyFee:8.4,gridCapFeeKW:42.84,fee
  conn:{directPer100:7.54,dcac:1.20,clip:false,lineBasis:'vdr7',wideInfra:0} // base yields are already delivered FLH, so a second clipping deduction would double count; private tie-lines, €m per 100 MW. NEB Netzzutritt & customer DC connection live as battery.substation / battery.interconnect
 };
 const DEFAULTS_JSON=JSON.stringify(M);
+const DEFAULT_TRANCHE_JSON=JSON.stringify(TRANCHE);
 const Y0=2026,YN=2070,COD=2028,FF=2029,DEPRY=20;
-function resetAll(){const d=JSON.parse(DEFAULTS_JSON);const v=M.view;for(const k in d)M[k]=d[k];M.view=v;buildNav();render();}
+function trancheBlend(){
+ const mw=fleetAC(),t1=Math.min(TRANCHE.t1MW,mw);
+ return mw>0?(t1*TRANCHE.p1+Math.max(0,mw-t1)*TRANCHE.p2)/mw:TRANCHE.p1;
+}
+function syncTranchePpa(){const blend=+trancheBlend().toFixed(1);M.wind.ppa=blend;M.solar.ppa=blend;return blend;}
+function resetAll(){
+ const d=JSON.parse(DEFAULTS_JSON),tr=JSON.parse(DEFAULT_TRANCHE_JSON),v=M.view;
+ for(const k in d)M[k]=d[k];for(const k in tr)TRANCHE[k]=tr[k];M.view=v;
+ _SUPC=null;_CLIPF=null;buildNav();render();
+}
 // Residual (non-RES) power via BE Trading: market energy (CPI-escalated) + NE3 energy fee escalating at feeEsc (~4%/yr from 2028 per BE Trading 14-Jul-26 table) + trading margin.
 function feeF(y){return Math.pow(1+(M.dc.feeEsc!=null?M.dc.feeEsc:0.04),Math.max(0,y-2028));}
 function resPrice(y){const d=M.dc,base=(d.srcMode==='dayahead')?PRICES.per_year['2025'].baseload:(d.resFix||99);return base*Math.pow(1+M.macro.infl,y-2025)*(1+(d.beMargin||0))+(d.gridEnergyFee!=null?d.gridEnergyFee:8.4)*feeF(y);}
@@ -401,16 +411,17 @@ function withXL(cb){
  need.forEach(src=>{const s=document.createElement('script');s.src=src;s.onload=()=>{if(--left===0)cb();};s.onerror=()=>alert('Could not load '+src);document.head.appendChild(s);});
 }
 function dlXLSX(){withXL(()=>{
- const W=computeAsset(M.wind),S2=computeAsset(M.solar),BF=computeBatteryFin(),SP=computeSPV(M.dc.dcPrice);
+ const W=computeAsset(M.wind),S2=computeAsset(M.solar),BC=computeBattery(M.battery),BF=computeBatteryFin(),SP=computeSPV(M.dc.dcPrice);
  const chk=rows=>{const o={};rows.forEach(x=>o[x.y]=x.fcfe);return o;};
  const S={today:new Date().toISOString().slice(0,10),priceYear:M.battery.priceYear,FF:FF,COD:COD,
   CAP7w:CAP7.wind,CAP7s:CAP7.solar,linePer100:M.conn.directPer100,dcac:(M.conn.dcac||1),spvIRR:isNaN(SP.irr)?0:SP.irr,
-  macro:M.macro,wind:M.wind,solar:M.solar,battery:M.battery,dc:M.dc,
+  macro:M.macro,wind:M.wind,solar:M.solar,
+  battery:Object.assign({},M.battery,{backtestAvgBuy:BC.avgBuy,backtestAvgSell:BC.avgSell,backtestSelfShare:BC.fSelf}),dc:M.dc,
   ph:(PRICES.per_year[M.battery.priceYear]||PRICES.per_year['2025']).ph,
   chkWind:chk(W.rows),chkSolar:chk(S2.rows),chkBatt:chk(BF.rows)};
  const wb=buildFullModel(window.ExcelJS,S);
  wb.xlsx.writeBuffer().then(buf=>{const b=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Burgenland_Full_Model_'+S.today+'.xlsx';document.body.appendChild(a);a.click();a.remove();});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='GDC_Nickelsdorf_Illustrative_Model_'+S.today+'.xlsx';document.body.appendChild(a);a.click();a.remove();});
 });}
 
 /* ============ 4 · MODEL ENGINE ============ */
@@ -547,8 +558,8 @@ function computeBattery(b){
  const ancRev=b.ancPerMW*b.powerMW/1000;
  const capRev=b.powerMW*(b.capChargeMWyr||0)/1000; // DC reliability/capacity charge paid by the DC operator
  const totalRev=arbRev+ancRev+capRev;
- // Behind the meter the battery charges over the direct line and pays no use-of-system charge, which
- // is why the default is zero. The moment it trades it is drawing from and pushing into the public
+ // The default behind-the-meter network fee is a modelling placeholder, not a tariff conclusion.
+ // The moment it trades it is drawing from and pushing into the public
  // network, so the NE3 Leistungspreis applies from the first merchant year. Falls back to the DC's
  // own tariff rather than silently staying at nil.
  const capFeeKW=(b.gridCapFee||0)>0?b.gridCapFee:(b.mktCapFee===true?(M.dc.gridCapFeeKW!=null?M.dc.gridCapFeeKW:42.84):0);
@@ -575,7 +586,9 @@ function supplyStats(){
  // report the same delivered energy rather than two numbers for one plant
  const cur=1-(d.curtail||0);                      // grid curtailment slider, zero on a direct line
  const P=bOn?B.powerMW:0, E=bOn?B.powerMW*B.durationH*(1-(B.socFloor||0)):0, rt=Math.sqrt(B.rte||1);
- let soc=E*0.5, served=0, direct=0, fromBatt=0, gridE=0, surplus=0, spill=0, battIn=0;
+ // Begin with no tradeable energy. Starting half-full created free first-year output that had never
+ // been charged; the reserved SoC floor is already excluded from E and is not available here.
+ let soc=0, served=0, direct=0, fromBatt=0, gridE=0, surplus=0, spill=0, battIn=0;
  let hSur=0, hDef=0, hFull=0, gen=0, peak=0, daysNeed=0;
  // A plant cannot deliver more than it is rated for. Wind is capped at nameplate, solar at the AC
  // rating behind the inverters. Both caps sit at the delivery point, so they are net of the plant
@@ -658,6 +671,10 @@ function HT(unit,dec){return '%{y:,.'+(dec==null?1:dec)+'f} '+unit+'<extra></ext
 /* ============ 6 · TABS & ROUTER ============ */
 const TABS=[['overview','Overview'],['wind','Wind'],['solar','Solar'],['summary','Power SPV'],['datacentre','Data Center'],['prices','Prices']];
 let active='overview';
+function routeView(){const m=/(?:^#|[&#])view=([a-z]+)/.exec(location.hash||'');return m&&TABS.some(t=>t[0]===m[1])?m[1]:null;}
+function writeRoute(t,replace){
+ try{const u=location.pathname+location.search+'#view='+encodeURIComponent(t);history[replace?'replaceState':'pushState'](null,'',u);}catch(e){}
+}
 
 const TABICON={
  overview:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-6h5v6"/></svg>',
@@ -682,9 +699,9 @@ const PROJECT_JUMPS=[
  ['prices','','Market evidence']
 ];
 function buildNav(){
- const explorer=`<details class="projectMenu"><summary>${TABICON.overview}<span>Project explorer</span><span class="pmArr">⌄</span></summary>
+ const explorer=`<details class="projectMenu"><summary aria-label="Open project explorer">${TABICON.overview}<span>Project explorer</span><span class="pmArr">⌄</span></summary>
   <div class="projectMenuPop"><div class="pmK">Jump to</div>${PROJECT_JUMPS.map(j=>`<button onclick="projectJump('${j[0]}','${j[1]}',event)">${j[2]}<span>→</span></button>`).join('')}</div></details>`;
- document.getElementById('nav').innerHTML=explorer+TABS.map(t=>`<button class="${t[0]===active?'on':''}" onclick="go('${t[0]}',event)" title="${t[1]}${gateLocked(t[0])?' · access code required':''}">${TABICON[t[0]]||''}<span>${t[1]}</span>${gateLocked(t[0])?'<span class="lockDot">&#128274;</span>':''}</button>`).join('');
+ document.getElementById('nav').innerHTML=explorer+TABS.map(t=>`<button class="${t[0]===active?'on':''}" ${t[0]===active?'aria-current="page"':''} onclick="go('${t[0]}',event)" title="${t[1]}${gateLocked(t[0])?' · presentation code required':''}">${TABICON[t[0]]||''}<span>${t[1]}</span>${gateLocked(t[0])?'<span class="lockDot" aria-hidden="true">&#128274;</span>':''}</button>`).join('');
 }
 function projectJump(t,id,e){
  if(e){e.preventDefault();e.stopPropagation();}
@@ -695,7 +712,8 @@ function projectJump(t,id,e){
 }
 function go(t,e){if(e)ripple(e);
  if(t==='battery'){t='summary';spvView='batt';}          // the battery lives inside the Power SPV model now
- _pgNav=true;
+  _pgNav=true;
+  writeRoute(t,false);
  /* a clicked card morphs into the page it opens, where the browser supports view transitions */
  const org=e&&e.currentTarget&&e.currentTarget.closest?e.currentTarget:null;
  const card=org?org.closest('.navCard, .evCard .go'):null;
@@ -704,7 +722,7 @@ function go(t,e){if(e)ripple(e);
    document.querySelectorAll('[data-vth]').forEach(x=>{x.style.viewTransitionName='';x.removeAttribute('data-vth');});
    card.style.viewTransitionName='pgHero'; card.setAttribute('data-vth','1');
    active=t;buildNav();
-   const vt=document.startViewTransition(()=>{render();
+    const vt=document.startViewTransition(()=>{render();window.scrollTo({top:0,left:0,behavior:'auto'});
     const m=document.getElementById('main');
     const h=m.querySelector('.pgHead')||m.querySelector('.heroWrap')||m.firstElementChild;
     if(h){h.style.viewTransitionName='pgHero';h.setAttribute('data-vth','1');}});
@@ -713,7 +731,7 @@ function go(t,e){if(e)ripple(e);
    return;
   }catch(err){}
  }
- active=t;buildNav();transitionTo(render);}
+  active=t;buildNav();transitionTo(()=>{render();window.scrollTo({top:0,left:0,behavior:'auto'});});}
 /* BE line-item OpEx breakdown - supplied by Burgenland Energie. Indicative reference values
    from comparable existing projects, NOT project-specific commitments. 'g' = grid-related item
    BE confirmed falls away on a direct line. */
@@ -750,7 +768,12 @@ function sliderHTML(sec,key,label,min,max,step,unit,mul=1,tip=''){
  return `<div class="inp"><label>${tip?`<span>${label}<span class="tip">i<span class="tipbox">${tip}</span></span></span>`:label}<b id="lbl_${sec}_${key}">${fmt(v*mul,dec)}${unit||''}</b></label>
  <input type="range" id="sld_${sec}_${key}" min="${min}" max="${max}" step="${step}" value="${v}" oninput="upd('${sec}','${key}',this.value,${mul},'${unit||''}',${dec})"></div>`;
 }
-function upd(sec,key,val,mul,unit,dec){M[sec][key]=parseFloat(val);render();const el=document.getElementById(`sld_${sec}_${key}`);if(el)el.focus({preventScroll:true});}
+function upd(sec,key,val,mul,unit,dec){
+ M[sec][key]=parseFloat(val);
+ if((sec==='wind'||sec==='solar')&&key==='ppa')TRANCHE.enabled=false;
+ if(active==='summary'&&spvView==='fin'&&TRANCHE.enabled&&key==='mw'&&(sec==='wind'||sec==='solar'))syncTranchePpa();
+ _SUPC=null;_CLIPF=null;render();const el=document.getElementById(`sld_${sec}_${key}`);if(el)el.focus({preventScroll:true});
+}
 /* the shared page opener. seg is optional and sits on the same baseline as the headline. */
 function pageHead(kick,title,lede,seg){
  return `<header class="pgHead"><div class="txt">
@@ -771,7 +794,7 @@ function assetPage(sec){
    &nbsp;&nbsp;${cb('assumed')} capex, opex and the useful life are ours${isWind?'':', as is the '+fmt(M.conn.dcac||1,2)+' DC to AC ratio behind the clipping'}</div>`;
  const clipNote=(cf<0.999)?`<div class="info" style="margin-bottom:12px"><b>The rating is a ceiling, and it costs ${fmt((1-cf)*100,1)}% of output in this planning case.</b> The model scales the illustrative hourly profile until its annual mean matches the ${pct(a.grossCF,1)} capacity factor on the slider. That lifts the peaks as well as the mean, and the scaled series runs above what ${isWind?'the generator':'the inverters'} can pass. Capping it at ${isWind?`nameplate, ${fmt(a.mw,0)} MW`:`the AC rating, ${fmt(a.mw/(M.conn.dcac||1),0)} MW behind a ${fmt(M.conn.dcac||1,2)} DC to AC ratio`}, removes <b>${fmt((1-cf)*100,1)}%</b> and takes the delivered capacity factor from ${pct(effCF(a),2)} to <b>${pct(effCF(a)*cf,2)}</b>. Replace this profile with the bankable energy-yield series before investment approval.</div>`:'';
  const inputsL=`<div class="panel"><h3>${isWind?'Wind':'Solar'} · plant & technical</h3>
-  ${sliderHTML(sec,'mw','Capacity',50,600,5,isWind?' MW<sub>AC</sub>':' MWp<sub>DC</sub>')}
+  ${sliderHTML(sec,'mw','Capacity',50,600,isWind?5:1,isWind?' MW<sub>AC</sub>':' MWp<sub>DC</sub>')}
   ${sliderHTML(sec,'capexPerMW','Capex',0.2,2,0.005,isWind?' €k/MW<sub>AC</sub>':' €k/MWp<sub>DC</sub>',1000)}
   ${sliderHTML(sec,'grossCF','Capacity factor (gross)',isWind?0.15:0.06,isWind?0.5:0.22,0.001,'%',100)}
   ${sliderHTML(sec,'loss',isWind?'Losses (wake, electrical)':'Losses (soiling, inverter)',0,0.1,0.005,'%',100)}
@@ -932,11 +955,11 @@ function drawAssetCharts(R,col){
    yaxis2:{overlaying:'y',side:'right',range:[0,Z.bal],gridcolor:'transparent',title:{text:'balance €m',font:{size:11.5}}},
    yaxis3:{overlaying:'y',side:'right',position:1.0,anchor:'free',range:[0,Math.max(3,(dst?dst.max:2)*1.2)],
            gridcolor:'transparent',title:{text:'DSCR ×',font:{size:11.5}}},
-   margin:{b:112},
+    margin:{b:76},
    shapes:[{type:'line',xref:'paper',x0:0,x1:0.88,yref:'y3',y0:1.30,y1:1.30,line:{color:'#ff6b6b',width:1,dash:'dash'}}],
    annotations:[{xref:'paper',x:0.012,yref:'y3',y:1.30,yanchor:'bottom',text:'1.30x covenant reference',showarrow:false,font:{size:11,color:'#ff6b6b'}},
-     dst?{xref:'paper',yref:'paper',x:0.5,y:-0.60,xanchor:'center',yanchor:'top',showarrow:false,
-       text:'DSCR '+dscrBadge(dst),font:{size:12.5,color:'#c3d1c9'}}:null].filter(Boolean)
+      dst?{xref:'paper',yref:'paper',x:0.86,y:1.04,xanchor:'right',yanchor:'bottom',showarrow:false,
+        text:'DSCR '+dscrBadge(dst),font:{size:11.5,color:'#c3d1c9'},bgcolor:'rgba(10,17,14,.82)',borderpad:4}:null].filter(Boolean)
   }),CFG);
  const cfl=R.rows.filter(r=>r.y<R.cod+R.life); const sub=[],dts=[],roll=[];
  cfl.forEach(r=>{sub.push(r.fcfe);dts.push(r.y+0.99);const ir=(sub.some(v=>v<0)&&sub.some(v=>v>0))?xirr(sub.slice(),dts.slice()):NaN;roll.push(isNaN(ir)?null:ir*100);});
@@ -972,25 +995,25 @@ function drawSensitivity(R,col){
  const a=(col==='#4aa8ff')?M.wind:M.solar, mac=M.macro, base=R.irr*100;
  const test=(mut,undo)=>{mut();const r=computeAsset(a).irr*100-base;undo();return r;};
  const items=[
-  ['PPA ±€10',   test(()=>a.ppa+=10,()=>a.ppa-=10),                         test(()=>a.ppa-=10,()=>a.ppa+=10)],
-  ['Capex ±10%', test(()=>a.capexPerMW*=1.1,()=>a.capexPerMW/=1.1),         test(()=>a.capexPerMW*=0.9,()=>a.capexPerMW/=0.9)],
-  ['CF ±5%',     test(()=>a.grossCF*=1.05,()=>a.grossCF/=1.05),             test(()=>a.grossCF*=0.95,()=>a.grossCF/=0.95)],
-  ['Rate ±50bp', test(()=>mac.allInRate+=0.005,()=>mac.allInRate-=0.005),   test(()=>mac.allInRate-=0.005,()=>mac.allInRate+=0.005)],
-  ['Opex ±25%',  test(()=>a.opexPerMW*=1.25,()=>a.opexPerMW/=1.25),         test(()=>a.opexPerMW*=0.75,()=>a.opexPerMW/=0.75)]
+   ['PPA price',       test(()=>a.ppa+=10,()=>a.ppa-=10),                         test(()=>a.ppa-=10,()=>a.ppa+=10),                       '±€10/MWh'],
+   ['Capex',           test(()=>a.capexPerMW*=1.1,()=>a.capexPerMW/=1.1),         test(()=>a.capexPerMW*=0.9,()=>a.capexPerMW/=0.9),       '±10%'],
+   ['Capacity factor', test(()=>a.grossCF*=1.05,()=>a.grossCF/=1.05),             test(()=>a.grossCF*=0.95,()=>a.grossCF/=0.95),           '±5%'],
+   ['Debt rate',       test(()=>mac.allInRate+=0.005,()=>mac.allInRate-=0.005),   test(()=>mac.allInRate-=0.005,()=>mac.allInRate+=0.005), '±50bp'],
+   ['Opex',            test(()=>a.opexPerMW*=1.25,()=>a.opexPerMW/=1.25),         test(()=>a.opexPerMW*=0.75,()=>a.opexPerMW/=0.75),       '±25%']
  ];
  items.sort((x,y)=>Math.max(Math.abs(y[1]),Math.abs(y[2]))-Math.max(Math.abs(x[1]),Math.abs(x[2])));
  const xm=Math.max(...items.map(i=>Math.max(Math.abs(i[1]),Math.abs(i[2]))));
  Plotly.react('c_sens',[
   {y:items.map(i=>i[0]),x:items.map(i=>i[1]),name:'Input up',type:'bar',orientation:'h',marker:{color:'#43c079'},
-   text:items.map(i=>(i[1]>=0?'+':'')+fmt(i[1],1)),textposition:'outside',cliponaxis:false,textfont:{size:12},
-   customdata:items.map(i=>i[0]),hovertemplate:'%{customdata} up: %{x:+.1f}<extra></extra>'},
+    text:items.map(i=>(i[1]>=0?'+':'')+fmt(i[1],1)),textposition:'inside',insidetextanchor:'end',cliponaxis:true,textfont:{size:11,color:'#07110c'},
+    customdata:items.map(i=>[i[0],i[3]]),hovertemplate:'%{customdata[0]} up (%{customdata[1]}): %{x:+.1f} percentage points<extra></extra>'},
   {y:items.map(i=>i[0]),x:items.map(i=>i[2]),name:'Input down',type:'bar',orientation:'h',marker:{color:'#ff6b6b'},
-   text:items.map(i=>(i[2]>=0?'+':'')+fmt(i[2],1)),textposition:'outside',cliponaxis:false,textfont:{size:12},
-   customdata:items.map(i=>i[0]),hovertemplate:'%{customdata} down: %{x:+.1f}<extra></extra>'}
+    text:items.map(i=>(i[2]>=0?'+':'')+fmt(i[2],1)),textposition:'inside',insidetextanchor:'end',cliponaxis:true,textfont:{size:11,color:'#fff'},
+    customdata:items.map(i=>[i[0],i[3]]),hovertemplate:'%{customdata[0]} down (%{customdata[1]}): %{x:+.1f} percentage points<extra></extra>'}
  ],lay('IRR sensitivity · base '+fmt(base,1)+'%',
   {barmode:'overlay',showlegend:true,hovermode:'closest',
-   xaxis:{range:[-xm*1.85,xm*1.85],gridcolor:'#1c2531',zeroline:true,zerolinecolor:'#39465a'},
-   yaxis:{gridcolor:'transparent',automargin:true},margin:{l:104,r:58,t:64,b:40}}),CFG);
+    xaxis:{range:[-xm*1.28,xm*1.28],gridcolor:'#1c2531',zeroline:true,zerolinecolor:'#39465a',title:{text:'change in equity IRR · percentage points',font:{size:10}}},
+    yaxis:{gridcolor:'transparent',automargin:true},margin:{l:112,r:24,t:64,b:58}}),CFG);
 }
 /* ---- The spread the battery needs, not the cost of what it sells ----------------------------
    LCOS divides total cost by delivered energy and hands back a number that includes the price of
@@ -1168,8 +1191,25 @@ function printAsk(){
 /* ---- scenarios ----------------------------------------------------------------------------
    A scenario is the whole model state under a name. Saved in the tab's own storage, so it does
    not follow anyone around, and exportable to a file or a link for when it should. ---------- */
-function snapshot(){return JSON.parse(JSON.stringify(M));}
-function restore(s){for(const k in s)M[k]=s[k];_SUPC=null;_CLIPF=null;}
+function snapshot(){return {version:2,model:JSON.parse(JSON.stringify(M)),tranche:JSON.parse(JSON.stringify(TRANCHE))};}
+function cleanState(src,tpl){
+ const out={};if(!src||typeof src!=='object'||Array.isArray(src))return out;
+ for(const k of Object.keys(tpl)){
+  const sv=src[k],tv=tpl[k];
+  if(typeof tv==='number'&&typeof sv==='number'&&Number.isFinite(sv)&&Math.abs(sv)<=1e9)out[k]=sv;
+  else if(typeof tv==='boolean'&&typeof sv==='boolean')out[k]=sv;
+  else if(typeof tv==='string'&&typeof sv==='string'&&sv.length<=80&&/^[A-Za-z0-9_.:/ -]*$/.test(sv))out[k]=sv;
+  else if(tv&&typeof tv==='object'&&!Array.isArray(tv))out[k]=cleanState(sv,tv);
+ }
+ return out;
+}
+function restore(s){
+ const packet=(s&&s.version===2&&s.model)?s:{model:s,tranche:null};
+ const safe=cleanState(packet.model,JSON.parse(DEFAULTS_JSON));
+ for(const k of Object.keys(safe))M[k]=(safe[k]&&typeof safe[k]==='object')?Object.assign({},M[k],safe[k]):safe[k];
+ if(packet.tranche){const tr=cleanState(packet.tranche,JSON.parse(DEFAULT_TRANCHE_JSON));for(const k of Object.keys(tr))TRANCHE[k]=tr[k];}
+ _SUPC=null;_CLIPF=null;
+}
 function scenList(){try{return JSON.parse(sessionStorage.getItem('gdcScen')||'{}');}catch(e){return {};}}
 function scenSave(name){
  if(!name)return;
@@ -1188,6 +1228,7 @@ function scenFile(){
 }
 function scenOpenFile(inp){
  const f=inp.files&&inp.files[0]; if(!f)return;
+ if(f.size>1000000){alert('That scenario file is too large.');inp.value='';return;}
  const r=new FileReader();
  r.onload=()=>{try{const j=JSON.parse(r.result); if(j&&j.model){restore(j.model);render();}else alert('That file does not carry a model.');}
    catch(e){alert('Could not read that file.');}};
@@ -1205,6 +1246,7 @@ function scenLink(){
 function scenFromHash(){
  try{
   const m=/[#&]s=([^&]+)/.exec(location.hash||''); if(!m)return false;
+   if(m[1].length>200000)return false;
   const j=JSON.parse(decodeURIComponent(escape(atob(m[1]))));
   restore(j); return true;
  }catch(e){return false;}
@@ -1298,8 +1340,8 @@ const ASKS=[
  {q:'What if the market doubles? Who pays?',
   apply:()=>{M.dc.resFix=198;M.dc.spvMode='pass';}, go:['summary','fin'],
   say:'Source price doubled. In pass-through the data center pays it, and the SPV return barely moves.'},
- {q:'What if the parks want €110 instead of €100?',
-  apply:()=>{M.wind.ppa=110;M.solar.ppa=110;}, go:['summary','fin'],
+  {q:'What if the parks want €110 instead of the blended case?',
+   apply:()=>{TRANCHE.enabled=false;M.wind.ppa=110;M.solar.ppa=110;}, go:['summary','fin'],
   say:'Both PPA prices to €110. Watch the price the data center has to pay for a 9% return.'},
  {q:'What if solar reaches the AFRY P50 instead of the current planning assumption?',
   apply:()=>{M.solar.grossCF=1157/8760;}, go:['solar','fin'],
@@ -1323,9 +1365,9 @@ const ASKS=[
   apply:()=>{if((M.dc.spvMode||'pass')==='pass')M.dc.spvMargin=Math.round(solveMarginFor(0.07)*10000)/10000;
              else M.dc.dcPrice=Math.round(solveDcFor(0.07)*10)/10;}, go:['summary','fin'],
   say:'Margin solved for a 7% SPV equity return. The euro per MWh follows from it.'},
- {q:'What if only the first 200 MW is priced at €100?',
-  apply:()=>{TRANCHE.t1MW=200;TRANCHE.p1=100;TRANCHE.p2=80;}, go:['summary','fin'],
-  say:'Tranche one at €100 on 200 MW, the rest at €80.'},
+  {q:'What if the remaining portfolio is priced at €70?',
+   apply:()=>{TRANCHE.enabled=true;TRANCHE.t1MW=200;TRANCHE.p1=100;TRANCHE.p2=70;syncTranchePpa();}, go:['summary','fin'],
+   say:'Tranche one at €100 on 200 MW, the remaining portfolio at €70, with the blended price applied to both asset models.'},
  {q:'Show the full sensitivity analysis.',
   apply:()=>{}, go:['summary','sens'], say:'Every input moved across its own range, ranked by effect.'}
 ];
@@ -1494,7 +1536,7 @@ function linePanel(){
     <td><button class="chip" style="cursor:pointer;padding:3px 9px;font-size:12.5px" onclick="M.conn.directPer100=${fmt2(r.eff)};M.conn.lineBasis='${r.k}';render()">use</button></td></tr>`).join('')}
   </tbody></table>
   <div class="info" style="margin-top:12px"><b>The two figures measure different things.</b> The written estimate is a rate per 100 MW on a reference route of about 10 km at 30 kV. Burgenland Energie's €${fmt(BE_LUMP,0)}m is a total for the real portfolio at 110 kV. Put on the same basis they nearly meet: the portfolio is ${fmt(mw,0)} MW of export capacity, the capacity-weighted route is ${fmt(avg,1)} km rather than 10, and the drilling variant at those distances gives <b>€${fmt(drill.dist,0)}m</b> against their <b>€${fmt(BE_LUMP,0)}m</b>, a ${fmt(Math.abs(BE_LUMP-drill.dist)/BE_LUMP*100,0)}% difference. What remains between them is the step from 30 kV to 110 kV, which has not been settled, and overhead construction, which neither side has priced. Overhead on the ${longKm.length} long rural routes would save roughly €${fmt(mwkm*7.54/1000*(1-1/1.6),0)}m to €${fmt(mwkm*7.54/1000*(1-1/3),0)}m if permitting allows it.
-   <br><br><b>The model carries €7.54 because it is the only figure in writing.</b> The €${fmt(BE_LUMP,0)}m is a spoken figure and has not been confirmed in writing. The difference is worth about ${fmt((lo.irr-hi.irr)*10000,0)} basis points of SPV equity return (${fmt(lo.irr*100,2)}% against ${fmt(hi.irr*100,2)}%) and does not change what the data center pays, since the line sits in our capital and not in their bill. Each row in the table can be applied to the model with its button.
+   <br><br><b>The model carries €7.54 because it is the only figure in writing.</b> The €${fmt(BE_LUMP,0)}m is a counterparty-stated figure and has not been confirmed in writing. The difference is worth about ${fmt((lo.irr-hi.irr)*10000,0)} basis points of modeled SPV equity return (${fmt(lo.irr*100,2)}% against ${fmt(hi.irr*100,2)}%). In this illustrative allocation, the line sits in Power SPV capex rather than the data-center energy bill; the commercial allocation remains to be agreed. Each row in the table can be applied to the model with its button.
   </div>
  </div>`;
 }
@@ -1523,64 +1565,8 @@ function drawLineChart(){
    not a production forecast or a claim based on project meters.
 -------------------------------------------------------------------------------------------- */
 
-/* ---- Commercial terms, sealed ---------------------------------------------------------------
-   The commercial terms are held encrypted, under their own code, separate from the data-room
-   code. Locked, TERMS is null and every panel falls back to a neutral default that comes from our
-   own record rather than from the document. Unlocked, the defaults move to the real numbers.
-   Nothing sensitive exists in this file as plain text.
-------------------------------------------------------------------------------------------- */
-
-let TERMS=null;
-async function termsDerive(pw){
- const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
- return crypto.subtle.deriveKey({name:'PBKDF2',salt:new TextEncoder().encode('gdc-nickelsdorf::terms'),
-   iterations:310000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
-}
-async function termsTry(){
- const el=document.getElementById('tmPw'), msg=document.getElementById('tmMsg');
- const v=(el&&el.value)||''; if(!v){if(el)el.focus();return;}
- if(msg)msg.textContent='Opening…';
- try{
-  const raw=Uint8Array.from(atob(TERMS_BLOB),c=>c.charCodeAt(0));
-  if(String.fromCharCode(...raw.slice(0,4))!=='TRM1')throw new Error('header');
-  const key=await termsDerive(v);
-  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:raw.slice(4,16)},key,raw.slice(16));
-  TERMS=JSON.parse(new TextDecoder().decode(pt));
-  try{sessionStorage.setItem('gdcTerms',v);}catch(e){}
-  applyTerms(); render(); afterRender();
- }catch(e){ if(msg)msg.textContent='Not recognised.'; }
-}
-/* Move the sliders onto the real numbers. Only ever called after a successful decrypt. */
-function applyTerms(){
- if(!TERMS)return;
- const t=TERMS;
- // Field names are opaque on purpose. Anyone reading this file learns that some numbers exist,
- // not what they are or what they describe.
- if(t.a!=null)M.site.leasePre=t.a;
- if(t.b!=null)M.site.leasePost=t.b;
- if(t.c!=null)M.site.partPct=t.c;
- if(t.d!=null)M.site.partCapM=t.d;
- if(t.e!=null)M.site.oneOff=t.e;
- if(t.f!=null)M.dc.revPerMW=t.f;
- if(t.i!=null)M.dc.claimShare=t.i;
- // Deliberately NOT applied to M.conn.wideInfra: opening the terms must not move the base case
- // underneath anyone. The figure is offered as a button on the perimeter panel instead.
- if(t.g!=null&&t.h!=null)TERMS._wide=t.g+t.h;
-}
-(async function termsBoot(){
- try{ const v=sessionStorage.getItem('gdcTerms'); if(!v)return;
-   const raw=Uint8Array.from(atob(TERMS_BLOB),c=>c.charCodeAt(0));
-   const key=await termsDerive(v);
-   const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:raw.slice(4,16)},key,raw.slice(16));
-   TERMS=JSON.parse(new TextDecoder().decode(pt)); applyTerms();
-   if(typeof render==='function'){render(); if(typeof afterRender==='function')afterRender();}
- }catch(e){}
-})();
 function termsBar(){
- return TERMS
-  ? `<div class="info" style="margin-bottom:12px;padding:8px 12px"><b>Commercial terms open.</b> The lease, the participation fee, the infrastructure cost centres and the supply terms below are the ones in the executed drafts. <span class="muted">Held under a separate code, not exported, not in any BE-facing copy.</span></div>`
-  : `<div class="warn" style="margin-bottom:12px;padding:8px 12px"><b>Commercial terms are sealed.</b> The land, participation and infrastructure figures below are neutral placeholders from our own record, not the negotiated terms. Everything still computes; only the starting values differ.
-     <span style="display:inline-flex;gap:6px;align-items:center;margin-left:10px"><input type="password" id="tmPw" placeholder="terms code" style="width:130px;padding:3px 7px;font-size:12px" onkeydown="if(event.key==='Enter')termsTry()"><button class="chip" style="cursor:pointer" onclick="termsTry()">Open</button><span id="tmMsg" class="muted" style="font-size:12.5px"></span></span></div>`;
+ return `<div class="warn" style="margin-bottom:12px;padding:8px 12px"><b>Public planning placeholders.</b> Negotiated commercial terms are not shipped with this static site. The land, participation, infrastructure and revenue figures below are illustrative inputs and must be replaced and validated in an authenticated working model.</div>`;
 }
 /* ============================================================================================
    THE THREE BUCKETS
@@ -1646,7 +1632,7 @@ function battSection(){
    <div style="display:grid;gap:9px">
     <div>• <b>${b.gridYear>=2099?'No grid market participation is modelled.':'Grid market participation only from ~'+b.gridYear+'.'}</b> Until then the battery earns the DC reliability charge only and charges behind the meter off the direct line.</div>
     <div>• <b>Ancillary is capped by the market.</b> Austria's aFRR market is only ±225 MW deep, so ancillary revenue cannot scale with a ${fmt(b.powerMW,0)} MW machine.</div>
-    <div>• <b>Network charges once it trades.</b> Behind the meter it pays no use-of-system charge; trading over the public network puts the NE3 tariff on a ${fmt(b.powerMW,0)} MW connection at <b>€${fmt(mkFee,1)}m a year</b>. ${b.mktCapFee?`Switched on from ${b.gridYear>=2099?'never':b.gridYear}.`:`Switched off here; the toggle on the right shows the downside.`}</div>
+     <div>• <b>Network-charge treatment is open.</b> The behind-the-meter case currently models no use-of-system charge before merchant trading. Public-network trading can put the NE3 tariff on a ${fmt(b.powerMW,0)} MW connection at <b>€${fmt(mkFee,1)}m a year</b>. ${b.mktCapFee?`Applied from the modeled ${b.gridYear>=2099?'never':'merchant year '+b.gridYear}.`:`Not applied in the base case; the toggle on the right shows this downside.`}</div>
    </div></div>`;
  const note=(F.standby>1)?`<div class="warn">⚠️ <b>Top-up equity.</b> Until the merchant year the battery does not cover its own debt service: equity stands behind <b>€${fmt(F.standby,0)}m</b> on top of the €${fmt(F.equityAtCod,0)}m at COD.</div>`:'';
  return kpis+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr">
@@ -1767,8 +1753,9 @@ function headroom(){
 
 
 /* ---------- tranche PPA ----------
-   Burgenland Energie guaranteed 10 cents a kilowatt-hour for the first 200 MW only. Everything
-   above that is open, and the model still runs one flat price across the whole portfolio. */
+   A participant stated that €100/MWh was contemplated for the first 200 MW; this is not a
+   confirmed Burgenland Energie commitment. Everything above that remains open, while the model
+   still runs one flat illustrative price across the whole portfolio. */
 
 /* ---------- the tail after the PPA ----------
    Fit what has actually happened to capture ratios, project it, and show the model's flat
@@ -1889,9 +1876,7 @@ function supplyPage(){
    `<div class="chart tall" id="pmain"></div><div id="pstats"></div>`;
 }
 function applyT2(v){
- TRANCHE.p2=+v;
- const mw=fleetAC(), t1=Math.min(TRANCHE.t1MW,mw), blend=mw>0?(t1*TRANCHE.p1+Math.max(0,mw-t1)*TRANCHE.p2)/mw:TRANCHE.p1;
- M.wind.ppa=+blend.toFixed(1); M.solar.ppa=+blend.toFixed(1); render();
+ TRANCHE.p2=+v;TRANCHE.enabled=true;syncTranchePpa();render();
 }
 function summaryPage(){
  const VIEWS=[['batt','Battery model'],['fin','Power SPV model'],['spread','Spreads'],['supply','Supply'],['corr','Correlation'],['tech','Technical layout']];
@@ -1916,11 +1901,11 @@ function summaryPage(){
  const y1=SP.rows.find(r=>r.y===FF)||{rev:0,bRev:0,gridCost:0,resPPA:0,opex:0,ebitda:0};
  const constructionEq=-SP.rows.filter(r=>r.y<FF&&r.fcfe<0).reduce((s,r)=>s+r.fcfe,0);
  const preMerchantTopup=-SP.rows.filter(r=>r.y>=FF&&r.y<M.battery.gridYear&&r.fcfe<0).reduce((s,r)=>s+r.fcfe,0);
- const mw=fleetAC(), t1=Math.min(TRANCHE.t1MW,mw), blend=mw>0?(t1*TRANCHE.p1+Math.max(0,mw-t1)*TRANCHE.p2)/mw:TRANCHE.p1;
+  const mw=fleetAC(), t1=Math.min(TRANCHE.t1MW,mw), blend=trancheBlend();
  const battG=(M.battery.gearing!=null?M.battery.gearing:M.macro.gearing);
  const inputsL=`<div class="panel"><h3>Portfolio & supply</h3>
   ${sliderHTML('wind','mw','Wind',50,600,5,' MW<sub>AC</sub>')}
-  ${sliderHTML('solar','mw','Solar',50,600,5,' MWp<sub>DC</sub>')}
+  ${sliderHTML('solar','mw','Solar',50,600,1,' MWp<sub>DC</sub>')}
   ${sliderHTML('battery','powerMW','Battery',0,900,10,' MW<sub>AC</sub>')}
   ${sliderHTML('battery','durationH','Battery duration',1,12,1,' h')}
   ${sliderHTML('dc','firmMW','Data center load',100,900,10,' MW<sub>AC</sub>')}
@@ -1931,7 +1916,7 @@ function summaryPage(){
  const inputsR=`<div class="panel"><h3>Contract & financing</h3>
   <div class="inp"><label>Tranche 2 PPA price<b>€${fmt(TRANCHE.p2,0)}/MWh</b></label>
    <input type="range" min="50" max="110" step="1" value="${TRANCHE.p2}" oninput="applyT2(this.value)"></div>
-  <div class="muted" style="margin:-4px 0 10px;font-size:12.5px">First ${fmt(t1,0)} MW at €${fmt(TRANCHE.p1,0)}, the rest at €${fmt(TRANCHE.p2,0)} · blends to €${fmt(blend,1)}/MWh across ${fmt(mw,0)} MW</div>
+  <div class="muted" style="margin:-4px 0 10px;font-size:12.5px">${TRANCHE.enabled?`First ${fmt(t1,0)} MW at €${fmt(TRANCHE.p1,0)}, the rest at €${fmt(TRANCHE.p2,0)} · €${fmt(blend,1)}/MWh blended price applied to both asset models`:`Manual asset-level PPA prices are active. Move this control to reapply the €${fmt(blend,1)}/MWh tranche blend.`}</div>
   ${M.dc.marginMode==='flat'?sliderHTML('dc','marginEur','SPV margin',0,20,0.25,' €/MWh'):sliderHTML('dc','spvMargin','SPV margin',0,0.15,0.0025,'% of energy cost',100)}
   <div class="inp"><label>Margin form<b>${M.dc.marginMode==='flat'?'€/MWh':'% of cost'}</b></label>
    <div class="seg"><button class="${M.dc.marginMode!=='flat'?'on':''}" onclick="M.dc.marginMode='pct';render()">Percentage</button><button class="${M.dc.marginMode==='flat'?'on':''}" onclick="M.dc.marginMode='flat';render()">€/MWh</button></div></div>
@@ -1965,7 +1950,7 @@ function summaryPage(){
      oninput="spvEconY=+this.value;drawSpvEcon()">
    <b id="spvEconYLbl" style="font-size:15.5px;font-family:'Exo 2',Inter,sans-serif;min-width:130px;text-align:right">${(spvEconY||FF)} · year ${(spvEconY||FF)-FF+1}</b></div>`;
  const marginBasis=M.dc.marginMode==='flat'?'€'+fmt(M.dc.marginEur,2)+'/MWh':fmt(M.dc.spvMargin*100,1)+'% of energy cost';
- const irrBasis=`<div class="info" style="margin:0 0 14px;max-width:none"><b>Modeled base case.</b> The return includes the ${fmt(M.battery.powerMW,0)} MW / ${fmt(M.battery.powerMW*M.battery.durationH/1000,1)} GWh battery, private line and interface. It assumes an SPV margin of ${marginBasis}, a €${fmt(M.battery.capChargeMWyr,0)}k/MW/yr data-center reliability charge, and battery market participation from ${M.battery.gridYear}. Total modeled equity support is €${fmt(SP.equity,0)}m: €${fmt(constructionEq,0)}m during construction plus €${fmt(preMerchantTopup,0)}m before merchant operation. Wind and solar are purchased under PPAs, so their construction capex and asset returns sit outside this SPV return. These assumptions remain illustrative until contracted and independently validated.</div>`;
+  const irrBasis=`<div class="info" style="margin:0 0 14px;max-width:none"><b>Modeled base case.</b> The return includes the ${fmt(M.battery.powerMW,0)} MW / ${fmt(M.battery.powerMW*M.battery.durationH/1000,1)} GWh battery, private line and interface. It assumes an SPV margin of ${marginBasis}, a €${fmt(M.battery.capChargeMWyr,0)}k/MW/yr data-center reliability charge, and battery market participation from ${M.battery.gridYear}. Total modeled equity support is €${fmt(SP.equity,0)}m: €${fmt(constructionEq,0)}m during construction plus €${fmt(preMerchantTopup,0)}m before merchant operation. Wind and solar are purchased under PPAs, so their construction capex and asset returns sit outside this SPV return. <b>Cash-flow limitation:</b> residual grid energy is netted annually; the hourly Supply view and battery dispatch do not yet feed the firm-energy cash flow, and battery trading revenue is shown as a separate modeled stream. These assumptions remain illustrative until contracted and independently validated.</div>`;
  return seg+kpis+irrBasis+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr">
    ${yrCtl}<div class="chart tall" id="spvEcon"></div><div class="chart tall" id="spvcf"></div></div>${inputsR}</div>${table}`;
 }
@@ -2617,7 +2602,7 @@ function pxPage(){
    <div class="muted" id="pxStatus" style="margin-top:9px">Loading the hourly record…</div></div>
   <div class="chartWrap"><div class="chart tall" id="px_chart"></div></div>
   <div id="pxTable" style="margin-top:14px"></div>
-  <div class="info" style="margin-top:12px">Hourly Austrian day-ahead wholesale prices, ${NEGP.totalHours.toLocaleString('en-US')} prints from ${NEGP.byYear[0].year} to July 2026, in €/MWh with the local timestamp exactly as supplied. Source: Ember European wholesale electricity prices. This is public market data, not Burgenland Energie material, so it sits outside the access code and downloads unencrypted. The table shows the first 500 matching rows; the CSV carries every one.</div>`;
+  <div class="info" style="margin-top:12px">Hourly Austrian day-ahead wholesale prices, ${NEGP.totalHours.toLocaleString('en-US')} observations from ${NEGP.byYear[0].year} through 10 August 2026, in €/MWh with the local timestamp exactly as supplied. Source: Ember European wholesale electricity prices. This is public market data, not Burgenland Energie material, so it sits outside the access code and downloads unencrypted. The table shows the first 500 matching rows; the CSV carries every one.</div>`;
 }
 async function pxBoot(){
  if(pxRows||pxBusy)return pxDraw();
@@ -2989,8 +2974,8 @@ function svgBessBlock(){
   tx(eb+floorW/2,ey+27,`${pct(g.b.socFloor||0,0)}`,{a:'middle',f:'#04120f',s:13,w:700,m:1})+
   tx(eb+floorW+(ew-floorW)/2,ey+27,`tradeable ${nfm(g.mwh-g.floorMWh)} MWh`,{a:'middle',f:RC.tx,s:11.5,m:1})+
   tx(eb,ey-12,`SoC floor held as outage ride-through: ${nfm(g.floorMWh)} MWh`,{f:RC.acc,s:11,w:600})+
-  tx(eb,ey+eh+22,`= <tspan font-weight="700" fill="${RC.acc}">${nfm(g.rideMin)} minutes</tspan> at the full ${nfm(M.dc.firmMW)} MW load, against ~14 min/yr unplanned SAIDI in the Netz Burgenland area and ~23 min/yr Austria (2024).`,{s:12})+
-  tx(eb,ey+eh+40,`That is N+1 on electrons. The grid tie itself stays N: UW Andau is fed through UW Zurndorf, so it adds capacity, not an independent source.`,{s:12})+
+  tx(eb,ey+eh+22,`= <tspan font-weight="700" fill="${RC.acc}">${nfm(g.rideMin)} minutes</tspan> at the full ${nfm(M.dc.firmMW)} MW load. SAIDI is shown elsewhere as a network benchmark, not as proof of ride-through adequacy.`,{s:12})+
+  tx(eb,ey+eh+40,`Illustrative energy reserve only — not an N+1, Tier or uptime claim. The grid tie remains a single dependency: UW Andau is fed through UW Zurndorf, so it adds capacity, not an independent source.`,{s:12})+
   // grid access state
   rct(CX+CW-278,CY+40,262,CH-56,RC.gr,open?RC.red:RC.solar,{rx:6,sw:1})+
   tx(CX+CW-262,CY+62,open?'GRID EXPORT · NOT MODELLED':`GRID EXPORT FROM ${g.b.gridYear}`,{f:open?RC.red:RC.solar,s:11,w:700})+
@@ -2998,7 +2983,7 @@ function svgBessBlock(){
    `<path d="M ${CX+CW-192} ${CY+86} l -7 -5 m 7 5 l -7 5" stroke="${RC.mu}" stroke-width="2" fill="none"/>`+
    (open?`<path d="M ${CX+CW-233} ${CY+78} l 16 16 M ${CX+CW-217} ${CY+78} l -16 16" stroke="${RC.red}" stroke-width="2.4"/>`:'')+`</g>`+
   tx(CX+CW-182,CY+90,'battery → grid',{s:12.5,f:open?RC.red:RC.mu})+
-  wrapT(CX+CW-262,CY+112,open?'A two-way tie competes with generation for scarce grid capacity; none is assumed.':`Export ban runs to ~${g.b.gridYear}. Charging stays behind the meter off the direct line until then.`,42,13,{s:12.5});
+  wrapT(CX+CW-262,CY+112,open?'A two-way tie competes with generation for scarce grid capacity; none is assumed.':`Merchant export is modeled from ${g.b.gridYear}; this date is an open scenario input, not a confirmed grid commitment.`,42,13,{s:12.5});
  const svg=sv(1100,520,rct(0,0,1100,520,RC.bg)+A+B+C,600);
  const sub=`<b>${nfm(g.cont)} enclosures</b> in <b>${g.blocks} blocks</b> for the <b>${nfm(g.b.powerMW)} MW / ${nfm(g.mwh)} MWh</b> on the sliders, about <b>${g.siteHa.toFixed(1)} ha</b> or roughly a tenth of the ${nfm(38.75)} ha of zoned Bauland. `+
   `The green band is the ${pct(g.b.socFloor||0,0)} floor the model holds back: <b>${nfm(g.rideMin)} minutes</b> of ride-through at ${nfm(M.dc.firmMW)} MW. `+
@@ -3120,7 +3105,7 @@ function svgDcCampus(){
   northArrow(ox+Wm*s-22,Y+34,10,0)+scaleBar(ox,yEnd+40,s,200,'m')+
   sched+seal+halls2+notes;
  const svg=sv(1100,584,rct(0,0,1100,584,RC.bg)+body,860);
- const sub=`<b>${g.halls} data halls</b> at ${TECH.hallMW} MW IT each carry the <b>${nfm(g.firm)} MW</b> firm offtake (${nfm(g.it)} MW IT at PUE ${TECH.pue}). `+
+ const sub=`<b>${g.halls} data halls</b> at ${TECH.hallMW} MW IT each represent <b>${nfm(g.firm)} MW</b> of modeled contracted demand (${nfm(g.it)} MW IT at PUE ${TECH.pue}). `+
   `Building footprint <b>${g.hallHa.toFixed(1)} ha</b>; with the substation, yards and roads about <b>${g.sealed.toFixed(1)} ha</b> sealed against the <b>${g.cap.toFixed(1)} ha</b> the plan allows `+
   `<span style="color:${g.sealed>g.cap?RC.red:RC.acc}">(${g.sealed>g.cap?'over the limit':'within the limit'})</span>.`+
   (over>0?` The plan only fits <b>${placed}</b> of them at this hall size; the last ${over} are not drawn.`:'');
@@ -3293,7 +3278,7 @@ function landingScene(id,hh,cls){
       <ellipse cx="-92" cy="-5" rx="78" ry="11" fill="${col}"/></g></g>`;
  return `<svg id="${id}" class="${cls||'heroScene'}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice"
    xmlns="http://www.w3.org/2000/svg" role="img"
-   aria-label="The Nickelsdorf site at golden hour: wind turbines, single-axis solar trackers, battery storage, the private direct line and the data center under construction on the Pannonian plain, with the Neusiedler See on the horizon">
+   aria-label="Illustrative future-state Nickelsdorf campus at golden hour: wind turbines, single-axis solar trackers, battery storage, a proposed private direct line and data-center buildings on the Pannonian plain, with the Neusiedler See on the horizon">
   <defs>
    <linearGradient id="sky${id}" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0" stop-color="#0d2440">${mo?'':`<animate attributeName="stop-color" dur="${C}s" begin="${B}s" repeatCount="indefinite"
@@ -3371,7 +3356,7 @@ function landingScene(id,hh,cls){
    ${crane(6,40,0.62,'#5d7a95',0,mo)}
    ${crane(300,44,0.78,'#54718c',1,mo)}
    <text x="-12" y="-22" font-size="13" fill="${RIM}" letter-spacing="3" opacity=".68" font-family="Inter,sans-serif">DATA CENTER</text>
-   <text x="-12" y="-8" font-size="9" fill="#9db4c6" letter-spacing="2.2" opacity=".55" font-family="Inter,sans-serif">PHASE 1 UNDER CONSTRUCTION</text>
+  <text x="-12" y="-8" font-size="9" fill="#9db4c6" letter-spacing="2.2" opacity=".65" font-family="Inter,sans-serif">ILLUSTRATIVE FUTURE STATE</text>
   </g>
 
   ${trackerBand('trkF',60,hz+44,880,2,0.68,0.55,17)}
@@ -3452,10 +3437,9 @@ function splashHTML(){
    </div>
    <button class="splashBtn" onclick="closeSplash()">Open dashboard<span class="arr">→</span></button>
   </div>
-  <div class="splashFoot" aria-label="Project partners">
+  <div class="splashFoot" aria-label="Planning case attribution">
    <a class="brandLink splashPartner splashPartnerNx" href="https://nexwell.com" target="_blank" rel="noopener noreferrer" title="Nexwell">${NXLOGO('')}</a>
-   <span style="color:#3d5164;font-size:26px">×</span>
-   <a class="brandLink splashPartner splashPartnerBe" href="https://www.burgenlandenergie.at" target="_blank" rel="noopener noreferrer" title="Burgenland Energie">${BELOGO('',true)}</a>
+   <span style="color:#8ca097;font-size:11px;letter-spacing:.14em;text-transform:uppercase">Independent planning case · no counterparty approval implied</span>
   </div>
  </div>`;
 }
@@ -3518,7 +3502,7 @@ function flowDiagram(){
   <g class="fSeg fF-battc">${flow(`M576,150 C576,182 576,190 576,196`,bat,3.4)}</g>
   <g class="fSeg fF-battd">${flow(`M700,214 C790,214 830,150 858,132`,bat,4.2)}</g>
   <g class="fSeg fF-grid">${flow(`M262,220 C420,258 700,258 862,158`,grid,5.4,true)}</g>
-  <g class="fSeg fN-wind">${box(28,32,234,52,`${fmt(M.wind.mw,0)} MW wind`,`Burgenland Energie parks`,line,wind,GLY.wind)}</g>
+  <g class="fSeg fN-wind">${box(28,32,234,52,`${fmt(M.wind.mw,0)} MW wind`,`candidate wind parks`,line,wind,GLY.wind)}</g>
   <g class="fSeg fN-sol">${box(28,124,234,52,`${fmt(M.solar.mw,0)} MWp solar`,`trackers and agri-PV`,line,sol,GLY.sun)}</g>
   <g class="fSeg fN-grid">${box(28,188,234,52,'Austrian grid',`balance only · NE3 fees apply`,line,grid,GLY.at)}</g>
   <g class="fNode fSeg fN-line"><rect x="452" y="60" width="248" height="98" rx="11" fill="#16211c" stroke="${g}" stroke-width="1.4"/>
@@ -3635,7 +3619,7 @@ const MASTERPLAN_POINTS={
  dc:{n:'01',label:'Data center campus',x:38,y:57,tab:'datacentre',tabLabel:'Data Center',
   text:()=>`The ${fmt(M.dc.firmMW,0)} MW target campus is shown beside the substation and battery, with renewable energy delivered through the private electrical corridor.`,
   facts:()=>[['Target load',fmt(M.dc.firmMW,0)+' MW'],['Annual demand',fmt(M.dc.firmMW*8.76,0)+' GWh']]},
- battery:{n:'02',label:'Battery campus',x:63,y:68,tab:'battery',tabLabel:'Power SPV',
+ battery:{n:'02',label:'Battery campus',x:73,y:71,tab:'battery',tabLabel:'Power SPV',
   text:()=>`The battery is shown beside the campus substation as part of the campus power system.`,
   facts:()=>[['Power',fmt(M.battery.powerMW,0)+' MW'],['Energy',fmt(M.battery.powerMW*M.battery.durationH/1000,1)+' GWh']]},
  substation:{n:'03',label:'Campus substation',x:79,y:55,tab:'summary',tabLabel:'Power SPV',
@@ -3644,10 +3628,10 @@ const MASTERPLAN_POINTS={
  solar:{n:'04',label:'Solar portfolio',x:78,y:30,tab:'solar',tabLabel:'Solar',
   text:()=>`The solar portfolio is shown close to the campus and connects through the private electrical corridor.`,
   facts:()=>[['Capacity',fmt(M.solar.mw,0)+' MWp'],['Projects',PROJ.filter(p=>p.t==='s').length]]},
- wind:{n:'05',label:'Wind portfolio',x:24,y:20,tab:'wind',tabLabel:'Wind',
+ wind:{n:'05',label:'Wind portfolio',x:33,y:12,tab:'wind',tabLabel:'Wind',
   text:()=>`The wind portfolio is shown across the wider Burgenland area and connects through the private electrical corridor.`,
   facts:()=>[['Capacity',fmt(M.wind.mw,0)+' MW'],['Projects',PROJ.filter(p=>p.t==='w').length]]},
- line:{n:'06',label:'Private electrical corridor',x:60,y:43,tab:'summary',tabLabel:'Power SPV',
+  line:{n:'06',label:'Private electrical corridor',x:61,y:49,tab:'summary',tabLabel:'Power SPV',
   text:()=>`The private electrical corridor links selected wind and solar projects with the campus substation.`,
   facts:()=>[['Wind loss',pct(M.wind.lineLoss,1)],['Solar loss',pct(M.solar.lineLoss,1)]]}
 };
@@ -3663,10 +3647,10 @@ function masterplanSection(){
  const points=Object.entries(MASTERPLAN_POINTS).map(([k,p])=>`<button class="mpHot ${k===mpPoint?'on':''}" data-key="${k}" style="--x:${p.x}%;--y:${p.y}%" onmouseenter="mpPreview('${k}')" onfocus="mpPreview('${k}')" onclick="mpGo('${k}',event)" aria-label="Open ${p.label} in the ${p.tabLabel} tab"><span>${p.n}</span><b>${p.label}</b></button>`).join('');
  return `<section class="sect" id="masterplan">
   <div class="mpHead"><div><div class="kick">Project layout</div><h2 class="dsp">Site layout and power connections.</h2></div></div>
-  <p class="lede">The illustration shows the relative location of the campus, generation, storage, substation and private line. Hover over an element for a summary, or select it to open the related dashboard section.</p>
+   <p class="lede">The future-state illustration shows the relationships between the campus, generation, storage, substation and a screened private electrical route. Hover over an element for a summary, or select it to open the related dashboard section.</p>
   <div class="masterplan">
-   <div class="mpStage"><img src="assets/nickelsdorf-masterplan-burgenland.png" loading="lazy" alt="Illustrative isometric layout of the Nickelsdorf data center, battery, substation, solar fields and wind farms in Burgenland"><div class="mpWash"></div>${points}
-    <div class="mpCaption">Illustrative concept · approximate locations · not to scale</div></div>
+   <div class="mpStage"><img src="assets/nickelsdorf-masterplan-future-state.png" loading="lazy" alt="Illustrative future-state aerial layout of the Nickelsdorf data center, battery, substation, solar fields and wind farms in Burgenland"><div class="mpWash"></div>${points}
+     <div class="mpCaption">Illustrative future state · not georeferenced, approved or to scale</div></div>
    <aside class="mpInfo" id="mpInfo">${masterplanCard(mpPoint)}</aside>
   </div>
   <div class="mpFlowNav" role="group" aria-label="Project power connections">
@@ -3763,12 +3747,12 @@ function castSection(){
  const W=computeAsset(M.wind), S=computeAsset(M.solar), B=computeBattery(M.battery), SS=supplyStats();
  const gwh=(W.prod+S.prod)/1000, PS=projStats();
  const cards=[
-  {name:'Burgenland Energy',flag:FLAG.at,ico:ICO.utility,col:'#4aa8ff',tint:'rgba(74,168,255,.13)',
-   role:'The Austrian utility, shown as one party for both the contracted renewable portfolio and the grid balance required by the campus.',
+  {name:'Burgenland Energie',flag:FLAG.at,ico:ICO.utility,col:'#4aa8ff',tint:'rgba(74,168,255,.13)',
+   role:'A modeled utility role for candidate renewable supply and residual grid balance. This planning case does not represent utility approval or an executed agreement.',
     mets:[['Candidate supply',fmt(fleetAC(),0)+' MW AC'],['Pipeline',PROJ.length+' projects'],['Grid balance',fmt(SS.gridPct,0)+'% modelled'],['Modelled term','20 years']],
    go:'wind',jump:'Wind'},
   {name:'Power SPV',ico:ICO.spv,col:'#12b95a',tint:'rgba(0,154,68,.15)',
-   role:'Owns or contracts the private power assets and manages the agreed energy service between Burgenland Energy and the campus.',
+   role:'Models a proposed structure that would own or contract private power assets and provide an energy service between the utility role and the campus.',
     mets:[['Portfolio case',fmt(gwh,0)+' GWh/yr'],['Private assets','line + storage'],['Battery case',fmt(M.battery.powerMW,0)+' MW / '+fmt(B.energy/1000,1)+' GWh'],['Working scope','line + storage']],
    go:'summary',jump:'Power SPV'},
   {name:'U.S. AI data center landlord',flag:FLAG.us,ico:ICO.dc,col:'#eaf2f8',tint:'rgba(234,242,248,.10)',
@@ -3776,8 +3760,8 @@ function castSection(){
     mets:[['Target load',fmt(M.dc.firmMW,0)+' MW'],['At full run-rate',fmt(M.dc.firmMW*8.76,0)+' GWh/yr'],['Built scope','land + powered shell'],['Commercial model','powered shell']],
    go:'datacentre',jump:'Data Center'}];
   return `<section class="sect" id="counterparties">
-   <div class="kick">Counterparties</div>
-   <h2 class="dsp">Project counterparties.</h2>
+    <div class="kick">Modeled roles</div>
+    <h2 class="dsp">Illustrative project participants.</h2>
    <div class="castGrid">${cards.map(castCard).join('')}</div>
   </section>`;
 }
@@ -3835,6 +3819,15 @@ function overviewPage(){
    </div>
   </section>`;
 
+ const statusLedger=`<section class="sect" id="source-status">
+  <div class="kick">Source status</div><h2 class="dsp">What is evidence, assumption or illustration.</h2>
+  <div class="factGrid" style="margin-top:16px">
+   <div class="factCard"><div class="mpEyebrow">Published source</div><h3>Market prices</h3><p>Austrian day-ahead history and the cited public benchmarks. Dates and methodology are shown with each analysis.</p></div>
+   <div class="factCard"><div class="mpEyebrow" style="color:#ffb23e">Counterparty-stated</div><h3>Project pipeline</h3><p>Capacities, route distances, status and dates from the supplied project list; not independently verified commitments.</p></div>
+   <div class="factCard"><div class="mpEyebrow" style="color:#b98cff">Modeled</div><h3>Economics and supply</h3><p>Scenario outputs from editable assumptions. They are neither forecasts nor agreed commercial terms.</p></div>
+   <div class="factCard"><div class="mpEyebrow" style="color:#8ef0b8">Illustrative</div><h3>Campus masterplan</h3><p>A future-state storytelling view; not georeferenced, approved, engineered or to scale.</p></div>
+  </div></section>`;
+
  const NAVC=[['wind','Wind',fmt(M.wind.mw,0)+' MW wind model and project economics.'],
    ['solar','Solar',fmt(M.solar.mw,0)+' MWp solar model and capture-price profile.'],
    ['summary','Power SPV',fmt(M.battery.powerMW,0)+' MW battery, private lines and Power SPV economics.'],
@@ -3850,16 +3843,14 @@ function overviewPage(){
    </div>
   </section>`;
 
- const foot=`<div class="panel" style="margin-top:14px;display:flex;align-items:center;gap:30px;flex-wrap:wrap;justify-content:center;padding:22px 18px">
-   <span style="color:var(--mut);font-size:12.5px;letter-spacing:.24em;text-transform:uppercase">Developed by</span>
+  const foot=`<div class="panel" style="margin-top:14px;display:flex;align-items:center;gap:30px;flex-wrap:wrap;justify-content:center;padding:22px 18px">
+   <span style="color:var(--mut);font-size:12.5px;letter-spacing:.24em;text-transform:uppercase">Planning case developed by</span>
    <a class="brandLink" href="https://nexwell.com" target="_blank" rel="noopener noreferrer" title="Nexwell, opens nexwell.com">
     ${NXLOGO('height:112px')}</a>
-   <span style="color:var(--line);font-size:22px">×</span>
-   <a class="brandLink" href="https://www.burgenlandenergie.at" target="_blank" rel="noopener noreferrer" title="Burgenland Energie, opens burgenlandenergie.at">
-    ${BELOGO('height:72px',true,26)}</a>
+   <span style="color:var(--mut);font-size:12px">No counterparty approval or executed agreement implied.</span>
   </div>`;
 
- return hero+masterplanSection()+topologyPanel()+introSection()+castSection()+evidence+euLabelCard()+next+foot;
+ return hero+masterplanSection()+topologyPanel()+introSection()+statusLedger+castSection()+evidence+euLabelCard()+next+foot;
 }
 
 /* ============ 15 · RENDER RUNTIME & BOOT ============ */
@@ -4323,5 +4314,6 @@ let _fxT=false;
 addEventListener('scroll',()=>{if(_fxT)return;_fxT=true;requestAnimationFrame(()=>{_fxT=false;railUpd();});},{passive:true});
 addEventListener('resize',()=>{clearTimeout(_fxRz);_fxRz=setTimeout(()=>{buildRail();railUpd();},220);});
 
-setTheme(THEME,true);scenFromHash();buildNav();setTimeout(maybeSplash,60);render();afterRender();
+setTheme(THEME,true);const _fromScenario=scenFromHash();if(!_fromScenario){const _rv=routeView();if(_rv)active=_rv;}buildNav();setTimeout(maybeSplash,60);render();afterRender();
+addEventListener('popstate',()=>{const t=routeView()||'overview';if(t===active)return;active=t;_pgNav=true;buildNav();render();window.scrollTo({top:0,left:0,behavior:'auto'});afterRender();});
 if(typeof Plotly==='undefined'){(function w(){ (typeof Plotly!=='undefined') ? (render(),afterRender()) : setTimeout(w,100); })();}

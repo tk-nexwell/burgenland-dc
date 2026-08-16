@@ -6,8 +6,9 @@ Interactive dashboard deployed from this repository through GitHub Pages.
 
 The `main` branch of `tk-nexwell/burgenland-dc` is the definitive source. Never publish from a
 OneDrive export and never copy an OneDrive edit back over GitHub. Make changes in a Git working
-copy, commit them to `main`, wait for the Pages build, and only then mirror the exact committed
-files to OneDrive.
+copy at `C:\Users\ThomasKoenig\GitHub\burgenland-dc`, commit them to `main`, wait for the Pages
+build, and only then mirror the exact committed files to OneDrive. The sync script stages and hashes
+the new mirror and archives the prior OneDrive folder intact before replacement.
 
 The mirror manifest and detailed operating rules are in `MIRROR_MANIFEST.json` and
 `DEPLOY_INSTRUCTIONS.md`.

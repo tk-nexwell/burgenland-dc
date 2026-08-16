@@ -89,13 +89,18 @@ function buildFullModel(ExcelJS, S){
  inp('Opex',S.battery.opexPct,'% of cell capex/yr, CPI-indexed','B_OPEXP');
  inp('Ancillary revenue',S.battery.ancPerMW,'€k/MW/yr (from merchant year)','B_ANC');
  inp('DC reliability charge (paid by DC)',S.battery.capChargeMWyr,'€k/MW/yr from COD+1','B_CCH');
- inp('First merchant year (export ban)',S.battery.gridYear,'BE: ban to 2035','B_GY');
+ inp('First merchant year',S.battery.gridYear,'illustrative scenario; not confirmed','B_GY');
  inp('Revenue compression',S.battery.compression,'per yr on merchant','B_COMP');
  inp('Degradation',S.battery.degr,'per yr','B_DEGR');
  inp('Gearing',S.battery.gearing,'','B_GEAR');
  inp('Debt rate',S.battery.debtRate,'','B_RATE');
- inp('Grid fee — capacity (NE3)',S.battery.gridCapFee,'€/kW/yr, esc from 2028','B_GFC');
+ inp('Grid fee — capacity (NE3), manual override',S.battery.gridCapFee,'€/kW/yr, esc from 2028','B_GFC');
+ inp('Apply DC NE3 capacity tariff when merchant',S.battery.mktCapFee?1:0,'1=yes, 0=no','B_MKT');
  inp('Grid fee — energy (NE3)',S.battery.gridEnergyFee,'€/MWh on throughput','B_GFE');
+ inp('Backtest average buy price',S.battery.backtestAvgBuy,'€/MWh · selected duration/year','B_AVGBUY');
+ inp('Backtest average sell price',S.battery.backtestAvgSell,'€/MWh · selected duration/year','B_AVGSELL');
+ inp('Backtest self-charge share',S.battery.backtestSelfShare,'share of charging','B_FSELF');
+ inp('Self-charge cost',S.battery.btmCharge||0,'€/MWh','B_BTM');
  inp('Battery COD (capex year)',S.COD,'','B_COD');
  inp('Useful life',S.battery.lifeY,'years','B_LIFE');
  r++; isect('DATA CENTER / RESIDUAL (via BE Trading)');
@@ -114,7 +119,7 @@ function buildFullModel(ExcelJS, S){
  inp('Margin form (1=€/MWh, 0=%)',S.dc.marginMode==='flat'?1:0,'€/MWh is neutral to the market','MGN_MODE');
  inp('SPV margin (€/MWh)',S.dc.marginEur!=null?S.dc.marginEur:3.5,'CPI-indexed, used when form = 1','MGN_E');
  inp('SPV first revenue year',S.FF,'','SPV_FF');
- r++; isect('BATTERY ARBITRAGE CURVE — hourly wholesale €/MWh, year '+S.priceYear);
+ r++; isect('REFERENCE AVERAGE-DAY CURVE — explanatory only, not the financial engine · '+S.priceYear);
  const PH0=r;
  for(let h=0;h<24;h++){ wi.getCell(r,3).value='Hour '+h; const c=wi.getCell(r,5); c.value=S.ph[h]; c.fill=YEL; c.font=BLUE; c.numFmt='#,##0.0'; wi.getCell(r,4).value=(h===0?'→ Battery sheet':''); r++; }
  IN.PH0=PH0;
@@ -256,7 +261,7 @@ function buildFullModel(ExcelJS, S){
   put(k++,'Equity (€m)',`$B$${D.EQUITY}`,eurF);
   const FP=k; put(k++,'First-year production (MWh)',`SUMIF(B${Yrow}:${lastC}${Yrow},${A(P+'_COD')},B${R.prod}:${lastC}${R.prod})`,intF);
   const FO=k; put(k++,'First-year opex (€m)',`SUMIF(B${Yrow}:${lastC}${Yrow},${A(P+'_COD')},B${R.opex}:${lastC}${R.opex})`,numF);
-  const LC=k; put(k++,'LCOE (€/MWh)',`($B$${D.CAPANN}+$B$${FO})*10^6/$B$${FP}`,eurF);
+  const LC=k; put(k++,'LCOE (€/MWh)',`SUMPRODUCT((B${R.capex}:${lastC}${R.capex}+B${R.opex}:${lastC}${R.opex})*(1+${A('RATE')})^-(B${Yrow}:${lastC}${Yrow}-${A(P+'_COD')}))*10^6/SUMPRODUCT(B${R.prod}:${lastC}${R.prod}*(1+${A('RATE')})^-(B${Yrow}:${lastC}${Yrow}-${A(P+'_COD')}))`,eurF);
   const MX=k; put(k++,'Max |check diff| (€m)',`MAX(ABS(MIN(B${R.diff}:${lastC}${R.diff})),ABS(MAX(B${R.diff}:${lastC}${R.diff})))`,numF,CHK);
   put(k++,'Tie-out',`CHOOSE(1+($B$${MX}>0.001),"✓ ties to dashboard","⚠ check diff")`,'General');
   return {irr:`${name}!B${IRR}`, moic:`${name}!B${MOIC}`, lcoe:`${name}!B${LC}`, prodRow:R.prod};
@@ -268,7 +273,7 @@ function buildFullModel(ExcelJS, S){
  function batterySheet(){
   const ws=wb.addWorksheet('Battery'); ws.getColumn(1).width=38; ws.getColumn(2).width=13; ws.getColumn(3).width=26; ws.getColumn(4).width=8; ws.views=[{state:'frozen',xSplit:1}];
   ws.getCell(1,1).value='BATTERY — full-formula model'; ws.getCell(1,1).font={bold:true,size:12};
-  ws.getCell(2,1).value='Red = linked from Inputs. 24h curve replicated locally for the arbitrage stack; flags 0/1, no IF.';
+  ws.getCell(2,1).value='Red = linked from Inputs. Arbitrage uses the dashboard day-by-day backtest summary; the 24h curve is explanatory only.';
   ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
   const L={}, D={}, R={};
   let rr=4; rr=sect(ws,rr,'LOCAL ASSUMPTIONS (linked from Inputs, red)');
@@ -277,12 +282,13 @@ function buildFullModel(ExcelJS, S){
    ['B_RTE','Round-trip eff.',''],['B_SOC','SoC floor',''],['B_CYC','Cycles/day',''],['B_CAPF','Capture factor',''],
    ['B_OPEXP','Opex %/yr',''],['B_ANC','Ancillary','€k/MW/yr'],['B_CCH','DC reliability charge','€k/MW/yr'],
    ['B_GY','First merchant year',''],['B_COMP','Compression','per yr'],['B_DEGR','Degradation','per yr'],
-   ['B_GEAR','Gearing',''],['B_RATE','Debt rate',''],['B_GFC','Grid fee capacity','€/kW/yr'],['B_GFE','Grid fee energy','€/MWh'],
+    ['B_GEAR','Gearing',''],['B_RATE','Debt rate',''],['B_GFC','Grid fee capacity, manual','€/kW/yr'],['B_MKT','Apply DC NE3 tariff','1/0'],['FEE_C','DC NE3 capacity tariff','€/kW/yr'],['B_GFE','Grid fee energy','€/MWh'],
+    ['B_AVGBUY','Backtest average buy','€/MWh'],['B_AVGSELL','Backtest average sell','€/MWh'],['B_FSELF','Self-charge share',''],['B_BTM','Self-charge cost','€/MWh'],
    ['B_COD','COD (capex year)',''],['B_LIFE','Useful life','yrs']
   ].forEach(x=>{ rr=linkRow(ws,rr,L,x[0],x[1],x[2]); });
   const A=k=>`$B$${L[k]}`;
 
-  rr++; rr=sect(ws,rr,'24h ARBITRAGE CURVE (price linked red · rank local)');
+  rr++; rr=sect(ws,rr,'REFERENCE 24h CURVE (not used in financial formulas)');
   const CST=rr;
   for(let h=0;h<24;h++){
    ws.getCell(rr,1).value='Hour '+h;
@@ -295,14 +301,14 @@ function buildFullModel(ExcelJS, S){
   const PB=`$B$${CST}:$B$${CEN}`, RB=`$C$${CST}:$C$${CEN}`;
 
   rr++; rr=sect(ws,rr,'DERIVED DISPATCH & CAPEX (once)');
-  rr=derRow(ws,rr,D,'NCH',   'Tradeable hours nCh', `MIN(12,MAX(0,ROUND(${A('B_DUR')}*(1-${A('B_SOC')})*${A('B_CYC')},0)))`, intF,'= round(dur×(1−SoC)×cycles)');
-  rr=derRow(ws,rr,D,'SCHEAP','Σ cheapest nCh prices (€/MWh)', `SUMIF(${RB},"<="&$B$${D.NCH},${PB})`, numF);
-  rr=derRow(ws,rr,D,'SPRICE','Σ priciest nCh prices (€/MWh)', `SUMIF(${RB},">"&(24-$B$${D.NCH}),${PB})`, numF);
+  rr=derRow(ws,rr,D,'NCH',   'Tradeable hours nCh', `MIN(12,MAX(0,ROUNDDOWN(${A('B_DUR')}*(1-${A('B_SOC')})*${A('B_CYC')},0)))`, intF,'= floor(dur×(1−SoC)×cycles), matching dashboard');
+  rr=derRow(ws,rr,D,'SCHEAP','Effective daily charge cost (€/MW)', `$B$${D.NCH}*(${A('B_AVGBUY')}*(1-${A('B_FSELF')})+${A('B_FSELF')}*${A('B_BTM')})`, numF,'day-by-day backtest average plus self-charge share');
+  rr=derRow(ws,rr,D,'SPRICE','Daily sale value before RTE (€/MW)', `$B$${D.NCH}*${A('B_AVGSELL')}`, numF,'day-by-day backtest average');
   rr=derRow(ws,rr,D,'DAYARB','Day arbitrage (€/day)', `MAX(0,${A('B_MW')}*(${A('B_RTE')}*$B$${D.SPRICE}-$B$${D.SCHEAP}))*${A('B_CAPF')}`, numF);
   rr=derRow(ws,rr,D,'ARBRR', 'Arbitrage revenue run-rate (€m/yr)', `$B$${D.DAYARB}*365/10^6`, numF);
   rr=derRow(ws,rr,D,'ANC',   'Ancillary (€m/yr)', `${A('B_ANC')}*${A('B_MW')}/1000`, numF);
   rr=derRow(ws,rr,D,'DCCH',  'DC reliability charge (€m/yr)', `${A('B_CCH')}*${A('B_MW')}/1000`, numF);
-  rr=derRow(ws,rr,D,'GFCAP', 'Grid fee capacity (€m/yr, 2028)', `${A('B_MW')}*${A('B_GFC')}/1000`, numF);
+  rr=derRow(ws,rr,D,'GFCAP', 'Grid fee capacity (€m/yr, 2028)', `${A('B_MW')}*MAX(${A('B_GFC')},${A('B_MKT')}*${A('FEE_C')})/1000`, numF,'manual override or DC NE3 fallback, matching dashboard');
   rr=derRow(ws,rr,D,'THRU',  'Grid throughput (MWh/yr)', `$B$${D.NCH}*${A('B_MW')}*${A('B_RTE')}*365`, intF);
   rr=derRow(ws,rr,D,'GFENE', 'Grid fee energy (€m/yr, 2028)', `$B$${D.THRU}*${A('B_GFE')}/10^6`, numF);
   rr=derRow(ws,rr,D,'CELLCX','Cell capex (€m)', `${A('B_MW')}*${A('B_DUR')}*1000*${A('B_CKWH')}/10^6`, eurF);
@@ -462,7 +468,7 @@ function buildFullModel(ExcelJS, S){
   ws.getCell(k,1).value='Dashboard SPV IRR at export'; ws.getCell(k,2).value=S.spvIRR; ws.getCell(k,2).numFmt=pctF; ws.getCell(k,2).fill=CHK; k++;
   ws.getCell(k,1).value='Financed SPV capex, incl direct line (€m)'; ws.getCell(k,2).value={formula:`$B$${D.IRRCX}`}; ws.getCell(k,2).numFmt=eurF; k++;
   ws.getCell(k,1).value='SPV total capex, incl direct line (€m)'; ws.getCell(k,2).value={formula:`$B$${D.SPVCX}`}; ws.getCell(k,2).numFmt=eurF; k++;
-  ws.getCell(k,1).value='Note'; ws.getCell(k,2).value='Asset-only returns remain on the Wind, Solar and Battery sheets. The SPV return includes its complete owned perimeter. Small diffs vs dashboard are timing conventions.';
+  ws.getCell(k,1).value='Method note'; ws.getCell(k,2).value='Asset-only returns remain on the Wind, Solar and Battery sheets. Battery arbitrage uses exported day-by-day backtest averages from the selected duration and year. Re-export after changing those dimensions. Any non-zero tie-out is a model reconciliation issue, not a timing convention.';
   return {irr:`SPV!B${IRR}`};
  }
  // asset builders must expose their production row for the SPV pull — patch refs:

@@ -3,7 +3,7 @@
 ## One source, one direction
 
 GitHub repository `tk-nexwell/burgenland-dc`, branch `main`, is the definitive source. Work from
-`Documents/GitHub/burgenland-dc`. The OneDrive folder `Output/Austria DC/github-pages-deploy` is a
+`C:\Users\ThomasKoenig\GitHub\burgenland-dc`. The OneDrive folder `Output/Austria DC/github-pages-deploy` is a
 one-way mirror for convenience and backup.
 
 - Make every dashboard change in GitHub.
@@ -11,9 +11,11 @@ one-way mirror for convenience and backup.
 - Commit the complete change to `main`.
 - GitHub Pages deploys automatically after the push.
 - Verify the Pages build succeeded and the live site returns the new assets.
-- Run `powershell -File scripts/sync_onedrive.ps1` to mirror the verified clean commit to OneDrive.
+- Run `powershell -File scripts/sync_onedrive.ps1` to create an exact, hash-verified OneDrive mirror.
+- The previous OneDrive mirror is moved to a timestamped sibling archive before replacement, so stale
+  files and its legacy `.git` cannot contaminate the new mirror and remain recoverable.
 - Never push an OneDrive edit back to GitHub and never deploy from OneDrive.
-- Do not modify or synchronize the legacy `.git` directory in OneDrive.
+- Do not work, commit or push from any archived OneDrive `.git` directory.
 
 `deploy.bat` is retired and intentionally performs no deployment.
 
@@ -26,7 +28,8 @@ successful deployment.
 ## Confidentiality
 
 This repository and every GitHub Pages asset are public. The browser access code does not provide
-security because the JavaScript and data are downloaded before the gate is applied. `bedata_enc.bin`
-protects one raw series, but clear-text aggregates or NDA-derived labels in `gdc_data.js` are also a
-disclosure and are blocked by the release check. Publish only a sanitized public data module; host a
-full counterparty model behind real server-side authentication.
+security because the JavaScript and data are downloaded before the gate is applied. Encrypted
+commercial blobs, meter data, clear-text aggregates and NDA-derived labels are all blocked by the
+release check. Publish only the sanitized planning case; host a full counterparty model behind real
+server-side authentication. The existing public Git history still requires a separate owner decision
+because deleting a current file does not erase older commits.

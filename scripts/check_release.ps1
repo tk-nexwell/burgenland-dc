@@ -11,7 +11,8 @@ function Add-Warning([string]$Message) { $warnings.Add($Message) }
 
 $required = @(
     'index.html', 'gdc.css', 'gdc_app.js', 'gdc_data.js', 'model_export.js',
-    'assets/nickelsdorf-masterplan-burgenland.png', 'scripts/test_xirr.mjs', 'CNAME'
+    'assets/nickelsdorf-masterplan-future-state.png', 'scripts/test_xirr.mjs',
+    'scripts/test_model_integrity.mjs', 'CNAME'
 )
 foreach ($item in $required) {
     if (-not (Test-Path -LiteralPath (Join-Path $repo $item))) {
@@ -26,7 +27,7 @@ if ($tokens.Count -ne 1) {
 }
 
 $data = Get-Content -LiteralPath (Join-Path $repo 'gdc_data.js') -Raw
-foreach ($privateConstant in @('BEDATA', 'BENCH', 'NEWD', 'MEAS', 'CLIP')) {
+foreach ($privateConstant in @('BEDATA', 'BENCH', 'NEWD', 'MEAS', 'CLIP', 'TERMS_BLOB')) {
     if ($data -match "const\s+$privateConstant\s*=") {
         Add-Failure "gdc_data.js contains a private or meter-derived dataset: $privateConstant."
     }
@@ -46,7 +47,10 @@ $unsafeClaims = @(
     'A confidential tenant from the U.S.',
     'PPA volumes carry no network charges.',
     'built &amp; owned by the Power SPV · no grid fees',
-    'MW firm, 8,760 hours a year'
+    'MW firm, 8,760 hours a year',
+    'Burgenland Energie guaranteed',
+    'That is N+1 on electrons',
+    'PHASE 1 UNDER CONSTRUCTION'
 )
 foreach ($claim in $unsafeClaims) {
     if ($app.Contains($claim)) { Add-Failure "Unqualified public claim remains: $claim" }
@@ -69,12 +73,14 @@ if (-not $node) {
     if (Test-Path -LiteralPath $bundledNode) { $node = Get-Item -LiteralPath $bundledNode }
 }
 if ($node) {
-    foreach ($script in @('gdc_data.js', 'gdc_app.js', 'model_export.js', 'scripts/sanitize_public_release.mjs', 'scripts/test_xirr.mjs')) {
+    foreach ($script in @('gdc_data.js', 'gdc_app.js', 'model_export.js', 'scripts/sanitize_public_release.mjs', 'scripts/test_xirr.mjs', 'scripts/test_model_integrity.mjs')) {
         & $node.FullName --check (Join-Path $repo $script)
         if ($LASTEXITCODE -ne 0) { Add-Failure "JavaScript syntax check failed: $script" }
     }
     & $node.FullName (Join-Path $repo 'scripts/test_xirr.mjs')
     if ($LASTEXITCODE -ne 0) { Add-Failure 'XIRR regression checks failed.' }
+    & $node.FullName (Join-Path $repo 'scripts/test_model_integrity.mjs')
+    if ($LASTEXITCODE -ne 0) { Add-Failure 'Model integrity regression checks failed.' }
 } else {
     Add-Warning 'Node.js was not available, so JavaScript syntax checks were skipped.'
 }

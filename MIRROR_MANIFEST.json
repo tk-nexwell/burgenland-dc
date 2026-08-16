@@ -1,9 +1,9 @@
 {
-  "version": 2,
+  "version": 3,
   "source": {
     "repository": "tk-nexwell/burgenland-dc",
     "branch": "main",
-    "local": "Documents/GitHub/burgenland-dc"
+    "local": "GitHub/burgenland-dc"
   },
   "destination": "OneDrive/Output/Austria DC/github-pages-deploy",
   "direction": "github-to-onedrive-only",

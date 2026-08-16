@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dataPath = path.join(repo, 'gdc_data.js');
 const appPath = path.join(repo, 'gdc_app.js');
-const privateConstants = new Set(['BEDATA', 'BENCH', 'NEWD', 'MEAS', 'CLIP']);
+const privateConstants = new Set(['BEDATA', 'BENCH', 'NEWD', 'MEAS', 'CLIP', 'TERMS_BLOB']);
 const days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 function planningProfile() {

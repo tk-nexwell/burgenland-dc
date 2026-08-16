@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const app = readFileSync(new URL('../gdc_app.js', import.meta.url), 'utf8');
-const match = app.match(/function xirr\(cfs,dt\)\{[\s\S]*?\n\}\n\/\/ Net delivered CF/);
+const match = app.match(/function xirr\(cfs,dt\)\{[\s\S]*?\r?\n\}\r?\n\/\/ Net delivered CF/);
 if (!match) throw new Error('Could not locate xirr() in gdc_app.js');
 
 const sandbox = {};
