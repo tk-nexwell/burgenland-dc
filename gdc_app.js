@@ -416,11 +416,15 @@ function dlXLSX(){withXL(()=>{
 /* ============ 4 · MODEL ENGINE ============ */
 function xirr(cfs,dt){
  if(!cfs.length||cfs.length!==dt.length||cfs.some((v,i)=>!isFinite(v)||!isFinite(dt[i])))return NaN;
- const signs=cfs.filter(v=>Math.abs(v)>1e-10).map(v=>Math.sign(v));
+ const scale=cfs.reduce((m,v)=>Math.max(m,Math.abs(v)),0), eps=Math.max(1e-10,scale*1e-12);
+ // Debt amortisation can leave machine-precision tails. Ignore them in both the sign test and NPV,
+ // otherwise a tiny late negative amount can create a false root close to -100%.
+ const flows=cfs.map(v=>Math.abs(v)<=eps?0:v);
+ const signs=flows.filter(v=>v!==0).map(v=>Math.sign(v));
  if(!signs.includes(-1)||!signs.includes(1))return NaN;
  let changes=0;for(let i=1;i<signs.length;i++)if(signs[i]!==signs[i-1])changes++;
  if(changes!==1)return NaN; // multiple sign changes can produce multiple, economically ambiguous IRRs
- const npv=r=>cfs.reduce((s,c,i)=>s+c/Math.pow(1+r,dt[i]-dt[0]),0);
+ const npv=r=>flows.reduce((s,c,i)=>s+c/Math.pow(1+r,dt[i]-dt[0]),0);
  const rates=[-.999,-.95,-.9,-.8,-.65,-.5,-.35,-.2,-.1,-.05,0];
  for(let i=1;i<=120;i++)rates.push(Math.exp(i/25*Math.log(11))-1);
  let a=NaN,b=NaN,fa=npv(rates[0]);
@@ -474,7 +478,7 @@ function computeAsset(a){
    const dep=(y>=cod&&y<cod+depY)?(a.mw*a.capexPerMW)/depY:0;
    let draw=0,int=0,tax=0,repay=0,fcfe=0;
    if(y<cod){draw=mac.gearing*capex;const idc=(bal+draw/2)*allIn*(capex>0?1:0);bal+=draw+idc;fcfe=-capex+draw;}
-   else{if(y===cod){ppy=bal/effTenor;annDS=annPay(bal,allIn,effTenor);}int=bal*allIn;const ebt=ebitda-dep-int;let taxable=ebt+nol;if(taxable>0){tax=taxable*mac.tax;nol=0;}else{nol=taxable;}repay=(y<cod+effTenor)?Math.min(bal,mac.amort==='annuity'?annDS-int:ppy):0;bal-=repay;fcfe=ebitda-tax-capex-repay-int;}
+   else{if(y===cod){ppy=bal/effTenor;annDS=annPay(bal,allIn,effTenor);}int=bal*allIn;const ebt=ebitda-dep-int;let taxable=ebt+nol;if(taxable>0){tax=taxable*mac.tax;nol=0;}else{nol=taxable;}repay=(y<cod+effTenor)?Math.min(bal,mac.amort==='annuity'?annDS-int:ppy):0;bal-=repay;if(Math.abs(bal)<1e-9)bal=0;fcfe=ebitda-tax-capex-repay-int;}
    rows.push({y,prod,rev,opex,ebitda,dep,capex,int,tax,repay,fcfe,debt:bal});
  }
  const totalCapex=a.mw*a.capexPerMW,equity=(1-mac.gearing)*totalCapex,debt=mac.gearing*totalCapex;
@@ -1664,7 +1668,7 @@ function computeBatteryFin(){
    opex=B.opex*Math.pow(1+infl,y-2023)+((y>=gy)?B.gridFee*feeF(y):0);
    if(ppy===0){ppy=bal/btenor;annDS=annPay(bal,allIn,btenor);} int=bal*allIn;
    const dep=(y<=COD+depY)?capex/depY:0; const ebt=rev-opex-dep-int; let tb=ebt+nol; if(tb>0){t=tb*mac.tax;nol=0;}else{nol=tb;}
-   repay=(y<=COD+btenor)?Math.min(bal,mac.amort==='annuity'?annDS-int:ppy):0; bal-=repay; fcfe=rev-opex-t-repay-int;
+   repay=(y<=COD+btenor)?Math.min(bal,mac.amort==='annuity'?annDS-int:ppy):0; bal-=repay; if(Math.abs(bal)<1e-9)bal=0; fcfe=rev-opex-t-repay-int;
   }
   rows.push({y,rev,opex,int,repay,tax:t,ebitda:rev-opex,fcfe});
  }
@@ -1938,6 +1942,8 @@ function summaryPage(){
  const P=computePlantPortfolio(),W=P.wind,S=P.solar,B=computeBattery(M.battery);
  const SP=computeSPV(M.dc.dcPrice), spvIRR=SP.irr;
  const y1=SP.rows.find(r=>r.y===FF)||{rev:0,bRev:0,gridCost:0,resPPA:0,opex:0,ebitda:0};
+ const constructionEq=-SP.rows.filter(r=>r.y<FF&&r.fcfe<0).reduce((s,r)=>s+r.fcfe,0);
+ const preMerchantTopup=-SP.rows.filter(r=>r.y>=FF&&r.y<M.battery.gridYear&&r.fcfe<0).reduce((s,r)=>s+r.fcfe,0);
  const mw=fleetAC(), t1=Math.min(TRANCHE.t1MW,mw), blend=mw>0?(t1*TRANCHE.p1+Math.max(0,mw-t1)*TRANCHE.p2)/mw:TRANCHE.p1;
  const battG=(M.battery.gearing!=null?M.battery.gearing:M.macro.gearing);
  const inputsL=`<div class="panel"><h3>Portfolio & supply</h3>
@@ -1964,7 +1970,7 @@ function summaryPage(){
   ${sliderHTML('macro','infl','Inflation',0,0.05,0.005,'%',100)}
   ${sliderHTML('battery','compression','Battery rev compression',0,0.2,0.005,'%/yr',100)}</div>`;
  const kpis=`<div class="kpis kpis-finance">
-   ${kpiM([['Equity IRR',isNaN(spvIRR)?'n/m':fmt(spvIRR*100,1)+'%','incl. private line'],['Equity','€'+fmt(SP.equity,0)+'m','incl. private line']],'var(--acc)')}
+   ${kpiM([['Equity IRR',isNaN(spvIRR)?'n/m':fmt(spvIRR*100,1)+'%','battery + private line'],['Equity','€'+fmt(SP.equity,0)+'m','total injections']],'var(--acc)')}
    ${kpiM([['Data center tariff · '+FF,'€'+fmt(SP.unit,1),'/MWh'],['EBITDA · year 1','€'+fmt(y1.ebitda,0)+'m','']])}
    ${kpiM([['Park purchase price','€'+fmt(blend,1),'/MWh · blended'],['Energy margin',M.dc.marginMode==='flat'?'€'+fmt(M.dc.marginEur,2):pct(M.dc.spvMargin,2),M.dc.marginMode==='flat'?'/MWh':'on energy']])}
    ${kpiM([['Battery power',fmt(M.battery.powerMW,0)+' MW',fmt(M.battery.powerMW*M.battery.durationH/1000,1)+' GWh energy'],['Grid interface capex','€'+fmt(lineMW()*M.conn.directPer100/100+M.battery.substation+M.battery.interconnect,0)+'m','lines · substation · tie-in']])}</div>`;
@@ -1977,8 +1983,8 @@ function summaryPage(){
   ${row('Wind','var(--wind)',fmt(W.totalCapex,0),fmt(W.equity,0),fmt(W.debt,0),fmt(W.prod/1000,0),fmt(W.rev,1),fmt(W.ebitda,1),fmt(W.irr*100,1)+'%',fmt(W.lcoe,0))}
   ${row('Solar','var(--solar)',fmt(S.totalCapex,0),fmt(S.equity,0),fmt(S.debt,0),fmt(S.prod/1000,0),fmt(S.rev,1),fmt(S.ebitda,1),fmt(S.irr*100,1)+'%',fmt(S.lcoe,0))}
   ${row('Wind + solar','var(--acc)',fmt(P.totalCapex,0),fmt(P.equity,0),fmt(P.debt,0),fmt((W.prod+S.prod)/1000,0),fmt(W.rev+S.rev,1),fmt(W.ebitda+S.ebitda,1),fmt(P.irr*100,1)+'%','—')}
-  ${row('Battery','var(--batt)',fmt(B.capex,0),fmt(BF.equity,0),fmt(BF.debt,0),fmt(battGen/1000,0),fmt(battRev,1),fmt(battEbitda,1),(isNaN(BF.irr)?'n/m':fmt(BF.irr*100,1)+'%'),'LCOS')}
-  ${row('Private line + interface','var(--acc)',fmt(line,0),fmt(line*(1-M.macro.gearing),0),fmt(line*M.macro.gearing,0),'—','—','—','included in SPV','—')}
+  ${row('Battery + substation/tie-in','var(--batt)',fmt(B.capex,0),fmt(BF.equity,0),fmt(BF.debt,0),fmt(battGen/1000,0),fmt(battRev,1),fmt(battEbitda,1),(isNaN(BF.irr)?'n/m':fmt(BF.irr*100,1)+'%'),'LCOS')}
+  ${row('Private direct line','var(--acc)',fmt(line,0),fmt(line*(1-M.macro.gearing),0),fmt(line*M.macro.gearing,0),'—','—','—','included in SPV','—')}
   </tbody></table></div>
   <div class="muted" style="margin-top:8px"><b>IRR scope:</b> wind, solar and battery rows are asset-only returns. The consolidated Power SPV return includes every asset that the selected structure assigns to it, including the private line and interface scope. The wind + solar return is one XIRR on aggregated dated equity cash flows, not an arithmetic average.</div></div>`;
  const yrCtl=`<div class="panel" style="padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -1986,7 +1992,9 @@ function summaryPage(){
    <input type="range" min="${FF}" max="${FF+19}" step="1" value="${spvEconY||FF}" style="flex:1;min-width:180px;accent-color:var(--acc);height:4px"
      oninput="spvEconY=+this.value;drawSpvEcon()">
    <b id="spvEconYLbl" style="font-size:15.5px;font-family:'Exo 2',Inter,sans-serif;min-width:130px;text-align:right">${(spvEconY||FF)} · year ${(spvEconY||FF)-FF+1}</b></div>`;
- return seg+kpis+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr">
+ const marginBasis=M.dc.marginMode==='flat'?'€'+fmt(M.dc.marginEur,2)+'/MWh':fmt(M.dc.spvMargin*100,1)+'% of energy cost';
+ const irrBasis=`<div class="info" style="margin:0 0 14px;max-width:none"><b>Modeled base case.</b> The return includes the ${fmt(M.battery.powerMW,0)} MW / ${fmt(M.battery.powerMW*M.battery.durationH/1000,1)} GWh battery, private line and interface. It assumes an SPV margin of ${marginBasis}, a €${fmt(M.battery.capChargeMWyr,0)}k/MW/yr data-center reliability charge, and battery market participation from ${M.battery.gridYear}. Total modeled equity support is €${fmt(SP.equity,0)}m: €${fmt(constructionEq,0)}m during construction plus €${fmt(preMerchantTopup,0)}m before merchant operation. Wind and solar are purchased under PPAs, so their construction capex and asset returns sit outside this SPV return. These assumptions remain illustrative until contracted and independently validated.</div>`;
+ return seg+kpis+irrBasis+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr">
    ${yrCtl}<div class="chart tall" id="spvEcon"></div><div class="chart tall" id="spvcf"></div></div>${inputsR}</div>${table}`;
 }
 let spvEconY=null;   // calendar year shown in the in/out waterfall; the slider moves it
@@ -2071,7 +2079,7 @@ function computeSPV(dcP){
   const dep=(y>=FF&&y<FF+depN)?depBase/depN:0, capex=cap[y]||0;
   let int=0,t=0,repay=0,fcfe=0;
   if(y<FF){const draw=(lev[y]||0)*blendG;const idc=(bal+draw/2)*xRate*(capex>0?1:0);bal+=draw+idc;fcfe=-capex+draw;}
-  else{if(y===FF){ppy=bal/effTen;annDS=annPay(bal,xRate,effTen);}int=bal*xRate;const ebt=ebitda-dep-int;let tb=ebt+nol;if(tb>0){t=tb*mac.tax;nol=0;}else{nol=tb;}repay=(y<FF+effTen)?Math.min(bal,mac.amort==='annuity'?annDS-int:ppy):0;bal-=repay;fcfe=ebitda-t-capex-repay-int;}
+  else{if(y===FF){ppy=bal/effTen;annDS=annPay(bal,xRate,effTen);}int=bal*xRate;const ebt=ebitda-dep-int;let tb=ebt+nol;if(tb>0){t=tb*mac.tax;nol=0;}else{nol=tb;}repay=(y<FF+effTen)?Math.min(bal,mac.amort==='annuity'?annDS-int:ppy):0;bal-=repay;if(Math.abs(bal)<1e-9)bal=0;fcfe=ebitda-t-capex-repay-int;}
   rows.push({y,rev,bRev,gridCost,resPPA,opex,int,repay,tax:t,ebitda,fcfe});
  }
  const irr=xirr(rows.map(r=>r.fcfe),rows.map(r=>r.y+0.99));

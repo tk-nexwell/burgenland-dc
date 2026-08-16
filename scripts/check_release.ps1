@@ -11,7 +11,7 @@ function Add-Warning([string]$Message) { $warnings.Add($Message) }
 
 $required = @(
     'index.html', 'gdc.css', 'gdc_app.js', 'gdc_data.js', 'model_export.js',
-    'assets/nickelsdorf-masterplan-burgenland.png', 'CNAME'
+    'assets/nickelsdorf-masterplan-burgenland.png', 'scripts/test_xirr.mjs', 'CNAME'
 )
 foreach ($item in $required) {
     if (-not (Test-Path -LiteralPath (Join-Path $repo $item))) {
@@ -69,10 +69,12 @@ if (-not $node) {
     if (Test-Path -LiteralPath $bundledNode) { $node = Get-Item -LiteralPath $bundledNode }
 }
 if ($node) {
-    foreach ($script in @('gdc_data.js', 'gdc_app.js', 'model_export.js', 'scripts/sanitize_public_release.mjs')) {
+    foreach ($script in @('gdc_data.js', 'gdc_app.js', 'model_export.js', 'scripts/sanitize_public_release.mjs', 'scripts/test_xirr.mjs')) {
         & $node.FullName --check (Join-Path $repo $script)
         if ($LASTEXITCODE -ne 0) { Add-Failure "JavaScript syntax check failed: $script" }
     }
+    & $node.FullName (Join-Path $repo 'scripts/test_xirr.mjs')
+    if ($LASTEXITCODE -ne 0) { Add-Failure 'XIRR regression checks failed.' }
 } else {
     Add-Warning 'Node.js was not available, so JavaScript syntax checks were skipped.'
 }
