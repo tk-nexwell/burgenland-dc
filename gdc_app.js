@@ -1875,35 +1875,7 @@ function dcPage(){
    <p class="sub" style="margin-top:10px">Shell and chips are market benchmarks per MW of critical IT load, not project quotes. Power is this model, live: the parks, the battery, the lines and the substation.</p>
   </div>`;
 
- // ---------- 3 · the three players ----------
- const SP=computeSPV(M.dc.dcPrice), y1=SP.rows.find(r=>r.y===FF)||{rev:0,bRev:0,gridCost:0,resPPA:0,opex:0,ebitda:0};
- const spvRev=y1.rev+y1.bRev, spvCost=y1.resPPA+y1.gridCost+y1.opex, spvEb=y1.ebitda;
- const opsLo=it*0.08, opsHi=it*0.12;             // €m/yr · facility O&M ex power, market benchmark
- const pcard=(name,col,tint,ico,rows2)=>`<button class="castCard" style="cursor:default" onclick="void 0">
-   <div class="top"><span class="ico" style="background:${tint};color:${col}">${ico}</span></div>
-   <h5>${name}</h5>
-   <p class="role">${rows2.role}</p>
-   <div class="mets">${rows2.mets.map(m=>`<div class="met"><span>${m[0]}</span><b>${m[1]}</b></div>`).join('')}</div>
-   <div class="jump" style="color:${col}">${rows2.foot}</div>
-  </button>`;
- const players=`<div class="panel" style="margin-bottom:14px"><h3>Project counterparties</h3>
-  <div class="castGrid" style="margin-top:6px">
-   ${pcard('Burgenland Energy','#4aa8ff','rgba(74,168,255,.13)',ICO.utility,{
-     role:'The Austrian utility supplies the contracted renewable portfolio and the grid balance required by the campus.',
-     mets:[['Renewable supply',fmt(resGen/1000,0)+' GWh/yr'],['PPA revenue /yr','€'+fmt(y1b.resPPA,0)+'m'],['Modelled term','20 years']],
-     foot:'Utility and generation scope shown as one party'})}
-   ${pcard('Power SPV','#12b95a','rgba(0,154,68,.15)',ICO.spv,{
-     role:'Owns or contracts the private power assets and manages the agreed energy service between Burgenland Energy and the campus.',
-     mets:[['CAPEX','€'+fmt(powerCap/1000,1)+'bn'],['Revenue /yr','€'+fmt(spvRev,0)+'m'],['OPEX /yr (energy in)','€'+fmt(spvCost,0)+'m'],['EBITDA /yr','€'+fmt(spvEb,0)+'m'],['Margin',fmt(spvRev>0?spvEb/spvRev*100:0,0)+'%']],
-     foot:'Working allocation of assets and services'})}
-   ${pcard('U.S. AI data center landlord','#eaf2f8','rgba(234,242,248,.10)',ICO.state,{
-     role:'Develops and leases the land, buildings, powered shell and campus electrical infrastructure. Chip ownership and compute operations sit outside this role.',
-     mets:[['CAPEX (shell)','€'+fmt(it*shellLo/1000,1)+'–'+fmt(it*shellHi/1000,1)+'bn'],['Per MW of IT','€'+shellLo+'–'+shellHi+'m'],['OPEX /yr (facility)','€'+fmt(opsLo,0)+'–'+fmt(opsHi,0)+'m']],
-     foot:'Compute hardware and operations are not shown separately'})}
-  </div>
- </div>`;
-
- return head+billPanel+buildKpis+buildPanel+players;
+ return head+billPanel+buildKpis+buildPanel;
 }
 function supplyPage(){
  setTimeout(drawRisk,0);
