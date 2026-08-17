@@ -21,8 +21,11 @@ surveyed route.
 - Aligned the battery calculation and display around fractional tradeable duration, limited supported
   duration cases to 2/4/6/8 hours, capped ancillary capacity at 225 MW and removed free opening state
   of charge.
-- Carried hourly residual-grid demand into both the SPV and data-center views instead of using annual
-  generation-minus-load netting.
+- Replaced annual SPV netting with one reusable 8,760-hour engine shared by the Supply, SPV and
+  data-center views. Every operating year now carries renewable degradation, storage charging and
+  discharge, round-trip losses, spill, residual grid energy and the residual grid peak into cash flow.
+- Gave campus firming priority over merchant battery use and reduced merchant revenue for equivalent
+  cycles already consumed by the campus dispatch.
 - Made IT load derive from facility load and PUE; fixed scenario-comparison units and the 357 MWp
   solar control.
 - Added shareable page routes, browser history, focus/scroll handling, selected-state semantics,
@@ -51,8 +54,9 @@ WebP/AVIF assets should replace the large PNG once the visual direction is appro
    change requires the data owner's approval.
 2. GitHub Pages is public static hosting. Confidential source material and negotiated terms require
    a separate server-authenticated application.
-3. The battery can currently support both firming and merchant revenue in the model without a full
-   co-optimization. Market eligibility, operational conflicts and tariff treatment remain open.
+3. The shared dispatch now prevents direct double-use of annual battery throughput, but it is not a
+   price-and-ancillary co-optimization. Market eligibility, intra-hour reserve requirements,
+   operational conflicts and tariff treatment remain open.
 4. Generation, grid connection, route, permits, phasing, commercial structure and counterparties
    require dated evidence and qualified technical/legal validation.
 5. A 500 MW / 4 GWh battery represents eight hours at full discharge; it is not proof of continuous

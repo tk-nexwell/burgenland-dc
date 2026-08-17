@@ -167,10 +167,12 @@ supplyModel.dc.firmMW = 1;
 supplyModel.battery.on = true;
 const supplyContext = {
   M: supplyModel,
+  FF: 2029,
   PUBLIC_PROFILES: { w: emptyProfile, s: emptyProfile, window: 'regression fixture' },
   DAYS: [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
   measYear: 'fixture',
   _SUPC: null,
+  _DISPATCHC: new Map(),
   typicalYear: () => ({ w: emptyProfile, s: emptyProfile }),
   measSeries: () => ({ meta: { window: 'regression fixture' } }),
   avg: (values) => values.reduce((sum, value) => sum + value, 0) / values.length,
@@ -178,14 +180,53 @@ const supplyContext = {
 };
 vm.createContext(supplyContext);
 vm.runInContext(
-  `${section(app, 'function supplyStats(){', '/* ============ 5 · FORMATTING', 'hourly supply model')}\n` +
-  'globalThis.auditSupply=supplyStats;',
+  `${section(app, 'function dispatchYear(year=FF){', '/* ============ 5 · FORMATTING', 'hourly dispatch model')}\n` +
+  'globalThis.auditSupply=dispatchYear;',
   supplyContext,
 );
-const supply = clone(supplyContext.auditSupply());
+const supply = clone(supplyContext.auditSupply(2029));
 near(supply.fromBatt, 0, 1e-12, 'battery delivery from an uncharged opening state');
 near(supply.endSoc, 0, 1e-12, 'ending state of charge for an all-deficit year');
 near(supply.gridE, 8760, 1e-9, 'hourly grid shortfall for an all-deficit year');
+near(supply.gridPeak, 1, 1e-12, 'hourly residual grid peak');
+near(supply.balanceError, 0, 1e-9, 'all-deficit annual energy balance');
+
+// A later SPV year must rerun the hourly engine with degraded renewable output, not scale one
+// annual self-supply percentage. A flat 1 MW first-year portfolio becomes 0.9 MW in year two.
+const flatProfile = Array(8760).fill(1);
+const zeroProfile = Array(8760).fill(0);
+const yearlyModel = clone(defaults);
+yearlyModel.wind = { ...yearlyModel.wind, on: true, mw: 2, grossCF: 0.5, loss: 0, lineLoss: 0, degr: 0.1, codY: 2029, lifeY: 25 };
+yearlyModel.solar.on = false;
+yearlyModel.battery.on = false;
+yearlyModel.dc.firmMW = 1;
+yearlyModel.conn.clip = false;
+const yearlyContext = {
+  M: yearlyModel,
+  FF: 2029,
+  PUBLIC_PROFILES: { w: flatProfile, s: zeroProfile, window: 'flat fixture' },
+  DAYS: supplyContext.DAYS,
+  measYear: 'flat-fixture',
+  _SUPC: null,
+  _DISPATCHC: new Map(),
+  typicalYear: () => ({ w: flatProfile, s: zeroProfile }),
+  measSeries: () => ({ meta: { window: 'flat fixture' } }),
+  avg: supplyContext.avg,
+  effCF: supplyContext.effCF,
+};
+vm.createContext(yearlyContext);
+vm.runInContext(
+  `${section(app, 'function dispatchYear(year=FF){', '/* ============ 5 · FORMATTING', 'hourly dispatch model')}\n` +
+  'globalThis.auditDispatch=dispatchYear;',
+  yearlyContext,
+);
+const dispatchBase = clone(yearlyContext.auditDispatch(2029));
+const dispatchDegraded = clone(yearlyContext.auditDispatch(2030));
+near(dispatchBase.windGen, 8760, 1e-8, 'first-year hourly renewable output');
+near(dispatchBase.gridE, 0, 1e-8, 'first-year hourly grid energy');
+near(dispatchDegraded.windGen, 7884, 1e-8, 'degraded hourly renewable output');
+near(dispatchDegraded.gridE, 876, 1e-8, 'degraded hourly grid energy');
+near(dispatchDegraded.balanceError, 0, 1e-8, 'degraded-year energy balance');
 
 // Exercise the SPV row builder with a deliberately non-zero hourly shortfall even though annual
 // renewable generation exceeds annual load. This catches a regression to annual load-minus-output.
@@ -203,11 +244,13 @@ const spvContext = {
   FF: 2029,
   CAP7: { wind: 50, solar: 50 },
   computeAsset: () => asset,
-  computeBattery: () => ({ capex: 0, arbRev: 0, ancRev: 0, capRev: 0, opex: 0, gridFee: 0 }),
-  supplyStats: () => ({ gridE: hourlyGridMWh }),
+  computeBattery: () => ({ capex: 0, arbRev: 0, ancRev: 0, capRev: 0, opex: 0, gridFee: 0, thru: 0 }),
+  dispatchYear: () => ({ loadMWh: 876000, gridE: hourlyGridMWh, gridPeak: 90, windGen: 600000,
+    solarGen: 400000, gen: 1000000, direct: 700000, fromBatt: 100000, battIn: 120000,
+    battLoss: 20000, spill: 180000, balanceError: 0, batteryScale: 1 }),
   lineMW: () => 0,
   resPrice: () => 100,
-  resCapFeeM: () => 0,
+  resCapFeeM: (year, peak) => peak / 100,
   feeF: () => 1,
   annPay: () => 0,
   xirr: () => 0,
@@ -223,8 +266,15 @@ const firstFullYear = spv.rows.find((row) => row.y === 2029);
 check(firstFullYear, 'SPV calculator did not produce the first full operating year.');
 near(firstFullYear.gridMWh, hourlyGridMWh, 1e-9, 'SPV hourly grid-energy plumbing');
 check(hourlyGridMWh > Math.max(0, spvModel.dc.firmMW * 8760 - 2_000_000), 'Regression fixture does not distinguish hourly and annual shortfall.');
+near(firstFullYear.resGen, 1000000, 1e-9, 'SPV hourly renewable-energy plumbing');
+near(firstFullYear.resPPA, 94, 1e-9, 'SPV PPA cost from hourly dispatched renewable MWh');
+near(firstFullYear.netCharge, 0.9, 1e-12, 'SPV capacity charge from hourly residual peak');
+near(firstFullYear.balanceError, 0, 1e-12, 'SPV dispatch energy balance');
+check(/const\s+D=op\?dispatchYear\(y\)/.test(app), 'SPV no longer calls the shared hourly dispatch for each operating year.');
+check(!/dcLoad-Math\.min\(dcLoad,baseSelf\*genScale\)/.test(app), 'Annual self-supply scaling has returned to the SPV.');
+check(/-\(r\.resPPA\+r\.gridCost\+r\.opex\)/.test(app), 'SPV cash-flow chart no longer reconciles renewable PPA, grid, and operating cost.');
 check(/const\s+gridMWh\s*=\s*Math\.max\(0,y1b\.gridMWh\|\|0\)/.test(app), 'Data-center bill no longer reads grid energy from the SPV row.');
-check(/const\s+dcLoad=M\.dc\.firmMW\*8760,\s*gridMWh=Math\.max\(0,yr\.gridMWh\|\|0\)/.test(app), 'SPV waterfall no longer reads grid energy from the selected SPV row.');
+check(/gridMWh=Math\.max\(0,yr\.gridMWh\|\|0\),resGen=Math\.max\(0,yr\.resGen\|\|0\)/.test(app), 'SPV waterfall no longer reads dispatched energy from the selected SPV row.');
 
 // The workbook remains in the repository for future reconciliation work, but it must have no UI entry point.
 check(!/\bdlXLSX\b/.test(html), 'Excel export is still exposed in the public HTML.');

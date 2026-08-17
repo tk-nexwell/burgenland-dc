@@ -309,7 +309,7 @@ function solarAC(){return M.solar.mw/(M.conn.dcac||1);}
 function fleetAC(){return (M.wind.on!==false?M.wind.mw:0)+(M.solar.on!==false?solarAC():0);}
 function fleetDC(){return (M.wind.on!==false?M.wind.mw:0)+(M.solar.on!==false?M.solar.mw:0);}
 function lineMW(){return fleetAC();}
-function resCapFeeM(y){return M.dc.firmMW*(M.dc.gridCapFeeKW!=null?M.dc.gridCapFeeKW:42.84)/1000*feeF(y==null?FF:y);}
+function resCapFeeM(y,gridPeakMW=M.dc.firmMW){return Math.max(0,gridPeakMW)*(M.dc.gridCapFeeKW!=null?M.dc.gridCapFeeKW:42.84)/1000*feeF(y==null?FF:y);}
 // ---------- Full-formula Excel model export (ExcelJS + model_export.js companion file) ----------
 function withXL(cb){
  const need=[];
@@ -481,73 +481,98 @@ let measYear='public-planning';
 function measSeries(){return {w:PUBLIC_PROFILES.w,s:PUBLIC_PROFILES.s,meta:{window:PUBLIC_PROFILES.window}};}
 function typicalYear(){return {w:PUBLIC_PROFILES.w,s:PUBLIC_PROFILES.s};}
 
-/* The supply model walks the public illustrative profile hour by hour with the battery in the loop.
-   Memoised on everything that can change it, because render() calls this repeatedly. */
-let _SUPC=null;
-function supplyStats(){
+/* One physical dispatch engine serves the supply view and every SPV operating year. It walks the
+   same 8,760-hour renewable shapes, applies plant degradation, routes surplus through storage,
+   carries round-trip losses, and records the residual grid import and peak. The opening battery
+   state is solved cyclically from repeated years, so neither the supply page nor the cash flow can
+   borrow uncharged energy at 1 January. */
+let _SUPC=null,_DISPATCHC=new Map();
+function dispatchYear(year=FF){
  const a=M.wind,b=M.solar,B=M.battery,d=M.dc;
- const key=[measYear,a.mw,a.grossCF,a.loss,a.lineLoss,a.on,b.mw,b.grossCF,b.loss,b.lineLoss,b.on,
-   B.powerMW,B.durationH,B.socFloor,B.rte,B.on,d.firmMW,d.curtail||0,
+ const wCod=a.codY||FF,sCod=b.codY||FF;
+ const wAge=year-wCod,sAge=year-sCod;
+ const wScale=(a.on!==false&&wAge>=0&&wAge<(a.lifeY||25))?Math.pow(1-(a.degr||0),wAge):0;
+ const sScale=(b.on!==false&&sAge>=0&&sAge<(b.lifeY||25))?Math.pow(1-(b.degr||0),sAge):0;
+ const bScale=(B.on!==false&&year>=FF&&year<FF+(B.lifeY||25))?Math.pow(1-(B.degr||0),Math.max(0,year-FF)):0;
+ const key=[year,measYear,a.mw,a.grossCF,a.loss,a.lineLoss,a.on,a.degr,a.codY,a.lifeY,
+   b.mw,b.grossCF,b.loss,b.lineLoss,b.on,b.degr,b.codY,b.lifeY,
+   B.powerMW,B.durationH,B.socFloor,B.rte,B.on,B.degr,B.lifeY,d.firmMW,d.curtail||0,
    M.conn.clip!==false,M.conn.dcac||1].join('|');
- if(_SUPC&&_SUPC.key===key)return _SUPC.v;
- const T=typicalYear(), n=T.w.length, load=d.firmMW;
- const wOn=a.on!==false, sOn=b.on!==false, bOn=B.on!==false;
- const wS=(wOn&&avg(T.w)>0)?effCF(a)/avg(T.w):0, sS=(sOn&&avg(T.s)>0)?effCF(b)/avg(T.s):0;
- // the caps below are the same ones clipFactor() integrates, so the asset pages and this model
- // report the same delivered energy rather than two numbers for one plant
- const cur=1-(d.curtail||0);                      // grid curtailment slider, zero on a direct line
- const P=bOn?B.powerMW:0, E=bOn?B.powerMW*B.durationH*(1-(B.socFloor||0)):0, rt=Math.sqrt(B.rte||1);
- // Start empty so the annual result cannot borrow free energy from an arbitrary opening state.
- // Any charge left at year-end is retained, not counted as served load, which is conservative.
- let soc=0, served=0, direct=0, fromBatt=0, gridE=0, surplus=0, spill=0, battIn=0;
- let hSur=0, hDef=0, hFull=0, gen=0, peak=0, daysNeed=0;
- // A plant cannot deliver more than it is rated for. Wind is capped at nameplate, solar at the AC
- // rating behind the inverters. Both caps sit at the delivery point, so they are net of the plant
- // and line losses already folded into effCF.
- const doClip=M.conn.clip!==false, dcac=M.conn.dcac||1;
+ if(year===FF&&_SUPC&&_SUPC.key===key)return _SUPC.v;
+ if(_DISPATCHC.has(key))return _DISPATCHC.get(key);
+
+ const T=typicalYear(),n=T.w.length,load=d.firmMW;
+ const wMean=avg(T.w),sMean=avg(T.s);
+ const wS=(wScale>0&&wMean>0)?effCF(a)/wMean:0,sS=(sScale>0&&sMean>0)?effCF(b)/sMean:0;
+ const cur=1-(d.curtail||0);
+ const P=bScale>0?B.powerMW:0,E=bScale>0?B.powerMW*B.durationH*(1-(B.socFloor||0))*bScale:0,rt=Math.sqrt(B.rte||1);
+ const doClip=M.conn.clip!==false,dcac=M.conn.dcac||1;
  const wCap=doClip?a.mw*(1-(a.lineLoss||0)):Infinity;
  const sCap=doClip?b.mw/dcac*(1-(b.lineLoss||0)):Infinity;
- let wClip=0, sClip=0, hWclip=0, hSclip=0;
- const mR=Array(12).fill(0), mG=Array(12).fill(0), mL=Array(12).fill(0);
- const hR=Array(24).fill(0), hG=Array(24).fill(0), hL=Array(24).fill(0);
- const DUR=[]; let i=0, dDef=0, nH=0;
  const nYrs=Math.max(1,Math.round(n/8760));
- for(let yy=0;yy<nYrs;yy++)
- for(let m=0;m<12;m++)for(let dd=0;dd<DAYS[m];dd++){dDef=0;for(let hh=0;hh<24;hh++){
-   let gw=T.w[i]*wS*a.mw, gs=T.s[i]*sS*b.mw;
-   if(gw>wCap){wClip+=gw-wCap; hWclip++; gw=wCap;}
-   if(gs>sCap){sClip+=gs-sCap; hSclip++; gs=sCap;}
-   const g=(gw+gs)*cur; gen+=g; if(g>peak)peak=g;
-   const dir=Math.min(g,load); direct+=dir;
-   let net=g-load, disc=0;
-   if(net>0){
-     hSur++; surplus+=net; hFull++;
-     const room=(E-soc)/rt, take=Math.min(net,P,room);
-     soc+=take*rt; battIn+=take; spill+=net-take;
-   }else{
-     hDef++;
-     const need=-net, avail=soc*rt;
-     disc=Math.min(need,P,avail); soc-=disc/rt; fromBatt+=disc;
-     const short=need-disc; gridE+=short; dDef+=short;
-     if(short<=0)hFull++;
+
+ // Run the recurring model year until its opening and closing state of charge agree, then record it.
+ const walk=(opening,collect)=>{
+  let soc=Math.min(E,Math.max(0,opening)),i=0;
+  let served=0,direct=0,fromBatt=0,gridE=0,gridPeak=0,surplus=0,spill=0,battIn=0;
+  let hSur=0,hDef=0,hFull=0,gen=0,peak=0,daysNeed=0,windGen=0,solarGen=0;
+  let wClip=0,sClip=0,hWclip=0,hSclip=0;
+  const mR=Array(12).fill(0),mG=Array(12).fill(0),mL=Array(12).fill(0);
+  const hR=Array(24).fill(0),hG=Array(24).fill(0),hL=Array(24).fill(0),DUR=[];
+  for(let yy=0;yy<nYrs;yy++)for(let m=0;m<12;m++)for(let dd=0;dd<DAYS[m];dd++){
+   let dDef=0;
+   for(let hh=0;hh<24;hh++){
+    let gw=T.w[i]*wS*a.mw,gs=T.s[i]*sS*b.mw;
+    if(gw>wCap){if(collect){wClip+=gw-wCap;hWclip++;}gw=wCap;}
+    if(gs>sCap){if(collect){sClip+=gs-sCap;hSclip++;}gs=sCap;}
+    gw*=wScale*cur;gs*=sScale*cur;
+    const g=gw+gs,dir=Math.min(g,load);let net=g-load,disc=0,short=0;
+    if(net>0){
+     const room=rt>0?(E-soc)/rt:0,take=Math.min(net,P,Math.max(0,room));
+     soc+=take*rt;
+     if(collect){hSur++;surplus+=net;hFull++;battIn+=take;spill+=net-take;}
+    }else{
+     const need=-net,avail=soc*rt;
+     disc=Math.min(need,P,avail);soc-=rt>0?disc/rt:0;short=need-disc;
+     if(collect){hDef++;fromBatt+=disc;gridE+=short;dDef+=short;if(short<=1e-9)hFull++;if(short>gridPeak)gridPeak=short;}
+    }
+    if(collect){
+     const s2=dir+disc;served+=s2;direct+=dir;gen+=g;windGen+=gw;solarGen+=gs;if(g>peak)peak=g;
+     mR[m]+=s2;mG[m]+=short;mL[m]+=load;hR[hh]+=s2;hG[hh]+=short;hL[hh]+=load;
+     DUR.push(load>0?Math.min(1,s2/load)*100:100);
+    }
+    i++;
    }
-   const s2=dir+disc; served+=s2;
-   mR[m]+=s2; mG[m]+=Math.max(0,load-s2); mL[m]+=load;
-   hR[hh]+=s2; hG[hh]+=Math.max(0,load-s2); hL[hh]+=load;
-   DUR.push(Math.min(1,s2/load)*100);
-   i++;
- } if(dDef>0)daysNeed++;}
- nH=DUR.length||n;                       // hours actually walked (whole years only)
- const totLoad=load*nH;
- DUR.sort((x,y)=>x-y);
- const v={n:nH,load,gen,peak,served,direct,fromBatt,gridE,surplus,spill,battIn,endSoc:soc,hSur,hDef,hFull,daysNeed,
-   wClip,sClip,hWclip,hSclip,clipOn:doClip,wCap:doClip?wCap:null,sCap:doClip?sCap:null,dcac,
-   selfPct:served/totLoad*100, directPct:direct/totLoad*100, battPct:fromBatt/totLoad*100,
-   gridPct:gridE/totLoad*100, spillPct:gen>0?spill/gen*100:0, surplusPct:gen>0?surplus/gen*100:0,
-   hFullPct:hFull/nH*100, hSurPct:hSur/nH*100, avgShort:hDef>0?gridE/hDef:0,
-   mR,mG,mL,hR,hG,hL,DUR, window:measSeries().meta.window};
- _SUPC={key,v}; return v;
+   if(collect&&dDef>0)daysNeed++;
+  }
+  return{soc,served,direct,fromBatt,gridE,gridPeak,surplus,spill,battIn,hSur,hDef,hFull,daysNeed,
+    gen,peak,windGen,solarGen,wClip,sClip,hWclip,hSclip,mR,mG,mL,hR,hG,hL,DUR};
+ };
+
+ let openingSoc=0;
+ for(let pass=0;pass<8;pass++){
+  const closing=walk(openingSoc,false).soc;
+  if(Math.abs(closing-openingSoc)<1e-7){openingSoc=closing;break;}
+  openingSoc=closing;
+ }
+ const R=walk(openingSoc,true),nH=R.DUR.length||n,totLoad=load*nH,endSoc=R.soc;
+ const battLoss=Math.max(0,R.battIn-R.fromBatt-(endSoc-openingSoc));
+ const balanceError=(R.gen+R.gridE+openingSoc)-(totLoad+R.spill+battLoss+endSoc);
+ R.DUR.sort((x,y)=>x-y);
+ const v={n:nH,year,load,loadMWh:totLoad,gen:R.gen,windGen:R.windGen,solarGen:R.solarGen,peak:R.peak,
+   served:R.served,direct:R.direct,fromBatt:R.fromBatt,gridE:R.gridE,gridPeak:R.gridPeak,
+   surplus:R.surplus,spill:R.spill,battIn:R.battIn,battLoss,openingSoc,endSoc,balanceError,batteryScale:bScale,
+   hSur:R.hSur,hDef:R.hDef,hFull:R.hFull,daysNeed:R.daysNeed,wClip:R.wClip,sClip:R.sClip,
+   hWclip:R.hWclip,hSclip:R.hSclip,clipOn:doClip,wCap:doClip?wCap:null,sCap:doClip?sCap:null,dcac,
+   selfPct:totLoad>0?R.served/totLoad*100:0,directPct:totLoad>0?R.direct/totLoad*100:0,
+   battPct:totLoad>0?R.fromBatt/totLoad*100:0,gridPct:totLoad>0?R.gridE/totLoad*100:0,
+   spillPct:R.gen>0?R.spill/R.gen*100:0,surplusPct:R.gen>0?R.surplus/R.gen*100:0,
+   hFullPct:nH>0?R.hFull/nH*100:0,hSurPct:nH>0?R.hSur/nH*100:0,avgShort:R.hDef>0?R.gridE/R.hDef:0,
+   mR:R.mR,mG:R.mG,mL:R.mL,hR:R.hR,hG:R.hG,hL:R.hL,DUR:R.DUR,window:measSeries().meta.window};
+ if(_DISPATCHC.size>160)_DISPATCHC.clear();
+ _DISPATCHC.set(key,v);if(year===FF)_SUPC={key,v};return v;
 }
+function supplyStats(){return dispatchYear(FF);}
 
 /* ============ 5 · FORMATTING & CHART SCAFFOLDING ============ */
 function fmt(x,d=1){if(x==null||isNaN(x))return '-';return x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});}
@@ -1750,17 +1775,15 @@ function dcSeg(){
 function dcPage(){
  if(dcView!=='fin'&&dcView!=='tech')dcView='fin';
  const d=M.dc;
- const load=d.firmMW*8760;
  const head=pageHead('Data Center','','',dcSeg());
  if(dcView==='tech')return head+renderBlock('dcsite');
 
  // ---------- 1 · the power bill, read off the SPV model so both pages show one invoice ----------
  const W=computeAsset(M.wind), S=computeAsset(M.solar);
- const SPb=computeSPV(M.dc.dcPrice), y1b=SPb.rows.find(r=>r.y===FF)||{rev:0,bRev:0,gridMWh:0,gridCost:0,resPPA:0};
- const resGen=(M.wind.on!==false?(W.rows.find(r=>r.y===FF)||{prod:0}).prod:0)
-             +(M.solar.on!==false?(S.rows.find(r=>r.y===FF)||{prod:0}).prod:0);
+ const SPb=computeSPV(M.dc.dcPrice), y1b=SPb.rows.find(r=>r.y===FF)||{rev:0,bRev:0,loadMWh:0,resGen:0,gridMWh:0,gridCost:0,netCharge:0,resPPA:0};
+ const load=y1b.loadMWh||d.firmMW*8760,resGen=Math.max(0,y1b.resGen||0);
  const gridMWh=Math.max(0,y1b.gridMWh||0);
- const capFee=resCapFeeM(FF);
+ const capFee=Math.max(0,y1b.netCharge||0);
  const gridEnergy=Math.max(0,y1b.gridCost-capFee);
  const margin=Math.max(0,y1b.rev-y1b.resPPA-gridEnergy-capFee);
  const relFee=(computeBattery(M.battery).capRev||0);
@@ -1834,7 +1857,7 @@ function summaryPage(){
  if(spvView==='corr')return seg+corrSection();
  const P=computePlantPortfolio(),W=P.wind,S=P.solar,B=computeBattery(M.battery);
  const SP=computeSPV(M.dc.dcPrice), spvIRR=SP.irr;
- const y1=SP.rows.find(r=>r.y===FF)||{rev:0,bRev:0,gridCost:0,resPPA:0,opex:0,ebitda:0};
+ const y1=SP.rows.find(r=>r.y===FF)||{rev:0,bRev:0,gridCost:0,resPPA:0,opex:0,ebitda:0,gridMWh:0,gridPeakMW:0,battDischargeMWh:0,spillMWh:0};
  const constructionEq=Math.max(0,-SP.rows.filter(r=>r.y<FF&&r.fcfe<0).reduce((s,r)=>s+r.fcfe,0));
  const preMerchantTopup=Math.max(0,-SP.rows.filter(r=>r.y>=FF&&r.y<M.battery.gridYear&&r.fcfe<0).reduce((s,r)=>s+r.fcfe,0));
  const mw=fleetAC(), t1=Math.min(TRANCHE.t1MW,mw), blend=mw>0?(t1*TRANCHE.p1+Math.max(0,mw-t1)*TRANCHE.p2)/mw:TRANCHE.p1;
@@ -1866,7 +1889,8 @@ function summaryPage(){
    ${kpiM([['Equity IRR',isNaN(spvIRR)?'n/m':fmt(spvIRR*100,1)+'%','battery + private line'],['Equity','€'+fmt(SP.equity,0)+'m','total injections']],'var(--acc)')}
    ${kpiM([['Data center tariff · '+FF,'€'+fmt(SP.unit,1),'/MWh'],['EBITDA · year 1','€'+fmt(y1.ebitda,0)+'m','']])}
    ${kpiM([['Park purchase price','€'+fmt(blend,1),'/MWh · blended'],['Energy margin',M.dc.marginMode==='flat'?'€'+fmt(M.dc.marginEur,2):pct(M.dc.spvMargin,2),M.dc.marginMode==='flat'?'/MWh':'on energy']])}
-   ${kpiM([['Battery power',fmt(M.battery.powerMW,0)+' MW',fmt(M.battery.powerMW*M.battery.durationH/1000,1)+' GWh energy'],['Grid interface capex','€'+fmt(lineMW()*M.conn.directPer100/100+M.battery.substation+M.battery.interconnect,0)+'m','lines · substation · tie-in']])}</div>`;
+   ${kpiM([['Battery power',fmt(M.battery.powerMW,0)+' MW',fmt(M.battery.powerMW*M.battery.durationH/1000,1)+' GWh energy'],['Grid interface capex','€'+fmt(lineMW()*M.conn.directPer100/100+M.battery.substation+M.battery.interconnect,0)+'m','lines · substation · tie-in']])}
+   ${kpiM([['Hourly grid residual',fmt((y1.gridMWh||0)/1e6,2)+' TWh',fmt(y1.gridPeakMW||0,0)+' MW annual peak'],['Battery to campus',fmt((y1.battDischargeMWh||0)/1000,0)+' GWh',fmt((y1.spillMWh||0)/1000,0)+' GWh renewable spill']])}</div>`;
  const battGen=B.thru;
  const BF=computeBatteryFin();
  const battRev=B.totalRev, battEbitda=B.totalRev-B.opex-B.gridFee;
@@ -1886,7 +1910,7 @@ function summaryPage(){
      oninput="spvEconY=+this.value;drawSpvEcon()">
    <b id="spvEconYLbl" style="font-size:15.5px;font-family:'Exo 2',Inter,sans-serif;min-width:130px;text-align:right">${(spvEconY||FF)} · year ${(spvEconY||FF)-FF+1}</b></div>`;
  const marginBasis=M.dc.marginMode==='flat'?'€'+fmt(M.dc.marginEur,2)+'/MWh':fmt(M.dc.spvMargin*100,1)+'% of energy cost';
- const irrBasis=`<div class="info" style="margin:0 0 14px;max-width:none"><b>Modeled base case.</b> The return includes the ${fmt(M.battery.powerMW,0)} MW / ${fmt(M.battery.powerMW*M.battery.durationH/1000,1)} GWh battery, private line and interface. It assumes an SPV margin of ${marginBasis}, a €${fmt(M.battery.capChargeMWyr,0)}k/MW/yr data-center reliability charge, and battery market participation from ${M.battery.gridYear}. Total modeled equity support is €${fmt(SP.equity,0)}m: €${fmt(constructionEq,0)}m during construction plus €${fmt(preMerchantTopup,0)}m before merchant operation. Wind and solar are purchased under PPAs, so their construction capex and asset returns sit outside this SPV return. These assumptions remain illustrative until contracted and independently validated.</div>`;
+ const irrBasis=`<div class="info" style="margin:0 0 14px;max-width:none"><b>8,760-hour cash-flow basis.</b> Every operating year now uses the same hourly engine as the Supply view for renewable delivery, storage charging and discharge, round-trip losses, spill, residual grid purchases and grid peak. Campus firming has first call on the battery; merchant revenue is reduced for equivalent cycles already used to serve the campus. The return includes the ${fmt(M.battery.powerMW,0)} MW / ${fmt(M.battery.powerMW*M.battery.durationH/1000,1)} GWh battery, private line and interface, an SPV margin of ${marginBasis}, and a €${fmt(M.battery.capChargeMWyr,0)}k/MW/yr reliability charge. Total modeled equity support is €${fmt(SP.equity,0)}m. Wind and solar are purchased under PPAs, so their construction capex and asset returns sit outside this SPV return. These assumptions remain illustrative until contracted and independently validated.</div>`;
  return seg+kpis+irrBasis+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr">
    ${yrCtl}<div class="chart tall" id="spvEcon"></div><div class="chart tall" id="spvcf"></div></div>${inputsR}</div>${table}`;
 }
@@ -1895,19 +1919,16 @@ function drawSpvEcon(){
  const SP=computeSPV(M.dc.dcPrice);
  const y=Math.min(Math.max(spvEconY||FF,FF),FF+24); spvEconY=y;
  const yr=SP.rows.find(r=>r.y===y); if(!yr)return;
- const W=computeAsset(M.wind),S=computeAsset(M.solar);
- const wr=W.rows.find(r=>r.y===y)||{prod:0}, sr=S.rows.find(r=>r.y===y)||{prod:0};
- const resGen=(M.wind.on!==false?wr.prod:0)+(M.solar.on!==false?sr.prod:0);
- const dcLoad=M.dc.firmMW*8760, gridMWh=Math.max(0,yr.gridMWh||0);
- const netCharge=resCapFeeM(y), gridEnergy=Math.max(0,yr.gridCost-netCharge);
+ const dcLoad=yr.loadMWh||M.dc.firmMW*8760,gridMWh=Math.max(0,yr.gridMWh||0),resGen=Math.max(0,yr.resGen||0);
+ const netCharge=Math.max(0,yr.netCharge||0),gridEnergy=Math.max(0,yr.gridCost-netCharge);
  const resUnit=resGen>0?yr.resPPA*1e6/resGen:0, gridUnit=gridMWh>0?gridEnergy*1e6/gridMWh:0;
  const vals=[yr.rev,-yr.resPPA,-gridEnergy,-netCharge,-yr.opex,yr.bRev,yr.ebitda];
  const cd=[fmt(dcLoad/1e6,2)+' TWh sold at €'+fmt(dcLoad>0?yr.rev*1e6/dcLoad:0,1)+'/MWh',
-   fmt(resGen/1e6,2)+' TWh at €'+fmt(resUnit,1)+'/MWh under the PPA',
+   fmt(resGen/1e6,2)+' TWh at €'+fmt(resUnit,1)+'/MWh under the PPA; '+fmt((yr.spillMWh||0)/1000,0)+' GWh spilled and '+fmt((yr.battLossMWh||0)/1000,0)+' GWh storage losses',
    fmt(gridMWh/1e6,2)+' TWh at €'+fmt(gridUnit,1)+'/MWh via the grid supply case',
-   'NE3 capacity charge, passed through at cost',
+   'NE3 capacity charge on the '+fmt(yr.gridPeakMW||0,0)+' MW hourly residual peak, passed through at cost',
    'battery and SPV running costs',
-   'reliability fee'+(y>=M.battery.gridYear?' and trading':''),
+   'reliability fee'+(y>=M.battery.gridYear?' and '+fmt((yr.merchantShare||0)*100,0)+'% residual merchant availability':''),
    'margin plus battery, before financing'];
  const lbl=document.getElementById('spvEconYLbl'); if(lbl)lbl.textContent=y+' · year '+(y-FF+1);
  Plotly.react('spvEcon',[{type:'waterfall',orientation:'v',
@@ -1923,13 +1944,10 @@ function drawSpvEcon(){
 // Consolidated SPV: owns the assets assigned to it, buys grid balancing energy and sells to the DC.
 // Its return must include the private line and interface capex whenever those assets sit in the SPV.
 function computeSPV(dcP){
- const mac=M.macro,infl=mac.infl,allIn=mac.allInRate,g=mac.gearing,tenor=mac.tenor,comp=M.battery.compression,gy=M.battery.gridYear,bdeg=M.battery.degr;
+ const mac=M.macro,infl=mac.infl,allIn=mac.allInRate,g=mac.gearing,tenor=mac.tenor,comp=M.battery.compression,gy=M.battery.gridYear;
  const owned=(M.dc.resMode||'lcoe')==='lcoe';
- const W=computeAsset(M.wind),S=computeAsset(M.solar),B=computeBattery(M.battery),SS=supplyStats();
+ const W=computeAsset(M.wind),S=computeAsset(M.solar),B=computeBattery(M.battery);
  const wOn=M.wind.on!==false, sOn=M.solar.on!==false, bOn=M.battery.on!==false;
- const dcLoad=M.dc.firmMW*8760;
- const baseResGen=(wOn?W.prod:0)+(sOn?S.prod:0);
- const baseSelf=Math.max(0,dcLoad-SS.gridE); // hourly profile result, including storage limits and shortfall timing
  const resCx=(wOn?W.totalCapex:0)+(sOn?S.totalCapex:0), battCx=bOn?B.capex:0;
  // Wide perimeter: if the data center-side electrical scope sits in the SPV rather than with the tenant,
  // it is carried here on top of the private lines. Zero means the narrow perimeter we have modelled.
@@ -1946,25 +1964,31 @@ function computeSPV(dcP){
  let bal=0,nol=0,ppy=0,annDS=0; const rows=[];
  const resLife=Math.max(M.wind.lifeY||25,M.solar.lifeY||25), spvEnd=FF+resLife, effTen=Math.min(tenor,resLife), depN=Math.min(20,resLife), battEnd=COD+(M.battery.lifeY||25);
  for(let y=Y0;y<=YN;y++){
-  const op=(y>=FF&&y<spvEnd)?1:0, wr=W.rows.find(r=>r.y===y), sr=S.rows.find(r=>r.y===y);
-  const resGen=(wOn&&wr?wr.prod:0)+(sOn&&sr?sr.prod:0);
+  const op=(y>=FF&&y<spvEnd)?1:0;
+  const D=op?dispatchYear(y):{loadMWh:0,gridE:0,gridPeak:0,windGen:0,solarGen:0,gen:0,direct:0,
+    fromBatt:0,battIn:0,battLoss:0,spill:0,balanceError:0,batteryScale:0};
+  const dcLoad=D.loadMWh,resGen=D.gen;
   // Pass-through: the data center pays what the energy costs, plus the SPV's margin on the energy only.
   // Network charges go through at cost, because a margin on a regulated tariff is not defensible.
   // Fixed: the old construct, where the SPV sells a flat euro per MWh and carries the market.
   let rev=0;
-  const bRev=((bOn&&y>=gy&&y<battEnd)?(B.arbRev*Math.pow(1-bdeg,y-gy)+B.ancRev)*Math.pow(1-comp,y-gy)*Math.pow(1+infl,y-gy):0)+((bOn&&y>COD&&y<battEnd)?(B.capRev||0)*Math.pow(1+infl,y-(COD+1)):0);
-   // Annual generation alone can hide hourly deficits. Anchor purchases to the hourly supply model,
-   // then scale the self-supplied portion as the renewable fleet degrades over time.
-   const genScale=baseResGen>0?resGen/baseResGen:0;
-   const gridMWh=Math.max(0,dcLoad-Math.min(dcLoad,baseSelf*genScale));
+  // Firming the campus has first call on battery throughput. Only the remaining equivalent cycles
+  // can earn merchant revenue, preventing the same storage capacity being sold twice in the model.
+  const merchantCapacity=(bOn&&D.batteryScale>0)?B.thru*D.batteryScale:0;
+  const merchantShare=merchantCapacity>0?Math.max(0,1-D.fromBatt/merchantCapacity):0;
+  const marketRev=(bOn&&y>=gy&&y<battEnd)?
+    (B.arbRev*D.batteryScale+B.ancRev)*merchantShare*Math.pow(1-comp,y-gy)*Math.pow(1+infl,y-gy):0;
+  const reliabilityRev=(bOn&&y>COD&&y<battEnd)?(B.capRev||0)*Math.pow(1+infl,y-(COD+1)):0;
+  const bRev=marketRev+reliabilityRev;
+  const gridMWh=Math.max(0,D.gridE);
   const gridEnergy=op?gridMWh*resPrice(y)/1e6:0;                 // €m, market plus editable trading margin and grid fee
-  const netCharge=op?resCapFeeM(y):0;                            // €m, NE3 capacity charge, regulated
+  const netCharge=op?resCapFeeM(y,D.gridPeak):0;                 // €m, capacity charge on the hourly residual peak
   const gridCost=gridEnergy+netCharge;
   const wPr=(y<(M.wind.codY||FF)+Math.min(mac.ppaTermY||20,M.wind.lifeY||25))?M.wind.ppa:CAP7.wind, sPr=(y<(M.solar.codY||FF)+Math.min(mac.ppaTermY||20,M.solar.lifeY||25))?M.solar.ppa:CAP7.solar; // PPA to term end, then capture-price tail, mirrors the asset side (audit fix: SPV was paying full PPA beyond the PPA term)
-  const resPPA=(!owned&&op)?((wOn?wPr*(wr?wr.prod:0):0)+(sOn?sPr*(sr?sr.prod:0):0))/1e6:0;   // fixed PPA during term, no escalation
+  const resPPA=(!owned&&op)?((wOn?wPr*D.windGen:0)+(sOn?sPr*D.solarGen:0))/1e6:0;   // hourly-dispatched renewable MWh, including energy charged or spilled
   // When the SPV owns the parks there is no PPA to pass on, so the renewable share is billed at the
   // SPV's own levelised cost. Billing it at zero would hand the data center €1.3bn of plant for nothing.
-  const resOwn=(owned&&op)?((wOn?W.lcoe*(wr?wr.prod:0):0)+(sOn?S.lcoe*(sr?sr.prod:0):0))/1e6:0;
+  const resOwn=(owned&&op)?((wOn?W.lcoe*D.windGen:0)+(sOn?S.lcoe*D.solarGen:0))/1e6:0;
   const passEnergy=resPPA+resOwn+gridEnergy;                       // €m, the cost base the margin sits on
   const passOn=(M.dc.spvMode||'pass')==='pass';
   const mgn=(M.dc.marginMode==='flat')
@@ -1978,13 +2002,15 @@ function computeSPV(dcP){
   let int=0,t=0,repay=0,fcfe=0;
   if(y<FF){const draw=(lev[y]||0)*blendG;const idc=(bal+draw/2)*xRate*(capex>0?1:0);bal+=draw+idc;fcfe=-capex+draw;}
   else{if(y===FF){ppy=bal/effTen;annDS=annPay(bal,xRate,effTen);}int=bal*xRate;const ebt=ebitda-dep-int;let tb=ebt+nol;if(tb>0){t=tb*mac.tax;nol=0;}else{nol=tb;}repay=(y<FF+effTen)?Math.min(bal,mac.amort==='annuity'?annDS-int:ppy):0;bal-=repay;if(Math.abs(bal)<1e-9)bal=0;fcfe=ebitda-t-capex-repay-int;}
-   rows.push({y,rev,bRev,gridMWh,gridCost,resPPA,opex,int,repay,tax:t,ebitda,fcfe});
+   rows.push({y,rev,bRev,marketRev,reliabilityRev,merchantShare,loadMWh:dcLoad,resGen,windGen:D.windGen,solarGen:D.solarGen,
+     directMWh:D.direct,battChargeMWh:D.battIn,battDischargeMWh:D.fromBatt,battLossMWh:D.battLoss,spillMWh:D.spill,
+     gridMWh,gridPeakMW:D.gridPeak,balanceError:D.balanceError,netCharge,gridCost,resPPA,opex,int,repay,tax:t,ebitda,fcfe});
  }
  const irr=xirr(rows.map(r=>r.fcfe),rows.map(r=>r.y+0.99));
  const equity=-rows.filter(r=>r.fcfe<0).reduce((s,r)=>s+r.fcfe,0);
  // what the data center ends up paying, as an output rather than an input
  const y1=rows.find(r=>r.y===FF)||{rev:0};
- const unit=dcLoad>0?y1.rev*1e6/dcLoad:0;
+ const unit=y1.loadMWh>0?y1.rev*1e6/y1.loadMWh:0;
  return{rows,irr,equity,capex:irrCapex,irrCapex,lineCapex:lineCx,owned,unit,
    pass:(M.dc.spvMode||'pass')==='pass'};
 }
@@ -2008,7 +2034,7 @@ function drawSpvCashflow(){
  const sDscMap={}; sDsc.forEach(d=>sDscMap[d.y]=d.v);
  Plotly.react('spvcf',[
    {x:yrs,y:ops.map(r=>r.rev+r.bRev),name:'Revenue',type:'bar',marker:{color:'#45b85d'},hovertemplate:HT('€m')},
-   {x:yrs,y:ops.map(r=>-(r.gridCost+r.opex)),name:'Grid + opex',type:'bar',marker:{color:'#ff6b6b'},hovertemplate:HT('€m')},
+   {x:yrs,y:ops.map(r=>-(r.resPPA+r.gridCost+r.opex)),name:'Parks + grid + opex',type:'bar',marker:{color:'#ff6b6b'},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>-(r.int+r.repay)),name:'Financing',type:'bar',marker:{color:'#5a6b8c'},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>-r.tax),name:'Tax',type:'bar',marker:{color:'#ffb23e'},hovertemplate:HT('€m')},
    {x:yrs,y:ops.map(r=>r.fcfe),name:'Dividends (equity CF)',type:'scatter',line:{color:'#b98cff',width:3},hovertemplate:HT('€m')},
