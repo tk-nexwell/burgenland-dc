@@ -212,9 +212,11 @@ foreach ($claim in $unsafeClaims) {
     if ($publicText.Contains($claim)) { Add-Failure "Unqualified public claim remains: $claim" }
 }
 
-$git = Get-Command git -ErrorAction SilentlyContinue
-if ($git) {
-    $tracked = @(& $git.Source -C $repo ls-files)
+$gitCommand = Get-Command git -CommandType Application -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+$gitPath = if ($gitCommand) { [string]$gitCommand.Path } else { $null }
+if ($gitPath) {
+    $tracked = @(& $gitPath -C $repo ls-files)
     if ($LASTEXITCODE -ne 0) {
         Add-Failure 'Unable to enumerate tracked files.'
         $tracked = @()
@@ -253,9 +255,9 @@ if ($git) {
         }
     }
 
-    & $git.Source -C $repo diff --check
+    & $gitPath -C $repo diff --check
     if ($LASTEXITCODE -ne 0) { Add-Failure 'git diff --check reported whitespace errors.' }
-    & $git.Source -C $repo diff --cached --check
+    & $gitPath -C $repo diff --cached --check
     if ($LASTEXITCODE -ne 0) { Add-Failure 'git diff --cached --check reported staged whitespace errors.' }
 } else {
     Add-Warning 'Git was not available, so tracked-file and whitespace checks were skipped.'
@@ -275,12 +277,14 @@ if (Test-Path -LiteralPath $syncScript) {
     }
 }
 
-$node = Get-Command node -ErrorAction SilentlyContinue
-if (-not $node) {
+$nodeCommand = Get-Command node -CommandType Application -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+$nodePath = if ($nodeCommand) { [string]$nodeCommand.Path } else { $null }
+if (-not $nodePath) {
     $bundledNode = Join-Path $env:USERPROFILE '.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe'
-    if (Test-Path -LiteralPath $bundledNode) { $node = Get-Item -LiteralPath $bundledNode }
+    if (Test-Path -LiteralPath $bundledNode) { $nodePath = $bundledNode }
 }
-if ($node) {
+if ($nodePath) {
     foreach ($script in @(
         'gdc_data.js',
         'gdc_app.js',
@@ -289,12 +293,12 @@ if ($node) {
         'scripts/test_model_integrity.mjs',
         'scripts/test_xirr.mjs'
     )) {
-        & $node.FullName --check (Join-Path $repo $script)
+        & $nodePath --check (Join-Path $repo $script)
         if ($LASTEXITCODE -ne 0) { Add-Failure "JavaScript syntax check failed: $script" }
     }
-    & $node.FullName (Join-Path $repo 'scripts/test_xirr.mjs')
+    & $nodePath (Join-Path $repo 'scripts/test_xirr.mjs')
     if ($LASTEXITCODE -ne 0) { Add-Failure 'XIRR regression checks failed.' }
-    & $node.FullName (Join-Path $repo 'scripts/test_model_integrity.mjs')
+    & $nodePath (Join-Path $repo 'scripts/test_model_integrity.mjs')
     if ($LASTEXITCODE -ne 0) { Add-Failure 'Model integrity regression checks failed.' }
 } else {
     Add-Warning 'Node.js was not available, so JavaScript syntax and XIRR checks were skipped.'
