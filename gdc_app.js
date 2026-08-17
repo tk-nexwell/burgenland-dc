@@ -605,27 +605,8 @@ const TABICON={
  prices:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 6.5c-1-1.4-2.9-2.2-5-2.2-2.8 0-4.6 1.3-4.6 3.3 0 4.6 10 2.5 10 7.2 0 2.1-2 3.5-5 3.5-2.4 0-4.4-.9-5.4-2.4"/></svg>'
 };
 
-const PROJECT_JUMPS=[
- ['overview','masterplan','Project layout'],
- ['overview','counterparties','Counterparties'],
- ['overview','project-pipeline','Planning zones'],
- ['wind','','Wind model'],
- ['solar','','Solar model'],
- ['summary','','Power SPV model'],
- ['datacentre','','Data center brief'],
- ['prices','','Market evidence']
-];
 function buildNav(){
- const explorer=`<details class="projectMenu"><summary>${TABICON.overview}<span>Project explorer</span><span class="pmArr">⌄</span></summary>
-  <div class="projectMenuPop"><div class="pmK">Jump to</div>${PROJECT_JUMPS.map(j=>`<button onclick="projectJump('${j[0]}','${j[1]}',event)">${j[2]}<span>→</span></button>`).join('')}</div></details>`;
- document.getElementById('nav').innerHTML=explorer+TABS.map(t=>`<button class="${t[0]===active?'on':''}" aria-current="${t[0]===active?'page':'false'}" onclick="go('${t[0]}',event)" title="${t[1]}">${TABICON[t[0]]||''}<span>${t[1]}</span></button>`).join('');
-}
-function projectJump(t,id,e){
- if(e){e.preventDefault();e.stopPropagation();}
- const menu=document.querySelector('.projectMenu'); if(menu)menu.open=false;
- const move=()=>{const el=id&&document.getElementById(id);if(el)el.scrollIntoView({behavior:reduceMo()?'auto':'smooth',block:'start'});else scrollTo({top:0,behavior:reduceMo()?'auto':'smooth'});};
- if(t===active){move();return;}
- go(t,null);setTimeout(move,reduceMo()?20:420);
+ document.getElementById('nav').innerHTML=TABS.map(t=>`<button class="${t[0]===active?'on':''}" aria-current="${t[0]===active?'page':'false'}" onclick="go('${t[0]}',event)" title="${t[1]}">${TABICON[t[0]]||''}<span>${t[1]}</span></button>`).join('');
 }
 function go(t,e){if(e)ripple(e);
  if(t==='battery'){t='summary';spvView='batt';}          // the battery lives inside the Power SPV model now
@@ -4275,8 +4256,7 @@ let _fxT=false;
 addEventListener('scroll',()=>{if(_fxT)return;_fxT=true;requestAnimationFrame(()=>{_fxT=false;railUpd();});},{passive:true});
 addEventListener('resize',()=>{clearTimeout(_fxRz);_fxRz=setTimeout(()=>{buildRail();railUpd();},220);});
 addEventListener('popstate',()=>{const t=routeTab();if(t===active)return;active=t;_pgNav=true;buildNav();settlePageFocus();transitionTo(render);});
-document.addEventListener('click',e=>{const menu=document.querySelector('.projectMenu');if(menu&&menu.open&&!menu.contains(e.target))menu.open=false;});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){const drawer=document.getElementById('srcDrawer');if(drawer&&drawer.classList.contains('on')){hideSrc();return;}const menu=document.querySelector('.projectMenu');if(menu&&menu.open){menu.open=false;menu.querySelector('summary')?.focus();}}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const drawer=document.getElementById('srcDrawer');if(drawer&&drawer.classList.contains('on'))hideSrc();}});
 
 setTheme(THEME,true);scenFromHash();buildNav();setTimeout(maybeSplash,60);render();afterRender();
 if(typeof Plotly==='undefined'){(function w(){ (typeof Plotly!=='undefined') ? (render(),afterRender()) : setTimeout(w,100); })();}
