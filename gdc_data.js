@@ -26,20 +26,20 @@ const NEGP={"first":"2015-01-11 01:00:00","totalNeg":1454,"totalHours":100940,"b
 /* Public release: deliberately rounded, illustrative planning zones. Project names,
    precise coordinates, counterparty status and COD dates are not published here. */
 const PROJECTS=[
- {n:'Wind zone A',t:'wind',mw:40,s:'Planning scenario',d:4,av:'Phasing open',lat:47.95,lon:17.04},
- {n:'Wind zone B',t:'wind',mw:60,s:'Planning scenario',d:8,av:'Phasing open',lat:47.90,lon:17.00},
- {n:'Wind zone C',t:'wind',mw:70,s:'Planning scenario',d:12,av:'Phasing open',lat:47.85,lon:16.96},
- {n:'Wind zone D',t:'wind',mw:80,s:'Planning scenario',d:18,av:'Phasing open',lat:47.80,lon:16.94},
- {n:'Wind zone E',t:'wind',mw:70,s:'Planning scenario',d:24,av:'Phasing open',lat:47.88,lon:16.90},
- {n:'Solar zone A',t:'solar',mw:60,s:'Planning scenario',d:3,av:'Phasing open',lat:47.94,lon:17.02},
- {n:'Solar zone B',t:'solar',mw:72,s:'Planning scenario',d:6,av:'Phasing open',lat:47.89,lon:16.98},
- {n:'Solar zone C',t:'solar',mw:75,s:'Planning scenario',d:10,av:'Phasing open',lat:47.84,lon:16.95},
- {n:'Solar zone D',t:'solar',mw:70,s:'Planning scenario',d:16,av:'Phasing open',lat:47.79,lon:16.93},
- {n:'Solar zone E',t:'solar',mw:80,s:'Planning scenario',d:22,av:'Phasing open',lat:47.86,lon:16.91}];
+ {n:'Wind zone A',t:'wind',mw:40,s:'Development',d:4,av:'Phased delivery',lat:47.95,lon:17.04},
+ {n:'Wind zone B',t:'wind',mw:60,s:'Development',d:8,av:'Phased delivery',lat:47.90,lon:17.00},
+ {n:'Wind zone C',t:'wind',mw:70,s:'Development',d:12,av:'Phased delivery',lat:47.85,lon:16.96},
+ {n:'Wind zone D',t:'wind',mw:80,s:'Development',d:18,av:'Phased delivery',lat:47.80,lon:16.94},
+ {n:'Wind zone E',t:'wind',mw:70,s:'Development',d:24,av:'Phased delivery',lat:47.88,lon:16.90},
+ {n:'Solar zone A',t:'solar',mw:60,s:'Development',d:3,av:'Phased delivery',lat:47.94,lon:17.02},
+ {n:'Solar zone B',t:'solar',mw:72,s:'Development',d:6,av:'Phased delivery',lat:47.89,lon:16.98},
+ {n:'Solar zone C',t:'solar',mw:75,s:'Development',d:10,av:'Phased delivery',lat:47.84,lon:16.95},
+ {n:'Solar zone D',t:'solar',mw:70,s:'Development',d:16,av:'Phased delivery',lat:47.79,lon:16.93},
+ {n:'Solar zone E',t:'solar',mw:80,s:'Development',d:22,av:'Phased delivery',lat:47.86,lon:16.91}];
 
 const SITES=[
- {n:'Illustrative grid hub A',lat:47.97,lon:17.01},
- {n:'Illustrative grid hub B',lat:47.78,lon:17.03},
+ {n:'Grid hub A',lat:47.97,lon:17.01},
+ {n:'Grid hub B',lat:47.78,lon:17.03},
  {n:'Nickelsdorf study area',lat:47.94,lon:17.07}
 ];
 

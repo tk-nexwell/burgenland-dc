@@ -163,8 +163,26 @@ if (Test-Path -LiteralPath $futureImage -PathType Leaf) {
 if ($app -notmatch 'assets/nickelsdorf-masterplan-future-state\.png') {
     Add-Failure 'gdc_app.js does not reference the required future-state masterplan.'
 }
-if ($app -notmatch '(?i)not an approved site plan') {
-    Add-Failure 'The future-state visualization must state that it is not an approved site plan.'
+if ($index -notmatch '(?i)>Planning scenario</span>') {
+    Add-Failure 'The public header must identify the dashboard as a planning scenario.'
+}
+if ($app -notmatch '(?i)Site layout showing the campus, generation, storage and electrical corridor') {
+    Add-Failure 'The future-state visualization must carry the standard site-layout caption.'
+}
+
+$defensiveCopyPatterns = @(
+    '(?i)does not represent an executed supply contract',
+    '(?i)counterparty approval is not represented',
+    '(?i)not an approved site plan',
+    '(?i)final scope and commitments remain to be agreed',
+    '(?i)final structure and counterparties remain to be agreed',
+    '(?i)our own number, with nothing behind it yet',
+    '(?i)planning range only'
+)
+foreach ($pattern in $defensiveCopyPatterns) {
+    if ($publicText -match $pattern) {
+        Add-Failure "Public assets contain repetitive defensive copy: $pattern"
+    }
 }
 
 foreach ($privateConstant in @('BEDATA', 'BENCH', 'NEWD', 'MEAS', 'CLIP')) {

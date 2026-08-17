@@ -55,12 +55,12 @@ function buildFullModel(ExcelJS, S){
  inp('Capex',S.wind.capexPerMW,'€m per MW','W_CAPEX');
  inp('Gross capacity factor',S.wind.grossCF,'','W_GCF');
  inp('Plant losses (wake, electrical)',S.wind.loss,'','W_LOSS');
- inp('Direct-line losses',S.wind.lineLoss,'editable planning assumption','W_LLOSS');
+ inp('Direct-line losses',S.wind.lineLoss,'editable model input','W_LLOSS');
  inp('Degradation',S.wind.degr,'per yr','W_DEGR');
  inp('Opex',S.wind.opexPerMW,'€m/MW/yr, CPI-indexed','W_OPEX');
  inp('PPA price',S.wind.ppa,'€/MWh fixed','W_PPA');
  inp('Contracted share',S.wind.contr,'','W_CONTR');
- inp('COD (first generation year)',S.wind.codY,'planning assumption','W_COD');
+ inp('COD (first generation year)',S.wind.codY,'model input','W_COD');
  inp('Useful life',S.wind.lifeY,'years','W_LIFE');
  inp('Merchant tail price',S.CAP7w,'€/MWh flat (capture avg ex-2022)','W_TAIL');
  r++; isect('SOLAR');
@@ -80,8 +80,8 @@ function buildFullModel(ExcelJS, S){
  inp('Power',S.battery.powerMW,'MW','B_MW');
  inp('Duration',S.battery.durationH,'hours','B_DUR');
  inp('Cell capex',S.battery.capexPerKWh,'€/kWh','B_CKWH');
- inp('Grid-interface allowance',S.battery.substation,'€m, planning assumption','B_SUB');
- inp('Campus connection allowance',S.battery.interconnect,'€m, planning assumption','B_INT');
+ inp('Grid-interface allowance',S.battery.substation,'€m, model input','B_SUB');
+ inp('Campus connection allowance',S.battery.interconnect,'€m, model input','B_INT');
  inp('Round-trip efficiency',S.battery.rte,'','B_RTE');
  inp('SoC floor (outage reserve)',S.battery.socFloor,'not traded','B_SOC');
  inp('Cycles per day',S.battery.cyclesDay,'','B_CYC');
@@ -89,7 +89,7 @@ function buildFullModel(ExcelJS, S){
  inp('Opex',S.battery.opexPct,'% of cell capex/yr, CPI-indexed','B_OPEXP');
  inp('Ancillary revenue',S.battery.ancPerMW,'€k/MW/yr (from merchant year)','B_ANC');
  inp('DC reliability charge (paid by DC)',S.battery.capChargeMWyr,'€k/MW/yr from COD+1','B_CCH');
- inp('First merchant year',S.battery.gridYear,'planning assumption','B_GY');
+ inp('First merchant year',S.battery.gridYear,'model input','B_GY');
  inp('Revenue compression',S.battery.compression,'per yr on merchant','B_COMP');
  inp('Degradation',S.battery.degr,'per yr','B_DEGR');
  inp('Gearing',S.battery.gearing,'','B_GEAR');
@@ -119,7 +119,7 @@ function buildFullModel(ExcelJS, S){
  inp('Margin form (1=€/MWh, 0=%)',S.dc.marginMode==='flat'?1:0,'€/MWh is neutral to the market','MGN_MODE');
  inp('SPV margin (€/MWh)',S.dc.marginEur!=null?S.dc.marginEur:3.5,'CPI-indexed, used when form = 1','MGN_E');
  inp('SPV first revenue year',S.FF,'','SPV_FF');
- r++; isect('REFERENCE AVERAGE-DAY CURVE | explanatory only, not the financial engine | '+S.priceYear);
+ r++; isect('REFERENCE AVERAGE-DAY CURVE | price profile reference | '+S.priceYear);
  const PH0=r;
  for(let h=0;h<24;h++){ wi.getCell(r,3).value='Hour '+h; const c=wi.getCell(r,5); c.value=S.ph[h]; c.fill=YEL; c.font=BLUE; c.numFmt='#,##0.0'; wi.getCell(r,4).value=(h===0?'→ Battery sheet':''); r++; }
  IN.PH0=PH0;
@@ -273,7 +273,7 @@ function buildFullModel(ExcelJS, S){
  function batterySheet(){
   const ws=wb.addWorksheet('Battery'); ws.getColumn(1).width=38; ws.getColumn(2).width=13; ws.getColumn(3).width=26; ws.getColumn(4).width=8; ws.views=[{state:'frozen',xSplit:1}];
   ws.getCell(1,1).value='BATTERY | full-formula model'; ws.getCell(1,1).font={bold:true,size:12};
-  ws.getCell(2,1).value='Red = linked from Inputs. Arbitrage uses the dashboard day-by-day backtest summary; the 24h curve is explanatory only.';
+  ws.getCell(2,1).value='Red = linked from Inputs. Arbitrage uses the dashboard day-by-day backtest summary; the 24h curve is a reference view.';
   ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
   const L={}, D={}, R={};
   let rr=4; rr=sect(ws,rr,'LOCAL ASSUMPTIONS (linked from Inputs, red)');
@@ -468,7 +468,7 @@ function buildFullModel(ExcelJS, S){
   ws.getCell(k,1).value='Dashboard SPV IRR at export'; ws.getCell(k,2).value=S.spvIRR; ws.getCell(k,2).numFmt=pctF; ws.getCell(k,2).fill=CHK; k++;
   ws.getCell(k,1).value='Financed SPV capex, incl direct line (€m)'; ws.getCell(k,2).value={formula:`$B$${D.IRRCX}`}; ws.getCell(k,2).numFmt=eurF; k++;
   ws.getCell(k,1).value='SPV total capex, incl direct line (€m)'; ws.getCell(k,2).value={formula:`$B$${D.SPVCX}`}; ws.getCell(k,2).numFmt=eurF; k++;
-  ws.getCell(k,1).value='Method note'; ws.getCell(k,2).value='Asset-only returns remain on the Wind, Solar and Battery sheets. Battery arbitrage uses exported day-by-day backtest averages from the selected duration and year. Re-export after changing those dimensions. Any non-zero tie-out is a model reconciliation issue, not a timing convention.';
+  ws.getCell(k,1).value='Method note'; ws.getCell(k,2).value='Asset-only returns are shown on the Wind, Solar and Battery sheets. Battery arbitrage uses exported day-by-day backtest averages from the selected duration and year. Re-export after changing those dimensions. Any non-zero tie-out identifies a model reconciliation issue.';
   return {irr:`SPV!B${IRR}`};
  }
  // Asset builders must expose their production row for the SPV pull; patch refs:
