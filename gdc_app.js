@@ -2827,7 +2827,8 @@ function svgSolarArray(){
          34,`chord ${TECH.chord} m (1P)`,RC.solar)+
   `<path d="M ${x0+16} ${tube-12} A 24 24 0 0 1 ${x0+16} ${tube+12}" fill="none" stroke="${RC.solar}" stroke-width="1" stroke-dasharray="2 2"/>`+
   tx(x0+42,tube+38,'±60° travel, backtracking at low sun',{f:RC.solar,s:9.5})+
-  tx(AX+14,AY+AH-12,`module ${TECH.modL}×${TECH.modW} m bifacial ${TECH.modWp} Wp · ${TECH.strMod}/string (1500 V) · rear-side gain not credited in the ${pct(M.solar.grossCF,2)} CF`,{s:12,m:1})+
+  tx(AX+14,AY+AH-25,`Module · ${TECH.modL} × ${TECH.modW} m · bifacial · ${TECH.modWp} Wp · ${TECH.strMod} modules/string · 1,500 V`,{s:10.5,m:1})+
+  tx(AX+14,AY+AH-11,`Yield basis · ${pct(M.solar.grossCF,2)} gross CF · rear-side gain not credited`,{s:10.5,m:1})+
   // agri-PV option ghost
   ln(AX+AW-172,gnd-TECH.agriH*mpp,AX+AW-40,gnd-TECH.agriH*mpp,RC.red,1,'4 3')+
   tx(AX+AW-106,gnd-TECH.agriH*mpp-6,`agri-PV option: tube at ${TECH.agriH} m`,{a:'middle',f:RC.red,s:9.5});
