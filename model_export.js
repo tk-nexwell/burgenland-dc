@@ -55,12 +55,12 @@ function buildFullModel(ExcelJS, S){
  inp('Capex',S.wind.capexPerMW,'€m per MW','W_CAPEX');
  inp('Gross capacity factor',S.wind.grossCF,'','W_GCF');
  inp('Plant losses (wake, electrical)',S.wind.loss,'','W_LOSS');
- inp('Direct-line losses',S.wind.lineLoss,'BE 15-Jul: 4.0% @ 12.5 km','W_LLOSS');
+ inp('Direct-line losses',S.wind.lineLoss,'editable planning assumption','W_LLOSS');
  inp('Degradation',S.wind.degr,'per yr','W_DEGR');
  inp('Opex',S.wind.opexPerMW,'€m/MW/yr, CPI-indexed','W_OPEX');
  inp('PPA price',S.wind.ppa,'€/MWh fixed','W_PPA');
  inp('Contracted share',S.wind.contr,'','W_CONTR');
- inp('COD (first generation year)',S.wind.codY,'BE list, cap-weighted','W_COD');
+ inp('COD (first generation year)',S.wind.codY,'planning assumption','W_COD');
  inp('Useful life',S.wind.lifeY,'years','W_LIFE');
  inp('Merchant tail price',S.CAP7w,'€/MWh flat (capture avg ex-2022)','W_TAIL');
  r++; isect('SOLAR');
@@ -80,8 +80,8 @@ function buildFullModel(ExcelJS, S){
  inp('Power',S.battery.powerMW,'MW','B_MW');
  inp('Duration',S.battery.durationH,'hours','B_DUR');
  inp('Cell capex',S.battery.capexPerKWh,'€/kWh','B_CKWH');
- inp('NEB Netzzutritt (switching station)',S.battery.substation,'€m — NEB est.','B_SUB');
- inp('DC connection (customer 3×3.5 km)',S.battery.interconnect,'€m','B_INT');
+ inp('Grid-interface allowance',S.battery.substation,'€m — planning assumption','B_SUB');
+ inp('Campus connection allowance',S.battery.interconnect,'€m — planning assumption','B_INT');
  inp('Round-trip efficiency',S.battery.rte,'','B_RTE');
  inp('SoC floor (outage reserve)',S.battery.socFloor,'not traded','B_SOC');
  inp('Cycles per day',S.battery.cyclesDay,'','B_CYC');
@@ -89,7 +89,7 @@ function buildFullModel(ExcelJS, S){
  inp('Opex',S.battery.opexPct,'% of cell capex/yr, CPI-indexed','B_OPEXP');
  inp('Ancillary revenue',S.battery.ancPerMW,'€k/MW/yr (from merchant year)','B_ANC');
  inp('DC reliability charge (paid by DC)',S.battery.capChargeMWyr,'€k/MW/yr from COD+1','B_CCH');
- inp('First merchant year',S.battery.gridYear,'illustrative scenario; not confirmed','B_GY');
+ inp('First merchant year',S.battery.gridYear,'planning assumption','B_GY');
  inp('Revenue compression',S.battery.compression,'per yr on merchant','B_COMP');
  inp('Degradation',S.battery.degr,'per yr','B_DEGR');
  inp('Gearing',S.battery.gearing,'','B_GEAR');
@@ -103,11 +103,11 @@ function buildFullModel(ExcelJS, S){
  inp('Self-charge cost',S.battery.btmCharge||0,'€/MWh','B_BTM');
  inp('Battery COD (capex year)',S.COD,'','B_COD');
  inp('Useful life',S.battery.lifeY,'years','B_LIFE');
- r++; isect('DATA CENTER / RESIDUAL (via BE Trading)');
+ r++; isect('DATA CENTER / GRID BALANCING');
  inp('DC contracted load',S.dc.firmMW,'MW','DC_MW');
  inp('DC sale price (today)',S.dc.dcPrice,'€/MWh, CPI-indexed','DC_P');
  inp('Residual market price',S.dc.resFix,'€/MWh 2025-real, CPI-indexed','RES_P');
- inp('BE Trading margin',S.dc.beMargin,'','RES_M');
+ inp('Energy-trading margin',S.dc.beMargin,'','RES_M');
  inp('NE3 energy fee',S.dc.gridEnergyFee,'€/MWh (2028 level)','FEE_E');
  inp('NE3 capacity fee',S.dc.gridCapFeeKW,'€/kW/yr (2028 level)','FEE_C');
  inp('Grid-fee escalation',S.dc.feeEsc,'per yr from 2028','FEESC');
@@ -278,12 +278,12 @@ function buildFullModel(ExcelJS, S){
   const L={}, D={}, R={};
   let rr=4; rr=sect(ws,rr,'LOCAL ASSUMPTIONS (linked from Inputs, red)');
   [['INFL','Inflation','per yr'],['TAXR','Tax rate',''],['TENOR','Debt tenor','yrs'],['AMORT','Amortisation (1=annuity)',''],['FEESC','Grid-fee escalation','per yr'],
-   ['B_MW','Power','MW'],['B_DUR','Duration','h'],['B_CKWH','Cell capex','€/kWh'],['B_SUB','Netzzutritt','€m'],['B_INT','DC connection','€m'],
+   ['B_MW','Power','MW'],['B_DUR','Duration','h'],['B_CKWH','Cell capex','€/kWh'],['B_SUB','Grid-interface allowance','€m'],['B_INT','Campus connection allowance','€m'],
    ['B_RTE','Round-trip eff.',''],['B_SOC','SoC floor',''],['B_CYC','Cycles/day',''],['B_CAPF','Capture factor',''],
    ['B_OPEXP','Opex %/yr',''],['B_ANC','Ancillary','€k/MW/yr'],['B_CCH','DC reliability charge','€k/MW/yr'],
    ['B_GY','First merchant year',''],['B_COMP','Compression','per yr'],['B_DEGR','Degradation','per yr'],
-    ['B_GEAR','Gearing',''],['B_RATE','Debt rate',''],['B_GFC','Grid fee capacity, manual','€/kW/yr'],['B_MKT','Apply DC NE3 tariff','1/0'],['FEE_C','DC NE3 capacity tariff','€/kW/yr'],['B_GFE','Grid fee energy','€/MWh'],
-    ['B_AVGBUY','Backtest average buy','€/MWh'],['B_AVGSELL','Backtest average sell','€/MWh'],['B_FSELF','Self-charge share',''],['B_BTM','Self-charge cost','€/MWh'],
+   ['B_GEAR','Gearing',''],['B_RATE','Debt rate',''],['B_GFC','Grid fee capacity, manual','€/kW/yr'],['B_MKT','Apply DC NE3 tariff','1/0'],['FEE_C','DC NE3 capacity tariff','€/kW/yr'],['B_GFE','Grid fee energy','€/MWh'],
+   ['B_AVGBUY','Backtest average buy','€/MWh'],['B_AVGSELL','Backtest average sell','€/MWh'],['B_FSELF','Self-charge share',''],['B_BTM','Self-charge cost','€/MWh'],
    ['B_COD','COD (capex year)',''],['B_LIFE','Useful life','yrs']
   ].forEach(x=>{ rr=linkRow(ws,rr,L,x[0],x[1],x[2]); });
   const A=k=>`$B$${L[k]}`;
@@ -301,12 +301,12 @@ function buildFullModel(ExcelJS, S){
   const PB=`$B$${CST}:$B$${CEN}`, RB=`$C$${CST}:$C$${CEN}`;
 
   rr++; rr=sect(ws,rr,'DERIVED DISPATCH & CAPEX (once)');
-  rr=derRow(ws,rr,D,'NCH',   'Tradeable hours nCh', `MIN(12,MAX(0,ROUNDDOWN(${A('B_DUR')}*(1-${A('B_SOC')})*${A('B_CYC')},0)))`, intF,'= floor(dur×(1−SoC)×cycles), matching dashboard');
+  rr=derRow(ws,rr,D,'NCH',   'Tradeable hours nCh', `MIN(12,MAX(0,${A('B_DUR')}*(1-${A('B_SOC')})*${A('B_CYC')}))`, numF,'= dur×(1−SoC)×cycles, preserving fractional tradeable duration');
   rr=derRow(ws,rr,D,'SCHEAP','Effective daily charge cost (€/MW)', `$B$${D.NCH}*(${A('B_AVGBUY')}*(1-${A('B_FSELF')})+${A('B_FSELF')}*${A('B_BTM')})`, numF,'day-by-day backtest average plus self-charge share');
   rr=derRow(ws,rr,D,'SPRICE','Daily sale value before RTE (€/MW)', `$B$${D.NCH}*${A('B_AVGSELL')}`, numF,'day-by-day backtest average');
   rr=derRow(ws,rr,D,'DAYARB','Day arbitrage (€/day)', `MAX(0,${A('B_MW')}*(${A('B_RTE')}*$B$${D.SPRICE}-$B$${D.SCHEAP}))*${A('B_CAPF')}`, numF);
   rr=derRow(ws,rr,D,'ARBRR', 'Arbitrage revenue run-rate (€m/yr)', `$B$${D.DAYARB}*365/10^6`, numF);
-  rr=derRow(ws,rr,D,'ANC',   'Ancillary (€m/yr)', `${A('B_ANC')}*${A('B_MW')}/1000`, numF);
+  rr=derRow(ws,rr,D,'ANC',   'Ancillary (€m/yr)', `${A('B_ANC')}*MIN(${A('B_MW')},225)/1000`, numF,'public planning cap on addressable capacity');
   rr=derRow(ws,rr,D,'DCCH',  'DC reliability charge (€m/yr)', `${A('B_CCH')}*${A('B_MW')}/1000`, numF);
   rr=derRow(ws,rr,D,'GFCAP', 'Grid fee capacity (€m/yr, 2028)', `${A('B_MW')}*MAX(${A('B_GFC')},${A('B_MKT')}*${A('FEE_C')})/1000`, numF,'manual override or DC NE3 fallback, matching dashboard');
   rr=derRow(ws,rr,D,'THRU',  'Grid throughput (MWh/yr)', `$B$${D.NCH}*${A('B_MW')}*${A('B_RTE')}*365`, intF);
@@ -375,7 +375,7 @@ function buildFullModel(ExcelJS, S){
    ['W_MW','Wind MW',''],['W_CAPEX','Wind capex','€m/MW'],['W_COD','Wind COD',''],['W_LIFE','Wind life','yrs'],['W_OPEX','Wind opex','€m/MW'],['W_PPA','Wind PPA','€/MWh'],['W_TAIL','Wind tail','€/MWh'],
    ['S_MW','Solar MW',''],['S_CAPEX','Solar capex','€m/MW'],['S_COD','Solar COD',''],['S_LIFE','Solar life','yrs'],['S_OPEX','Solar opex','€m/MW'],['S_PPA','Solar PPA','€/MWh'],['S_TAIL','Solar tail','€/MWh'],
    ['B_GEAR','Battery gearing',''],['B_RATE','Battery debt rate',''],['B_GY','Battery merchant year',''],['B_COD','Battery COD',''],['B_LIFE','Battery life','yrs'],['B_DEGR','Battery degradation',''],['B_COMP','Battery compression',''],['B_OPEXP','Battery opex %',''],
-   ['DC_MW','DC load','MW'],['DC_P','DC price','€/MWh'],['RES_P','Residual price','€/MWh'],['RES_M','BE margin',''],['FEE_E','NE3 energy fee','€/MWh'],['FEE_C','NE3 capacity fee','€/kW/yr'],['FEESC','Grid-fee esc.','per yr'],['RES_OWN','RES owned (1/0)',''],['LINE_C','Direct line','€m/100MW'],['DCAC','Solar DC/AC',''],
+   ['DC_MW','DC load','MW'],['DC_P','DC price','€/MWh'],['RES_P','Residual price','€/MWh'],['RES_M','Trading margin',''],['FEE_E','NE3 energy fee','€/MWh'],['FEE_C','NE3 capacity fee','€/kW/yr'],['FEESC','Grid-fee esc.','per yr'],['RES_OWN','RES owned (1/0)',''],['LINE_C','Direct line','€m/100MW'],['DCAC','Solar DC/AC',''],
    ['SPV_MODE','Pass-through (1/0)',''],['SPV_M','SPV margin','% of cost'],['MGN_MODE','Margin form (1=€/MWh)',''],['MGN_E','SPV margin','€/MWh'],['SPV_FF','SPV first year','']
   ].forEach(x=>{ rr=linkRow(ws,rr,L,x[0],x[1],x[2]); });
   const A=k=>`$B$${L[k]}`;

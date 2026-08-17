@@ -1,17 +1,29 @@
 # Project Burgenland — Live Power SPV Model
 
-Interactive dashboard deployed from this repository through GitHub Pages.
+Interactive public-planning dashboard deployed through GitHub Pages.
 
-## Source of truth
+## One editable source
 
-The `main` branch of `tk-nexwell/burgenland-dc` is the definitive source. Never publish from a
-OneDrive export and never copy an OneDrive edit back over GitHub. Make changes in a Git working
-copy at `C:\Users\ThomasKoenig\GitHub\burgenland-dc`, commit them to `main`, wait for the Pages
-build, and only then mirror the exact committed files to OneDrive. The sync script stages and hashes
-the new mirror and archives the prior OneDrive folder intact before replacement.
+The only supported local Git checkout is:
 
-The mirror manifest and detailed operating rules are in `MIRROR_MANIFEST.json` and
-`DEPLOY_INSTRUCTIONS.md`.
+`C:\Users\ThomasKoenig\GitHub\burgenland-dc`
+
+Edit, review, test, commit and push from that checkout only. The committed `main` branch is the
+publication record and GitHub Pages deploys that record.
+
+The similarly named OneDrive folder is deliberately **not** a Git checkout and must not be edited:
+
+`C:\Users\ThomasKoenig\OneDrive - nexwell.com\Output\Austria DC\github-pages-deploy`
+
+It is a generated, read-only working mirror for convenient access. After a release,
+`scripts/sync_onedrive.ps1 -Apply` fetches `origin`, requires a clean canonical checkout with
+`HEAD == origin/main`, runs the public-release checks, exports exactly the files declared in
+`MIRROR_MANIFEST.json`, verifies their hashes, and replaces the mirror by same-volume renames. The
+previous mirror remains beside it as a timestamped backup. The new mirror contains commit and
+SHA-256 proof files but never a `.git` directory, undeclared extras, or local-only material.
+
+See `DEPLOY_INSTRUCTIONS.md` for the operating procedure. Treat a file present in OneDrive but not
+in the canonical Git commit as an output or backup, never as a second source of truth.
 
 ## Return convention
 
@@ -21,9 +33,15 @@ assets assigned to that SPV, including the private line and interface scope.
 
 ## Public release boundary
 
-GitHub Pages is public and the in-browser access code is only a presentation gate. Run
-`scripts/check_release.ps1` before every publication. Confidential counterparty data must live in an
-actually authenticated private environment, not in JavaScript delivered by this site.
+GitHub Pages is public and this release has no browser access-code gate. Any future client-side gate
+would be presentation-only, not security. Run `scripts/check_release.ps1` before every publication.
+The same check runs in GitHub Actions.
+Confidential counterparty data, internal commercial terms and project-meter records must live in an
+actually authenticated private environment, not in JavaScript delivered by this site or in Git
+history.
 
 The public production curves are deterministic planning profiles, not project meters and not a
 bankable energy-yield study. Historical market-price records remain separate from those profiles.
+
+The future-state masterplan is an illustrative visualization, not an approved site plan, survey,
+engineering design or construction commitment.

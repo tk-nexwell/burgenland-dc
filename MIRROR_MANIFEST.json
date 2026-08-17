@@ -1,29 +1,49 @@
 {
-  "version": 3,
-  "source": {
+  "version": 4,
+  "kind": "canonical-source-to-onedrive-mirror",
+  "canonical": {
     "repository": "tk-nexwell/burgenland-dc",
+    "remote": "origin",
     "branch": "main",
-    "local": "GitHub/burgenland-dc"
+    "localCheckout": "C:/Users/ThomasKoenig/GitHub/burgenland-dc"
   },
-  "destination": "OneDrive/Output/Austria DC/github-pages-deploy",
-  "direction": "github-to-onedrive-only",
-  "exclude": [
-    ".git"
-  ],
-  "files": [
+  "mirror": {
+    "destination": "C:/Users/ThomasKoenig/OneDrive - nexwell.com/Output/Austria DC/github-pages-deploy",
+    "proofFile": "MIRROR_PROOF.json",
+    "commitFile": "MIRROR_HEAD.txt",
+    "backupPrefix": "github-pages-deploy.backup."
+  },
+  "releaseFiles": [
     "index.html",
     "gdc.css",
     "gdc_data.js",
     "gdc_app.js",
     "model_export.js",
     "prices_hourly.csv",
-    "README.md",
-    "AUDIT_FINDINGS.md",
     "CNAME",
+    "assets/nickelsdorf-masterplan-future-state.png"
+  ],
+  "controlFiles": [
+    ".github/workflows/release-check.yml",
+    ".gitignore",
+    "AUDIT_FINDINGS.md",
+    "README.md",
     "DEPLOY_INSTRUCTIONS.md",
     "deploy.bat",
     "MIRROR_MANIFEST.json",
-    "assets",
-    "scripts"
+    "scripts/check_release.ps1",
+    "scripts/sanitize_public_release.mjs",
+    "scripts/sync_onedrive.ps1",
+    "scripts/test_model_integrity.mjs",
+    "scripts/test_xirr.mjs"
+  ],
+  "localOnlyPatterns": [
+    "*.bundle",
+    "MIRROR_HEAD.txt",
+    "MIRROR_HASHES.json",
+    "MIRROR_PROOF.json",
+    "bedata_enc.bin",
+    "assets/nickelsdorf-masterplan-concept.png",
+    "assets/nickelsdorf-masterplan-burgenland.png"
   ]
 }

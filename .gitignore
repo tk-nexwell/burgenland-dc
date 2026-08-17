@@ -1,0 +1,10 @@
+# Local transfer and proof artifacts are never part of the public site.
+*.bundle
+MIRROR_HEAD.txt
+MIRROR_HASHES.json
+MIRROR_PROOF.json
+bedata_enc.bin
+
+# Earlier visual candidates retained locally for comparison only.
+assets/nickelsdorf-masterplan-concept.png
+assets/nickelsdorf-masterplan-burgenland.png
