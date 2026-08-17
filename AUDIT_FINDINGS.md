@@ -1,4 +1,4 @@
-# GDC Nickelsdorf dashboard — independent review
+# GDC Nickelsdorf dashboard: independent review
 
 Review date: 17 August 2026
 

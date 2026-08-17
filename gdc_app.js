@@ -679,7 +679,7 @@ function assetPage(sec){
  const provNote=`<div class="provRow">${cb('planning')} the hourly shape is an illustrative public planning profile; the capacity-factor slider sets the annual level
    &nbsp;&nbsp;${cb('assumed')} the direct-line loss of ${pct(a.lineLoss,1)} is an editable planning input
    &nbsp;&nbsp;${cb('assumed')} capex, opex and useful life are illustrative${isWind?'':', as is the '+fmt(M.conn.dcac||1,2)+' DC to AC ratio behind the clipping'}</div>`;
- const clipNote=(cf<0.999)?`<div class="info" style="margin-bottom:12px"><b>The rating is a ceiling, and it costs ${fmt((1-cf)*100,1)}% of output in this planning case.</b> The model scales the illustrative hourly profile until its annual mean matches the ${pct(a.grossCF,1)} capacity factor on the slider. That lifts the peaks as well as the mean, and the scaled series runs above what ${isWind?'the generator':'the inverters'} can pass. Capping it at ${isWind?`nameplate, ${fmt(a.mw,0)} MW`:`the AC rating, ${fmt(a.mw/(M.conn.dcac||1),0)} MW behind a ${fmt(M.conn.dcac||1,2)} DC to AC ratio`}, removes <b>${fmt((1-cf)*100,1)}%</b> and takes the delivered capacity factor from ${pct(effCF(a),2)} to <b>${pct(effCF(a)*cf,2)}</b>. Replace this profile with the bankable energy-yield series before investment approval.</div>`:'';
+ const clipNote=(cf<0.999)?`<div class="info" style="margin-bottom:12px"><b>Modeled clipping: ${fmt((1-cf)*100,1)}% of output.</b> The model scales the illustrative hourly profile to the ${pct(a.grossCF,1)} capacity factor on the slider. Output above ${isWind?`the ${fmt(a.mw,0)} MW nameplate rating`:`the ${fmt(a.mw/(M.conn.dcac||1),0)} MW AC rating at a ${fmt(M.conn.dcac||1,2)} DC to AC ratio`} is capped. This changes the delivered capacity factor from ${pct(effCF(a),2)} to <b>${pct(effCF(a)*cf,2)}</b>. A bankable energy-yield series is required before investment approval.</div>`:'';
  const inputsL=`<div class="panel"><h3>${isWind?'Wind':'Solar'} · plant & technical</h3>
   ${sliderHTML(sec,'mw','Capacity',50,600,isWind?5:1,isWind?' MW<sub>AC</sub>':' MWp<sub>DC</sub>')}
   ${sliderHTML(sec,'capexPerMW','Capex',0.2,2,0.005,isWind?' €k/MW<sub>AC</sub>':' €k/MWp<sub>DC</sub>',1000)}
@@ -1072,12 +1072,12 @@ function printAsk(){
  const el=document.getElementById('srcDrawer');
  el.innerHTML=`<div class="sdInner"><button class="sdX" onclick="hideSrc()" aria-label="Close">✕</button>
   <h3 style="margin:6px 0 4px">Save as PDF</h3>
-  <p style="font-size:13px;line-height:1.55;color:var(--t2)">The browser's own print dialog does the saving, so choose <b>Save as PDF</b> as the destination and leave background graphics on. The dashboard switches to the light theme first, because a black page is unreadable on paper and empties a toner cartridge.</p>
+  <p style="font-size:13px;line-height:1.55;color:var(--t2)">Choose <b>Save as PDF</b> in the browser print dialog and enable background graphics. The dashboard uses the light theme for printing.</p>
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 6px">
     <button class="chip" style="cursor:pointer;padding:9px 14px" onclick="hideSrc();setTimeout(()=>printView(false),260)">This page only</button>
-    <button class="chip" style="cursor:pointer;padding:9px 14px" onclick="hideSrc();setTimeout(()=>printView(true),260)">Every tab, one document</button>
+    <button class="chip" style="cursor:pointer;padding:9px 14px" onclick="hideSrc();setTimeout(()=>printView(true),260)">All tabs</button>
   </div>
-  <p style="font-size:12px;line-height:1.5;color:var(--t3)">Every tab takes about half a minute, because each one has to be drawn before it can be printed. Interactive controls are left out of the printed copy. Charts print as they are currently set, so if you want a particular scenario in the file, set it first.</p>
+  <p style="font-size:12px;line-height:1.5;color:var(--t3)">Printing all tabs takes about 30 seconds because each page is rendered first. Interactive controls are omitted. Charts use the currently selected scenario.</p>
   </div>`;
  el.classList.add('on'); document.body.style.overflow='hidden';
 }
@@ -1277,38 +1277,38 @@ function tornado(){
 
 /* ---- the questions people actually ask ---------------------------------------------------- */
 const ASKS=[
- {q:'What if the market doubles? Who pays?',
+ {q:'Market price doubles',
   apply:()=>{M.dc.resFix=198;M.dc.spvMode='pass';}, go:['summary','fin'],
   say:'Source price doubled. In pass-through the data center pays it, and the SPV return barely moves.'},
- {q:'What if the parks want €110 instead of €100?',
+ {q:'PPA price increases to €110/MWh',
   apply:()=>{TRANCHE.enabled=false;M.wind.ppa=110;M.solar.ppa=110;}, go:['summary','fin'],
   say:'Both PPA prices to €110. Watch the price the data center has to pay for a 9% return.'},
- {q:'What if solar reaches the AFRY P50 instead of the current planning assumption?',
+ {q:'Solar yield uses the AFRY P50',
   apply:()=>{M.solar.grossCF=1157/8760;}, go:['solar','fin'],
   say:'Solar capacity factor set to AFRY’s P50 of 1,157 kWh/kWp, replacing the illustrative planning yield.'},
- {q:'What if the battery never gets grid access?',
+ {q:'Battery has no grid-market access',
   apply:()=>{M.battery.gridYear=2099;}, go:['summary','batt'],
   say:'No merchant year. The battery earns the reliability charge only.'},
- {q:'What if debt costs 2 points more?',
+ {q:'Debt cost increases by 2 percentage points',
   apply:()=>{M.macro.allInRate=Math.min(0.08,M.macro.allInRate+0.02);M.battery.debtRate=Math.min(0.09,(M.battery.debtRate||0.05)+0.02);},
   go:['summary','fin'], say:'All-in rate and the battery debt rate both up 200 basis points.'},
-  {q:'What if the network charge doubles by the time we build?',
+  {q:'Network charge doubles before construction',
    apply:()=>{M.dc.gridCapFeeKW=85.68;}, go:['datacentre','fin'],
    say:'NE3 capacity charge to €85.68/kW/yr as a public planning stress case.'},
- {q:'What if the battery has to pay network charges when it trades?',
+ {q:'Battery pays network charges while trading',
   apply:()=>{M.battery.mktCapFee=true;}, go:['summary','batt'],
   say:'The NE3 Leistungspreis applied to the battery from its first merchant year.'},
- {q:'What if the inverters are tighter than we assume?',
+ {q:'Solar DC to AC ratio increases to 1.35',
   apply:()=>{M.conn.dcac=1.35;M.conn.clip=true;}, go:['summary','supply'],
   say:'DC to AC ratio to 1.35. More clipping, less delivered energy, a smaller line.'},
- {q:'What does the data center pay if the SPV only needs 7%?',
+ {q:'SPV target return is set to 7%',
   apply:()=>{if((M.dc.spvMode||'pass')==='pass')M.dc.spvMargin=Math.round(solveMarginFor(0.07)*10000)/10000;
              else M.dc.dcPrice=Math.round(solveDcFor(0.07)*10)/10;}, go:['summary','fin'],
   say:'Margin solved for a 7% SPV equity return. The euro per MWh follows from it.'},
-  {q:'What if the first 250 MW is €100 and the rest €90?',
+  {q:'PPA tranches are €100 and €90/MWh',
    apply:()=>{TRANCHE.t1MW=250;TRANCHE.p1=100;TRANCHE.p2=90;TRANCHE.enabled=true;syncTranchePpa();}, go:['summary','fin'],
    say:'Illustrative tranche one at €100 on 250 MW, with the balance at €90.'},
- {q:'Show the full sensitivity analysis.',
+ {q:'Full sensitivity analysis',
   apply:()=>{}, go:['summary','sens'], say:'Every input moved across its own range, ranked by effect.'}
 ];
 function ask(i){
@@ -1328,7 +1328,7 @@ function scenDrawer(){
  _drawerReturn=document.activeElement;el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-labelledby','scenTitle');
  el.innerHTML=`<div class="sdInner"><button class="sdX" onclick="hideSrc()" aria-label="Close scenarios">✕</button>
   <h3 id="scenTitle" style="margin:6px 0 4px">Scenarios</h3>
-  <p style="font-size:12.5px;line-height:1.55;color:var(--t3)">A scenario is every slider on the dashboard under one name. Saved in this browser tab only, so it disappears when the tab closes. Use the file or the link if it needs to outlive that.</p>
+  <p style="font-size:12.5px;line-height:1.55;color:var(--t3)">A scenario stores all dashboard inputs under one name in the current browser tab. Export a file or copy a link for later use.</p>
   <div style="display:flex;gap:8px;margin:14px 0 6px;flex-wrap:wrap">
     <input class="srcInput" id="scenName" placeholder="Name this scenario" style="flex:1;min-width:180px">
     <button class="chip" style="cursor:pointer;padding:8px 13px" onclick="scenSave((document.getElementById('scenName').value||'').trim());scenDrawer()">Save</button>
@@ -1338,7 +1338,7 @@ function scenDrawer(){
      <div style="display:flex;gap:6px">
        <button class="chip" style="cursor:pointer" data-scen="${encodeURIComponent(n)}" onclick="scenLoad(decodeURIComponent(this.dataset.scen));hideSrc()">Load</button>
        <button class="chip" style="cursor:pointer" data-scen="${encodeURIComponent(n)}" onclick="scenDrop(decodeURIComponent(this.dataset.scen));scenDrawer()">Delete</button>
-     </div></div>`).join('')}</div>`:'<p class="muted" style="font-size:12.5px">Nothing saved yet.</p>'}
+     </div></div>`).join('')}</div>`:'<p class="muted" style="font-size:12.5px">No saved scenarios.</p>'}
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px">
     <button class="chip" style="cursor:pointer;padding:8px 13px" onclick="scenLink()">Copy a link to this state</button>
     <button class="chip" style="cursor:pointer;padding:8px 13px" onclick="scenFile()">Save to a file</button>
@@ -1379,14 +1379,14 @@ function sensPage(){
  const top=T.rows.slice(0,4);
  return `<div class="panel" style="margin-bottom:14px"><h3>Sensitivity questions</h3>
    <div class="askWrap">${ASKS.map((a,i)=>`<button class="askChip" onclick="ask(${i})">${a.q}</button>`).join('')}</div>
-   <div class="info" style="margin-top:10px">Each of these moves the actual sliders and takes you to the page that answers it, so nothing here is a canned result. Undo any of them from the Scenarios panel in the header, or press Reset.</div>
+   <div class="info" style="margin-top:10px">Selecting a case updates the model inputs and opens the relevant section. Use the Scenarios panel or Reset to restore the prior inputs.</div>
   </div>
   <div class="panel" style="margin-bottom:14px"><h3>Sensitivity drivers for ${lbl.toLowerCase()}</h3>
    <div class="fRow" style="margin-bottom:10px"><span class="fLbl">Measure</span>
      <div class="seg">${SCORE.slice(0,6).map(s=>`<button class="${tornOut===s[0]?'on':''}" onclick="tornOut='${s[0]}';_TORN=null;render()">${s[1]}</button>`).join('')}</div></div>
    <div class="chart tall" id="sens_torn"></div>
-   <div class="info" style="margin-top:10px"><b>Every bar is a full run of the model, not an approximation.</b> One input is moved to the bottom of its range and then the top, with everything else held where you have it, and the whole thing recomputed both times. The base case is <b>${sfmt(tornOut,T.base)}</b>.
-    <br><br><b>The four largest drivers here are ${top.map(r=>r.k.toLowerCase()).join(', ')}.</b> ${top[0]?`${top[0].k} moves the result by ${sfmt(tornOut,top[0].swing)} across its range, which is ${fmt(T.rows.length>1&&T.rows[1].swing>0?top[0].swing/T.rows[1].swing:1,1)} times the next driver.`:''} Inputs below the halfway point have a smaller effect across the tested range.
+   <div class="info" style="margin-top:10px"><b>Method.</b> Each bar reruns the full model with one input at the low and high ends of its range while all other inputs remain unchanged. The base case is <b>${sfmt(tornOut,T.base)}</b>.
+    <br><br>The four largest drivers are <b>${top.map(r=>r.k.toLowerCase()).join(', ')}</b>. ${top[0]?`${top[0].k} changes the result by ${sfmt(tornOut,top[0].swing)} across its tested range, or ${fmt(T.rows.length>1&&T.rows[1].swing>0?top[0].swing/T.rows[1].swing:1,1)} times the next driver.`:''} Inputs below the halfway point have a smaller effect across the tested range.
     <br><br><b>The ranges are planning assumptions and can be adjusted.</b> They reflect potential lender or counterparty cases rather than statistical extremes. The table below gives the exact range used for each input.</div>
   </div>
   <div class="panel"><h3>Input ranges</h3>
@@ -1790,9 +1790,9 @@ function dcPage(){
  const shellLo=10, shellHi=12, chipLo=25, chipHi=30;
  const buildKpis=`<div class="kpis">
    ${kpiM([['Power, per MW of connection','€'+fmt(powerCap/d.firmMW,1),'m'],['Total, this model','€'+fmt(powerCap/1000,1),'bn']],'var(--acc)')}
-   ${kpiM([['Powered shell, per MW of IT','€'+shellLo+'–'+shellHi,'m'],['At '+fmt(it,0)+' MW of IT','€'+fmt(it*shellLo/1000,1)+'–'+fmt(it*shellHi/1000,1),'bn']])}
-   ${kpiM([['Chips, per MW of IT','€'+chipLo+'–'+chipHi,'m'],['At '+fmt(it,0)+' MW of IT','€'+fmt(it*chipLo/1000,1)+'–'+fmt(it*chipHi/1000,1),'bn']],'#ffb23e')}
-   ${kpiM([['All in','€'+fmt((it*shellLo+it*chipLo+powerCap)/1000,0)+'–'+fmt((it*shellHi+it*chipHi+powerCap)/1000,0),'bn'],['Of which power',fmt(powerCap/(it*shellLo+it*chipLo+powerCap)*100,0),'%']])}</div>`;
+   ${kpiM([['Powered shell, per MW of IT','€'+shellLo+' to €'+shellHi,'m'],['At '+fmt(it,0)+' MW of IT','€'+fmt(it*shellLo/1000,1)+' to €'+fmt(it*shellHi/1000,1),'bn']])}
+   ${kpiM([['Chips, per MW of IT','€'+chipLo+' to €'+chipHi,'m'],['At '+fmt(it,0)+' MW of IT','€'+fmt(it*chipLo/1000,1)+' to €'+fmt(it*chipHi/1000,1),'bn']],'#ffb23e')}
+   ${kpiM([['All in','€'+fmt((it*shellLo+it*chipLo+powerCap)/1000,0)+' to €'+fmt((it*shellHi+it*chipHi+powerCap)/1000,0),'bn'],['Of which power',fmt(powerCap/(it*shellLo+it*chipLo+powerCap)*100,0),'%']])}</div>`;
    const buildPanel=`<div class="panel" style="margin-bottom:14px"><h3>Data center build assumptions · PUE ${fmt(pue,2)} · ${fmt(d.firmMW,0)} MW at the connection, ${fmt(it,0)} MW at the chips</h3>
    ${pueBar()}
    <p class="sub" style="margin-top:10px">Shell and chips are market benchmarks per MW of critical IT load, not project quotes. Power is this model, live: the parks, the battery, the lines and the substation.</p>
@@ -1875,9 +1875,9 @@ function summaryPage(){
  const table=`<div class="panel" style="margin-top:14px"><h3>Portfolio</h3><div class="tableScroll"><table><thead><tr><th>Asset</th><th>Capex €m</th><th>Equity €m</th><th>Debt €m</th><th>Gen GWh/yr</th><th>Rev €m</th><th>EBITDA €m</th><th>IRR</th><th>LCOE / LCOS</th></tr></thead><tbody>
   ${row('Wind','var(--wind)',fmt(W.totalCapex,0),fmt(W.equity,0),fmt(W.debt,0),fmt(W.prod/1000,0),fmt(W.rev,1),fmt(W.ebitda,1),fmt(W.irr*100,1)+'%',fmt(W.lcoe,0))}
   ${row('Solar','var(--solar)',fmt(S.totalCapex,0),fmt(S.equity,0),fmt(S.debt,0),fmt(S.prod/1000,0),fmt(S.rev,1),fmt(S.ebitda,1),fmt(S.irr*100,1)+'%',fmt(S.lcoe,0))}
-  ${row('Wind + solar','var(--acc)',fmt(P.totalCapex,0),fmt(P.equity,0),fmt(P.debt,0),fmt((W.prod+S.prod)/1000,0),fmt(W.rev+S.rev,1),fmt(W.ebitda+S.ebitda,1),fmt(P.irr*100,1)+'%','—')}
+  ${row('Wind + solar','var(--acc)',fmt(P.totalCapex,0),fmt(P.equity,0),fmt(P.debt,0),fmt((W.prod+S.prod)/1000,0),fmt(W.rev+S.rev,1),fmt(W.ebitda+S.ebitda,1),fmt(P.irr*100,1)+'%','n/a')}
   ${row('Battery + substation/tie-in','var(--batt)',fmt(B.capex,0),fmt(BF.equity,0),fmt(BF.debt,0),fmt(battGen/1000,0),fmt(battRev,1),fmt(battEbitda,1),(isNaN(BF.irr)?'n/m':fmt(BF.irr*100,1)+'%'),'LCOS')}
-  ${row('Private direct line','var(--acc)',fmt(line,0),fmt(line*(1-M.macro.gearing),0),fmt(line*M.macro.gearing,0),'—','—','—','included in SPV','—')}
+  ${row('Private direct line','var(--acc)',fmt(line,0),fmt(line*(1-M.macro.gearing),0),fmt(line*M.macro.gearing,0),'n/a','n/a','n/a','included in SPV','n/a')}
   </tbody></table></div>
   <div class="muted" style="margin-top:8px"><b>IRR scope:</b> wind, solar and battery rows are asset-only returns. The consolidated Power SPV return includes every asset that the selected structure assigns to it, including the private line and interface scope. The wind + solar return is one XIRR on aggregated dated equity cash flows, not an arithmetic average.</div></div>`;
  const yrCtl=`<div class="panel" style="padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -2101,16 +2101,16 @@ function corrSection(){
  const C=publicCorr(),rday=C.timescale.find(t=>t.label==='1 day').pearson;
  return `<div class="kpis" style="grid-template-columns:minmax(240px,320px) 1fr;align-items:stretch">
    ${kpi('Planning-profile correlation, daily',fmt(rday,2),'negative = the profiles offset')}
-   <div class="info" style="margin:0;max-width:none;display:flex;align-items:center"><span>This is a design illustration, not evidence about the actual portfolio. It shows why wind and solar can complement each other while still leaving long low-output periods. Replace it with co-timed bankable production series before sizing firming equipment or underwriting an SLA.</span></div></div>
+   <div class="info" style="margin:0;max-width:none;display:flex;align-items:center"><span>The chart uses the illustrative planning profile rather than project production data. Co-timed bankable production series are required before sizing firming equipment or underwriting an SLA.</span></div></div>
   <div class="chart tall" id="corr_scale"></div><div class="chart tall" id="corr_season" style="margin-top:14px"></div>
   <div class="chart tall" id="corr_day" style="margin-top:14px"></div><div class="chartWrap"><div class="chart tall" id="pcorr2" style="margin-top:14px"></div></div>`;
 }
 function drawCorrAll(){
  const C=publicCorr(),WCOL='#4aa8ff',SCOL='#ffb23e',NX='#46b45a';if(!document.getElementById('corr_scale'))return;
- Plotly.react('corr_scale',[{x:C.timescale.map(t=>t.label),y:C.timescale.map(t=>t.pearson),name:'Pearson r, illustrative',type:'scatter',mode:'lines+markers',line:{color:NX,width:2.6},marker:{size:7},hovertemplate:'r = %{y:.3f}<extra>planning profile</extra>'}],lay('Across time scales · illustrative',{showlegend:false,yaxis:{title:{text:'correlation',font:{size:12}},gridcolor:'#1c2531',zeroline:true,zerolinecolor:'#4a5668'},xaxis:{gridcolor:'#1c2531'}}),CFG);
- Plotly.react('corr_season',[{x:C.seasonal.map(s=>s.m),y:C.seasonal.map(s=>s.pearson),type:'bar',name:'daily r',marker:{color:C.seasonal.map(s=>s.pearson<0?NX:'#ff6b6b')},hovertemplate:'r = %{y:.2f}<extra>daily r</extra>'},{x:C.seasonal.map(s=>s.m),y:C.seasonal.map(s=>s.wind),name:'Wind mean CF',yaxis:'y2',type:'scatter',mode:'lines+markers',line:{color:WCOL,width:2},hovertemplate:'wind %{y:.1f}%<extra></extra>'},{x:C.seasonal.map(s=>s.m),y:C.seasonal.map(s=>s.solar),name:'Solar mean CF',yaxis:'y2',type:'scatter',mode:'lines+markers',line:{color:SCOL,width:2},hovertemplate:'solar %{y:.1f}%<extra></extra>'}],lay('By month · illustrative',{showlegend:true,hovermode:'x unified',yaxis:{title:{text:'correlation of daily means',font:{size:12}},gridcolor:'#1c2531',zeroline:true,zerolinecolor:'#4a5668'},yaxis2:{overlaying:'y',side:'right',title:{text:'mean CF %',font:{size:11.5}},gridcolor:'transparent',rangemode:'tozero'},xaxis:{gridcolor:'#1c2531'}}),CFG);
- Plotly.react('corr_day',[{x:C.diurnal.map(d=>d.h),y:C.diurnal.map(d=>d.pearson),type:'bar',name:'r at that hour',marker:{color:C.diurnal.map(d=>d.pearson!=null&&d.pearson<0?NX:'#ff6b6b')},hovertemplate:'r = %{y:.2f}<extra></extra>'},{x:C.diurnal.map(d=>d.h),y:C.diurnal.map(d=>d.wind),name:'Wind mean CF',yaxis:'y2',type:'scatter',mode:'lines',line:{color:WCOL,width:2},hovertemplate:'wind %{y:.1f}%<extra></extra>'},{x:C.diurnal.map(d=>d.h),y:C.diurnal.map(d=>d.solar),name:'Solar mean CF',yaxis:'y2',type:'scatter',mode:'lines',fill:'tozeroy',fillcolor:'rgba(255,178,62,.14)',line:{color:SCOL,width:2},hovertemplate:'solar %{y:.1f}%<extra></extra>'}],lay('By hour of day · illustrative',{showlegend:true,hovermode:'x unified',yaxis:{title:{text:'correlation',font:{size:12}},gridcolor:'#1c2531',zeroline:true,zerolinecolor:'#4a5668'},yaxis2:{overlaying:'y',side:'right',title:{text:'mean CF %',font:{size:11.5}},gridcolor:'transparent',rangemode:'tozero'},xaxis:{dtick:2,gridcolor:'#1c2531'}}),CFG);
- Plotly.react('pcorr2',[{x:C.scatter.map(p=>p[1]),y:C.scatter.map(p=>p[0]),mode:'markers',type:'scatter',name:'day',marker:{size:5,color:'#46b45a',opacity:.5,line:{width:0}},hovertemplate:'solar %{x:.1f}%, wind %{y:.1f}%<extra></extra>'}],lay('Every day in the illustrative year',{showlegend:false,hovermode:'closest',yaxis:{title:{text:'wind, daily mean % of rated',font:{size:12}},gridcolor:'#1c2531',rangemode:'tozero'},xaxis:{title:{text:'solar, daily mean % of rated',font:{size:12}},gridcolor:'#1c2531',rangemode:'tozero'}}),CFG);
+ Plotly.react('corr_scale',[{x:C.timescale.map(t=>t.label),y:C.timescale.map(t=>t.pearson),name:'Pearson r, illustrative',type:'scatter',mode:'lines+markers',line:{color:NX,width:2.6},marker:{size:7},hovertemplate:'r = %{y:.3f}<extra>planning profile</extra>'}],lay('Correlation by time scale',{showlegend:false,yaxis:{title:{text:'correlation',font:{size:12}},gridcolor:'#1c2531',zeroline:true,zerolinecolor:'#4a5668'},xaxis:{gridcolor:'#1c2531'}}),CFG);
+ Plotly.react('corr_season',[{x:C.seasonal.map(s=>s.m),y:C.seasonal.map(s=>s.pearson),type:'bar',name:'daily r',marker:{color:C.seasonal.map(s=>s.pearson<0?NX:'#ff6b6b')},hovertemplate:'r = %{y:.2f}<extra>daily r</extra>'},{x:C.seasonal.map(s=>s.m),y:C.seasonal.map(s=>s.wind),name:'Wind mean CF',yaxis:'y2',type:'scatter',mode:'lines+markers',line:{color:WCOL,width:2},hovertemplate:'wind %{y:.1f}%<extra></extra>'},{x:C.seasonal.map(s=>s.m),y:C.seasonal.map(s=>s.solar),name:'Solar mean CF',yaxis:'y2',type:'scatter',mode:'lines+markers',line:{color:SCOL,width:2},hovertemplate:'solar %{y:.1f}%<extra></extra>'}],lay('Monthly correlation',{showlegend:true,hovermode:'x unified',yaxis:{title:{text:'correlation of daily means',font:{size:12}},gridcolor:'#1c2531',zeroline:true,zerolinecolor:'#4a5668'},yaxis2:{overlaying:'y',side:'right',title:{text:'mean CF %',font:{size:11.5}},gridcolor:'transparent',rangemode:'tozero'},xaxis:{gridcolor:'#1c2531'}}),CFG);
+ Plotly.react('corr_day',[{x:C.diurnal.map(d=>d.h),y:C.diurnal.map(d=>d.pearson),type:'bar',name:'r at that hour',marker:{color:C.diurnal.map(d=>d.pearson!=null&&d.pearson<0?NX:'#ff6b6b')},hovertemplate:'r = %{y:.2f}<extra></extra>'},{x:C.diurnal.map(d=>d.h),y:C.diurnal.map(d=>d.wind),name:'Wind mean CF',yaxis:'y2',type:'scatter',mode:'lines',line:{color:WCOL,width:2},hovertemplate:'wind %{y:.1f}%<extra></extra>'},{x:C.diurnal.map(d=>d.h),y:C.diurnal.map(d=>d.solar),name:'Solar mean CF',yaxis:'y2',type:'scatter',mode:'lines',fill:'tozeroy',fillcolor:'rgba(255,178,62,.14)',line:{color:SCOL,width:2},hovertemplate:'solar %{y:.1f}%<extra></extra>'}],lay('Hourly correlation',{showlegend:true,hovermode:'x unified',yaxis:{title:{text:'correlation',font:{size:12}},gridcolor:'#1c2531',zeroline:true,zerolinecolor:'#4a5668'},yaxis2:{overlaying:'y',side:'right',title:{text:'mean CF %',font:{size:11.5}},gridcolor:'transparent',rangemode:'tozero'},xaxis:{dtick:2,gridcolor:'#1c2531'}}),CFG);
+ Plotly.react('pcorr2',[{x:C.scatter.map(p=>p[1]),y:C.scatter.map(p=>p[0]),mode:'markers',type:'scatter',name:'day',marker:{size:5,color:'#46b45a',opacity:.5,line:{width:0}},hovertemplate:'solar %{x:.1f}%, wind %{y:.1f}%<extra></extra>'}],lay('Daily wind and solar output',{showlegend:false,hovermode:'closest',yaxis:{title:{text:'wind, daily mean % of rated',font:{size:12}},gridcolor:'#1c2531',rangemode:'tozero'},xaxis:{title:{text:'solar, daily mean % of rated',font:{size:12}},gridcolor:'#1c2531',rangemode:'tozero'}}),CFG);
 }
 function drawRisk(){
  const S=supplyStats(), NXG='#46b45a', BAT='#b98cff', FAINT=TH().faint, GRID='#39465a';
@@ -2203,7 +2203,7 @@ function drawPxDist(){
  Plotly.react('pd_main',keys.map(e=>({x:PXD.centres,y:PXD.series[e].pdf,name:e,mode:'lines',
    line:{color:PDCOL[e],width:2,shape:'spline'},
    hovertemplate:e+': %{y:.2f}% of hours near €%{x}<extra></extra>'})),
-  lay('Where the hourly price sits',
+  lay('Hourly price distribution',
    {showlegend:true,hovermode:'x unified',
     yaxis:{title:{text:'% of hours per €5 band',font:{size:12}},gridcolor:'#1c2531'},
     xaxis:{title:{text:'price, €/MWh',font:{size:12}},range:[-120,320],gridcolor:'#1c2531',
@@ -2229,7 +2229,7 @@ function drawConc(){
    {x:CONC.grid,y:L.curve,name:'Last 12 months',mode:'lines',
     line:{color:'#46b45a',width:3},fill:'tonexty',fillcolor:'rgba(70,180,90,.08)',
     hovertemplate:'last 12m: best %{x}% of days carry %{y:.0f}% of the year<extra></extra>'}],
-  lay(D+'-hour battery · how the year’s money is spread across its days',
+  lay(D+'-hour battery: daily revenue distribution',
    {showlegend:true,hovermode:'x unified',
     yaxis:{title:{text:'cumulative % of the year’s revenue',font:{size:12}},range:[0,101],gridcolor:'#1c2531'},
     xaxis:{title:{text:'% of days, best first',font:{size:12}},range:[0,100],gridcolor:'#1c2531'}}),CFG);
@@ -2501,7 +2501,7 @@ function drawNeg(){
   Plotly.react('ng_sub',[{x:NEGP.runs.top.map(r=>r.start),y:NEGP.runs.top.map(r=>r.hours),type:'bar',
     marker:{color:'#b98cff'},customdata:NEGP.runs.top.map(r=>r.deepest),
     hovertemplate:'%{x}: %{y} consecutive hours, deepest €%{customdata}/MWh<extra></extra>'}],
-   lay('The five longest episodes on record',
+   lay('Five longest negative-price episodes',
     {showlegend:false,yaxis:{title:{text:'consecutive hours',font:{size:12}},gridcolor:'#1c2531'},
      xaxis:{gridcolor:'#1c2531',type:'category'}}),CFG);
  }else{
@@ -2509,7 +2509,7 @@ function drawNeg(){
     colorscale:[[0,'#0d1319'],[0.15,'#1d3a2a'],[0.4,'#46b45a'],[0.7,'#ffb23e'],[1,'#ff6b6b']],
     colorbar:{title:{text:'% of hours',font:{size:11.5}}},
     hovertemplate:'%{y}, %{x}:00 → %{z:.1f}% negative<extra></extra>'}],
-   lay('Every year by every hour',
+   lay('Negative-price hours by year and hour',
     {hovermode:'closest',yaxis:{title:{text:'year',font:{size:12}},dtick:1},
      xaxis:{dtick:2}}),CFG);
   Plotly.react('ng_sub',[
@@ -2517,7 +2517,7 @@ function drawNeg(){
     mode:'lines+markers',line:{color:'#4aa8ff',width:2.2},hovertemplate:'€%{y:.1f}/MWh<extra></extra>'},
    {x:Y.map(r=>r.year),y:Y.map(r=>r.mean),name:'Mean price',type:'scatter',mode:'lines+markers',
     line:{color:'#94a2b1',width:2},hovertemplate:'€%{y:.1f}/MWh<extra></extra>'}],
-   lay('The bottom of the price distribution',
+   lay('Lower tail of the price distribution',
     {showlegend:true,hovermode:'x unified',yaxis:{title:{text:'€/MWh',font:{size:12}},gridcolor:'#1c2531'},
      xaxis:{gridcolor:'#1c2531',dtick:1}}),CFG);
  }
@@ -2842,7 +2842,7 @@ function svgSolarArray(){
  const svg=sv(1100,520,rct(0,0,1100,520,RC.bg)+A+B+C,600);
  const sub=`<b>${nfm(g.mods)} modules</b> on horizontal single-axis trackers, <b>${nfm(g.inv)} string inverters</b>, <b>${nfm(g.mvUnits)} MV stations</b> for the <b>${nfm(g.mwp)} MWp<sub>DC</sub></b> on the slider. `+
   `Row pitch ${g.pitch.toFixed(2)} m at GCR ${TECH.gcr} gives <b>${nfm(g.haStd)} ha</b>. `+
-  `The dashed red square is what the same MWp needs if it is built as elevated agri-PV: <b>${nfm(g.haAgri-g.haStd)} ha more land</b>.`;
+  `The dashed red square shows the elevated agri-PV case, which requires <b>${nfm(g.haAgri-g.haStd)} additional hectares</b>.`;
  const rows=[];
  return rpanel3('solar','Solar · tracker geometry, collection chain and land take',sub,svg,rows,
   lg(RC.solar,'module table at −42° (morning)')+lg(RC.steel,'torque tube / pile')+lg(RC.crop,'ground')+lg(RC.red,'agri-PV option, unconfirmed',1));
@@ -2907,7 +2907,7 @@ function svgBessBlock(){
  const CX=24,CY=322,CW=1052,CH=182;
  const eb=CX+30, ew=CW-330, ey=CY+64, eh=44;
  const floorW=ew*(g.b.socFloor||0);
- const C=frame(CX,CY,CW,CH,'STATE OF CHARGE · what the reserve buys')+
+ const C=frame(CX,CY,CW,CH,'STATE OF CHARGE AND RESERVE DURATION')+
   rct(eb,ey,ew,eh,RC.gr,RC.ln,{rx:4})+
   rct(eb,ey,floorW,eh,RC.acc,null,{rx:0,op:.85})+
   rct(eb+floorW,ey,ew-floorW,eh,RC.batt,null,{op:.5})+
@@ -3219,7 +3219,7 @@ function landingScene(id,hh,cls){
       <ellipse cx="-92" cy="-5" rx="78" ry="11" fill="${col}"/></g></g>`;
  return `<svg id="${id}" class="${cls||'heroScene'}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice"
    xmlns="http://www.w3.org/2000/svg" role="img"
-   aria-label="Illustrative future-state view of the proposed Nickelsdorf site at golden hour: wind turbines, single-axis solar trackers, battery storage, a private direct line and a proposed data-center campus on the Pannonian plain, with the Neusiedler See on the horizon">
+   aria-label="Illustrative view of the proposed Nickelsdorf site with wind turbines, solar trackers, battery storage, a private direct line and a data center campus">
   <defs>
    <linearGradient id="sky${id}" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0" stop-color="#0d2440">${mo?'':`<animate attributeName="stop-color" dur="${C}s" begin="${B}s" repeatCount="indefinite"
@@ -3378,9 +3378,9 @@ function splashHTML(){
    </div>
    <button class="splashBtn" onclick="closeSplash()">Open dashboard<span class="arr">→</span></button>
   </div>
-  <div class="splashFoot" aria-label="Entities shown for planning context; no approval implied">
+  <div class="splashFoot" aria-label="Planning scenario">
    <a class="brandLink splashPartner splashPartnerNx" href="https://nexwell.com" target="_blank" rel="noopener noreferrer" title="Nexwell">${NXLOGO('')}</a>
-   <span style="color:#98a7b6;font-size:10px;letter-spacing:.14em;text-transform:uppercase">concept with</span>
+   <span style="color:#98a7b6;font-size:16px">×</span>
    <a class="brandLink splashPartner splashPartnerBe" href="https://www.burgenlandenergie.at" target="_blank" rel="noopener noreferrer" title="Burgenland Energie">${BELOGO('',true)}</a>
   </div>
  </div>`;
@@ -3590,10 +3590,10 @@ function masterplanSection(){
  const points=Object.entries(MASTERPLAN_POINTS).map(([k,p])=>`<button class="mpHot ${k===mpPoint?'on':''}" data-key="${k}" style="--x:${p.x}%;--y:${p.y}%" onmouseenter="mpPreview('${k}')" onfocus="mpPreview('${k}')" onclick="mpPreview('${k}')" aria-label="Select ${p.label}"><span>${p.n}</span><b>${p.label}</b></button>`).join('');
  return `<section class="sect" id="masterplan">
   <div class="mpHead"><div><div class="kick">Project layout</div><h2 class="dsp">Site layout and power connections.</h2></div></div>
-  <p class="lede">The illustration shows one future-state arrangement of the campus, generation, storage, substation and electrical corridor. Select an element to inspect it, then use the explicit Open button to navigate.</p>
+  <p class="lede">The illustration shows the campus, generation, storage, substation and electrical corridor. Select an element to view details or open the related section.</p>
   <div class="masterplan">
-   <div class="mpStage"><img src="assets/nickelsdorf-masterplan-future-state.png" loading="lazy" alt="Illustrative isometric future-state concept with data center buildings, battery containers, substation, solar fields, wind turbines and an electrical corridor"><div class="mpWash"></div>${points}
-    <div class="mpCaption">Illustrative future-state massing · not an approved site plan · approximate, not to scale</div></div>
+   <div class="mpStage"><img src="assets/nickelsdorf-masterplan-future-state.png" loading="lazy" alt="Illustrative site layout with data center buildings, battery containers, substation, solar fields, wind turbines and an electrical corridor"><div class="mpWash"></div>${points}
+    <div class="mpCaption">Illustrative site layout. It is not an approved site plan and is not to scale.</div></div>
    <aside class="mpInfo" id="mpInfo" aria-live="polite">${masterplanCard(mpPoint)}</aside>
   </div>
   <div class="mpFlowNav" role="group" aria-label="Project power connections">
@@ -3651,7 +3651,7 @@ function castCard(o){
 
 /* An explanatory comparison of sourcing approaches, not an official EU rating scale. */
 function euLabelCard(){
-  return `<div class="panel" style="margin-top:14px"><h3>Renewable sourcing approaches · illustrative comparison</h3>
+  return `<div class="panel" style="margin-top:14px"><h3>Renewable sourcing approaches</h3>
    <p class="muted" style="margin:-2px 0 12px">The European Commission is preparing an EU-wide data-centre rating scheme. This three-column comparison is explanatory only and is not the official label structure.</p>
    <div class="euRow">
     <div class="euCol weak"><div class="euRank">Certificate-based</div><h4>Guarantees of origin</h4>
@@ -3690,12 +3690,12 @@ function castSection(){
  const W=computeAsset(M.wind), S=computeAsset(M.solar), B=computeBattery(M.battery), SS=supplyStats();
  const gwh=(W.prod+S.prod)/1000, PS=projStats();
  const cards=[
-  {name:'Burgenland Energie · proposed role',flag:FLAG.at,ico:ICO.utility,col:'#4aa8ff',tint:'rgba(74,168,255,.13)',
-   role:'The concept contemplates an Austrian utility role for renewable supply and grid balancing. Scope, acceptance and commitments remain open.',
+  {name:'Burgenland Energie',flag:FLAG.at,ico:ICO.utility,col:'#4aa8ff',tint:'rgba(74,168,255,.13)',
+   role:'The planning case assigns electricity supply and the public grid interface to Burgenland Energie. Final scope and commitments remain to be agreed.',
     mets:[['Planning supply',fmt(fleetAC(),0)+' MW AC'],['Zones',PROJ.length+' illustrative'],['Grid balance',fmt(SS.gridPct,0)+'% modelled'],['Modelled term','20 years']],
    go:'wind',jump:'Wind'},
   {name:'Power SPV',ico:ICO.spv,col:'#12b95a',tint:'rgba(0,154,68,.15)',
-   role:'Proposed ring-fenced vehicle to own or contract private power assets and manage measured delivery. Structure and counterparties remain open.',
+   role:'Owns or contracts private power assets and manages measured delivery. Final structure and counterparties remain to be agreed.',
     mets:[['Portfolio case',fmt(gwh,0)+' GWh/yr'],['Private assets','line + storage'],['Battery case',fmt(M.battery.powerMW,0)+' MW / '+fmt(B.energy/1000,1)+' GWh'],['Working scope','line + storage']],
    go:'summary',jump:'Power SPV'},
   {name:'U.S. AI data center landlord',flag:FLAG.us,ico:ICO.dc,col:'#eaf2f8',tint:'rgba(234,242,248,.10)',
@@ -3703,8 +3703,8 @@ function castSection(){
     mets:[['Target load',fmt(M.dc.firmMW,0)+' MW'],['At full run-rate',fmt(M.dc.firmMW*8.76,0)+' GWh/yr'],['Built scope','land + powered shell'],['Commercial model','powered shell']],
    go:'datacentre',jump:'Data Center'}];
   return `<section class="sect" id="counterparties">
-    <div class="kick">Concept roles</div>
-    <h2 class="dsp">Proposed participants—not approvals.</h2>
+    <div class="kick">3 parties</div>
+    <h2 class="dsp">Roles and responsibilities.</h2>
    <div class="castGrid">${cards.map(castCard).join('')}</div>
   </section>`;
 }
@@ -3742,21 +3742,21 @@ function overviewPage(){
      <h5>Solar capture price relative to baseload</h5>
      ${spark(capRatio,{col:'#ffb23e'})}
      <div class="figure">${fmt(sc25,0)}<small>% of baseload, 2025</small></div>
-     <p>Austrian solar output grew about tenfold between 2015 and 2025, from ${EMBER.solar[0]} to ${EMBER.solar[EMBER.solar.length-1]} TWh. Midday prices fall when solar runs, so solar earns less and less of the average price. Wind, which blows day and night, still captures close to ${fmt(PRICES.per_year['2025'].wind/PRICES.per_year['2025'].baseload*100,0)}%.</p>
+     <p>Austrian solar output increased from ${EMBER.solar[0]} to ${EMBER.solar[EMBER.solar.length-1]} TWh between 2015 and 2025. The 2025 solar capture price was ${fmt(sc25,0)}% of baseload, compared with ${fmt(PRICES.per_year['2025'].wind/PRICES.per_year['2025'].baseload*100,0)}% for wind.</p>
      <button class="go" onclick="go('prices',event)">Capture prices, year by year →</button>
     </div>
     <div class="evCard">
      <h5>Frequency and timing of negative-price hours</h5>
      ${spark(negPct,{col:'#ff6b6b'})}
      <div class="figure">${fmt(lastNeg.negPct,1)}<small>% of hours, ${lastNeg.year}</small></div>
-     <p>The timing has also changed. Ten years ago the cheapest hours were in the middle of the night. They now occur mainly at midday, when solar production is highest. Half of all negative hours clear below minus €${fmt(Math.abs(PXD.negDepth.all.median),0)}.</p>
+     <p>Negative-price hours shifted from overnight toward midday as solar output increased. The median negative price is minus €${fmt(Math.abs(PXD.negDepth.all.median),0)}/MWh.</p>
      <button class="go" onclick="go('prices',event)">Negative-price analysis →</button>
     </div>
     <div class="evCard">
      <h5>Historical storage spreads</h5>
      ${spark(arbY,{col:'#b98cff'})}
      <div class="figure">€${fmt(arbLast,0)}<small>k per MW, last 12 months</small></div>
-     <p>A four-hour battery optimized with perfect day-ahead hindsight produced a gross backtest of €${fmt(arb19,0)}k per MW in 2019 and €${fmt(arbLast,0)}k over the last twelve months. This is an optimizer ceiling, not a bankable forecast; execution limits and future spread compression still need to be applied.</p>
+     <p>The four-hour day-ahead optimization backtest produced €${fmt(arb19,0)}k per MW in 2019 and €${fmt(arbLast,0)}k over the last twelve months. It assumes perfect foresight and excludes execution limits and future spread compression.</p>
      <button class="go" onclick="spvView='spread';go('summary',event)">Arbitrage, cycles and seasonality →</button>
     </div>
    </div>
@@ -3778,7 +3778,7 @@ function overviewPage(){
   </section>`;
 
  const foot=`<div class="panel" style="margin-top:14px;display:flex;align-items:center;gap:30px;flex-wrap:wrap;justify-content:center;padding:22px 18px">
-   <span style="color:var(--mut);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase">Planning context · no counterparty approval implied</span>
+   <span style="color:var(--mut);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase">Planning context. Counterparty approval is not represented.</span>
    <a class="brandLink" href="https://nexwell.com" target="_blank" rel="noopener noreferrer" title="Nexwell, opens nexwell.com">
     ${NXLOGO('height:112px')}</a>
    <span style="color:var(--line);font-size:22px">×</span>

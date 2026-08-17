@@ -1,4 +1,4 @@
-// Full-formula Excel model generator — READABLE/AUDITABLE build.
+// Full-formula Excel model generator, readable and auditable build.
 // Runs identically in Node (test) and browser (ExcelJS). buildFullModel(ExcelJSlib, S) -> workbook.
 //
 // Design rules (Formula & Layout Standards):
@@ -29,7 +29,7 @@ function buildFullModel(ExcelJS, S){
  // ================= INPUTS =================
  const wi=wb.addWorksheet('Inputs');
  wi.getColumn(1).width=2.4; wi.getColumn(2).width=2.6; wi.getColumn(3).width=42; wi.getColumn(4).width=24; wi.getColumn(5).width=14; wi.getColumn(6).width=42; wi.views=[{state:'frozen',ySplit:2}];
- wi.getCell(1,3).value='GDC NICKELSDORF — Power SPV model'; wi.getCell(1,3).font={bold:true,size:15,color:{argb:'FF2D7D32'}};
+ wi.getCell(1,3).value='GDC NICKELSDORF | Power SPV model'; wi.getCell(1,3).font={bold:true,size:15,color:{argb:'FF2D7D32'}};
  wi.getCell(2,3).value='Yellow = editable inputs (blue). Calc sheets link these in red. Exported '+S.today+'.'; wi.getCell(2,3).font={italic:true,size:9,color:{argb:'FF808080'}};
  const IN={};                 // name -> Inputs row number
  let r=4;
@@ -80,8 +80,8 @@ function buildFullModel(ExcelJS, S){
  inp('Power',S.battery.powerMW,'MW','B_MW');
  inp('Duration',S.battery.durationH,'hours','B_DUR');
  inp('Cell capex',S.battery.capexPerKWh,'€/kWh','B_CKWH');
- inp('Grid-interface allowance',S.battery.substation,'€m — planning assumption','B_SUB');
- inp('Campus connection allowance',S.battery.interconnect,'€m — planning assumption','B_INT');
+ inp('Grid-interface allowance',S.battery.substation,'€m, planning assumption','B_SUB');
+ inp('Campus connection allowance',S.battery.interconnect,'€m, planning assumption','B_INT');
  inp('Round-trip efficiency',S.battery.rte,'','B_RTE');
  inp('SoC floor (outage reserve)',S.battery.socFloor,'not traded','B_SOC');
  inp('Cycles per day',S.battery.cyclesDay,'','B_CYC');
@@ -94,9 +94,9 @@ function buildFullModel(ExcelJS, S){
  inp('Degradation',S.battery.degr,'per yr','B_DEGR');
  inp('Gearing',S.battery.gearing,'','B_GEAR');
  inp('Debt rate',S.battery.debtRate,'','B_RATE');
- inp('Grid fee — capacity (NE3), manual override',S.battery.gridCapFee,'€/kW/yr, esc from 2028','B_GFC');
+ inp('Grid fee: capacity (NE3), manual override',S.battery.gridCapFee,'€/kW/yr, esc from 2028','B_GFC');
  inp('Apply DC NE3 capacity tariff when merchant',S.battery.mktCapFee?1:0,'1=yes, 0=no','B_MKT');
- inp('Grid fee — energy (NE3)',S.battery.gridEnergyFee,'€/MWh on throughput','B_GFE');
+ inp('Grid fee: energy (NE3)',S.battery.gridEnergyFee,'€/MWh on throughput','B_GFE');
  inp('Backtest average buy price',S.battery.backtestAvgBuy,'€/MWh · selected duration/year','B_AVGBUY');
  inp('Backtest average sell price',S.battery.backtestAvgSell,'€/MWh · selected duration/year','B_AVGSELL');
  inp('Backtest self-charge share',S.battery.backtestSelfShare,'share of charging','B_FSELF');
@@ -119,7 +119,7 @@ function buildFullModel(ExcelJS, S){
  inp('Margin form (1=€/MWh, 0=%)',S.dc.marginMode==='flat'?1:0,'€/MWh is neutral to the market','MGN_MODE');
  inp('SPV margin (€/MWh)',S.dc.marginEur!=null?S.dc.marginEur:3.5,'CPI-indexed, used when form = 1','MGN_E');
  inp('SPV first revenue year',S.FF,'','SPV_FF');
- r++; isect('REFERENCE AVERAGE-DAY CURVE — explanatory only, not the financial engine · '+S.priceYear);
+ r++; isect('REFERENCE AVERAGE-DAY CURVE | explanatory only, not the financial engine | '+S.priceYear);
  const PH0=r;
  for(let h=0;h<24;h++){ wi.getCell(r,3).value='Hour '+h; const c=wi.getCell(r,5); c.value=S.ph[h]; c.fill=YEL; c.font=BLUE; c.numFmt='#,##0.0'; wi.getCell(r,4).value=(h===0?'→ Battery sheet':''); r++; }
  IN.PH0=PH0;
@@ -157,7 +157,7 @@ function buildFullModel(ExcelJS, S){
  // ================= WIND / SOLAR builder =================
  function assetSheet(name,P,chk){
   const ws=wb.addWorksheet(name); ws.getColumn(1).width=38; ws.getColumn(2).width=13; ws.getColumn(3).width=30; ws.views=[{state:'frozen',xSplit:1}];
-  ws.getCell(1,1).value=name.toUpperCase()+' — full-formula model'; ws.getCell(1,1).font={bold:true,size:12};
+  ws.getCell(1,1).value=name.toUpperCase()+' | full-formula model'; ws.getCell(1,1).font={bold:true,size:12};
   ws.getCell(2,1).value='Red = linked from Inputs (F2 to trace). Flags are 0/1 (no IF); caps use MIN/MAX. One step per row.';
   ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
   const L={}, D={}, R={};
@@ -205,10 +205,10 @@ function buildFullModel(ExcelJS, S){
   R.mmwh =tsRow(ws,rr++,'Merchant MWh (in PPA period)',Yrow,intF,X=>`${X}$${R.op}*${X}$${R.ppaf}*${X}$${R.prod}*(1-${A(P+'_CONTR')})`);
   R.tmwh =tsRow(ws,rr++,'Tail MWh (post-PPA)',Yrow,intF,X=>`${X}$${R.op}*(1-${X}$${R.ppaf})*${X}$${R.prod}`);
   R.mpr  =tsRow(ws,rr++,'Merchant price (€/MWh)',Yrow,eurF,X=>`${A('MERCH')}*${X}$${R.cpi}`);
-  R.rppa =tsRow(ws,rr++,'Revenue — contracted (€m)',Yrow,numF,X=>`${X}$${R.cmwh}*${A(P+'_PPA')}/10^6`);
-  R.rmer =tsRow(ws,rr++,'Revenue — merchant (€m)',Yrow,numF,X=>`${X}$${R.mmwh}*${X}$${R.mpr}/10^6`);
-  R.rtail=tsRow(ws,rr++,'Revenue — tail (€m)',Yrow,numF,X=>`${X}$${R.tmwh}*${A(P+'_TAIL')}/10^6`);
-  R.rev  =tsRow(ws,rr++,'Revenue — total (€m)',Yrow,numF,X=>`${X}$${R.rppa}+${X}$${R.rmer}+${X}$${R.rtail}`);
+  R.rppa =tsRow(ws,rr++,'Revenue: contracted (€m)',Yrow,numF,X=>`${X}$${R.cmwh}*${A(P+'_PPA')}/10^6`);
+  R.rmer =tsRow(ws,rr++,'Revenue: merchant (€m)',Yrow,numF,X=>`${X}$${R.mmwh}*${X}$${R.mpr}/10^6`);
+  R.rtail=tsRow(ws,rr++,'Revenue: tail (€m)',Yrow,numF,X=>`${X}$${R.tmwh}*${A(P+'_TAIL')}/10^6`);
+  R.rev  =tsRow(ws,rr++,'Revenue: total (€m)',Yrow,numF,X=>`${X}$${R.rppa}+${X}$${R.rmer}+${X}$${R.rtail}`);
   rr=sect(ws,rr,'COSTS & EBITDA');
   R.opex =tsRow(ws,rr++,'Opex (€m)',Yrow,numF,X=>`${X}$${R.op}*${A(P+'_OPEX')}*${A(P+'_MW')}*${X}$${R.cpi}`);
   R.ebit =tsRow(ws,rr++,'EBITDA (€m)',Yrow,numF,X=>`${X}$${R.rev}-${X}$${R.opex}`);
@@ -232,7 +232,7 @@ function buildFullModel(ExcelJS, S){
   R.xcf  =rr++;
   // now fill the reserved rows with correct references (bal known)
   // re-do IDC with proper prevBal ref:
-  tsRow(ws,R.idc,'IDC — interest during constr. (€m)',Yrow,numF,(X,pX)=>`${X}$${R.cflag}*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}/2)*${A('RATE')}`);
+  tsRow(ws,R.idc,'IDC: interest during constr. (€m)',Yrow,numF,(X,pX)=>`${X}$${R.cflag}*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}/2)*${A('RATE')}`);
   tsRow(ws,R.intr,'Interest (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A(P+'_COD')})*(${pX?pX+'$'+R.bal:'0'})*${A('RATE')}`);
   R.rflag=null; // repayment flag folded into principal for brevity
   tsRow(ws,R.prin,'Principal repay (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A(P+'_COD')})*(${yr(X)}<${A(P+'_COD')}+$B$${D.REPY})*MIN((${pX?pX+'$'+R.bal:'0'}),${A('AMORT')}*MAX(0,$B$${D.ANNDS}-${X}$${R.intr})+(1-${A('AMORT')})*$B$${D.ANNPRIN})`);
@@ -272,7 +272,7 @@ function buildFullModel(ExcelJS, S){
  // ================= BATTERY =================
  function batterySheet(){
   const ws=wb.addWorksheet('Battery'); ws.getColumn(1).width=38; ws.getColumn(2).width=13; ws.getColumn(3).width=26; ws.getColumn(4).width=8; ws.views=[{state:'frozen',xSplit:1}];
-  ws.getCell(1,1).value='BATTERY — full-formula model'; ws.getCell(1,1).font={bold:true,size:12};
+  ws.getCell(1,1).value='BATTERY | full-formula model'; ws.getCell(1,1).font={bold:true,size:12};
   ws.getCell(2,1).value='Red = linked from Inputs. Arbitrage uses the dashboard day-by-day backtest summary; the 24h curve is explanatory only.';
   ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
   const L={}, D={}, R={};
@@ -327,10 +327,10 @@ function buildFullModel(ExcelJS, S){
   R.cpi  =tsRow(ws,rr++,'CPI index vs 2023',Yrow,'0.0000',X=>`(1+${A('INFL')})^(${yr(X)}-2023)`);
   R.merch=tsRow(ws,rr++,'Merchant revenue (€m)',Yrow,numF,X=>`${X}$${R.olf}*${X}$${R.mflag}*($B$${D.ARBRR}*(1-${A('B_DEGR')})^MAX(0,${yr(X)}-${A('B_GY')})+$B$${D.ANC})*(1-${A('B_COMP')})^MAX(0,${yr(X)}-${A('B_GY')})*(1+${A('INFL')})^MAX(0,${yr(X)}-${A('B_GY')})`);
   R.cap  =tsRow(ws,rr++,'DC reliability charge (€m)',Yrow,numF,X=>`${X}$${R.olf}*$B$${D.DCCH}*(1+${A('INFL')})^MAX(0,${yr(X)}-(${A('B_COD')}+1))`);
-  R.rev  =tsRow(ws,rr++,'Revenue — total (€m)',Yrow,numF,X=>`${X}$${R.merch}+${X}$${R.cap}`);
-  R.opxc =tsRow(ws,rr++,'Opex — cell O&M (€m)',Yrow,numF,X=>`${X}$${R.olf}*$B$${D.CELLCX}*${A('B_OPEXP')}*${X}$${R.cpi}`);
+  R.rev  =tsRow(ws,rr++,'Revenue: total (€m)',Yrow,numF,X=>`${X}$${R.merch}+${X}$${R.cap}`);
+  R.opxc =tsRow(ws,rr++,'Opex: cell O&M (€m)',Yrow,numF,X=>`${X}$${R.olf}*$B$${D.CELLCX}*${A('B_OPEXP')}*${X}$${R.cpi}`);
   R.gfee =tsRow(ws,rr++,'Grid fees (€m, from ban)',Yrow,numF,X=>`${X}$${R.olf}*${X}$${R.mflag}*($B$${D.GFCAP}+$B$${D.GFENE})*(1+${A('FEESC')})^MAX(0,${yr(X)}-2028)`);
-  R.opex =tsRow(ws,rr++,'Opex — total (€m)',Yrow,numF,X=>`${X}$${R.opxc}+${X}$${R.gfee}`);
+  R.opex =tsRow(ws,rr++,'Opex: total (€m)',Yrow,numF,X=>`${X}$${R.opxc}+${X}$${R.gfee}`);
   R.codf =tsRow(ws,rr++,'COD flag (y=COD)',Yrow,intF,X=>`(${yr(X)}=${A('B_COD')})`);
   R.intr =rr++; R.prin=rr++; R.bal=rr++; R.dep=rr++; R.ebt=rr++; R.nol=rr++; R.tax=rr++; R.fcfe=rr++; R.date=rr++; R.chk=rr++; R.diff=rr++; R.xcf=rr++;
   tsRow(ws,R.intr,'Interest (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>${A('B_COD')})*(${pX?pX+'$'+R.bal:'0'})*${A('B_RATE')}`);
@@ -366,7 +366,7 @@ function buildFullModel(ExcelJS, S){
  // ================= SPV =================
  function spvSheet(){
   const ws=wb.addWorksheet('SPV'); ws.getColumn(1).width=40; ws.getColumn(2).width=13; ws.getColumn(3).width=24; ws.views=[{state:'frozen',xSplit:1}];
-  ws.getCell(1,1).value='CONSOLIDATED POWER SPV — owns RES (per mode), battery and private electrical infrastructure'; ws.getCell(1,1).font={bold:true,size:12};
+  ws.getCell(1,1).value='CONSOLIDATED POWER SPV | owns RES (per mode), battery and private electrical infrastructure'; ws.getCell(1,1).font={bold:true,size:12};
   ws.getCell(2,1).value='Red = linked. The consolidated return includes every asset assigned to the Power SPV, including the private line.';
   ws.getCell(2,1).font={italic:true,size:9,color:{argb:'FF808080'}};
   const L={}, D={}, R={};
@@ -425,7 +425,7 @@ function buildFullModel(ExcelJS, S){
   R.resp =tsRow(ws,rr++,'Residual energy price (€/MWh)',Yrow,eurF,X=>`${A('RES_P')}*(1+${A('INFL')})^(${yr(X)}-2025)*(1+${A('RES_M')})+${A('FEE_E')}*(1+${A('FEESC')})^MAX(0,${yr(X)}-2028)`);
   R.resec=tsRow(ws,rr++,'Residual energy cost (€m)',Yrow,numF,X=>`${X}$${R.op}*${X}$${R.resm}*${X}$${R.resp}/10^6`);
   R.rescc=tsRow(ws,rr++,'Residual capacity fee (€m)',Yrow,numF,X=>`${X}$${R.op}*${A('DC_MW')}*${A('FEE_C')}/1000*(1+${A('FEESC')})^MAX(0,${yr(X)}-2028)`);
-  R.resc =tsRow(ws,rr++,'Residual cost — total (€m)',Yrow,numF,X=>`${X}$${R.resec}+${X}$${R.rescc}`);
+  R.resc =tsRow(ws,rr++,'Residual cost: total (€m)',Yrow,numF,X=>`${X}$${R.resec}+${X}$${R.rescc}`);
   R.wpf  =tsRow(ws,rr++,'Wind in-PPA flag',Yrow,intF,X=>`(${yr(X)}<${A('W_COD')}+MIN(${A('PPAT')},${A('W_LIFE')}))`);
   R.spf  =tsRow(ws,rr++,'Solar in-PPA flag',Yrow,intF,X=>`(${yr(X)}<${A('S_COD')}+MIN(${A('PPAT')},${A('S_LIFE')}))`);
   R.wpr  =tsRow(ws,rr++,'Wind price to SPV (€/MWh)',Yrow,eurF,X=>`${X}$${R.wpf}*${A('W_PPA')}+(1-${X}$${R.wpf})*${A('W_TAIL')}`);
@@ -440,14 +440,14 @@ function buildFullModel(ExcelJS, S){
   R.resox=tsRow(ws,rr++,'RES opex owned (€m)',Yrow,numF,X=>`${X}$${R.op}*${A('RES_OWN')}*(${A('W_OPEX')}*${A('W_MW')}+${A('S_OPEX')}*${A('S_MW')})*${X}$${R.cpi}`);
   R.batox=tsRow(ws,rr++,'Battery cell opex (€m)',Yrow,numF,X=>`${X}$${R.op}*${BXL('CELLCX')}*${A('B_OPEXP')}*${X}$${R.cpi}`);
   R.batgf=tsRow(ws,rr++,'Battery grid fees (€m)',Yrow,numF,X=>`${X}$${R.op}*(${yr(X)}>=${A('B_GY')})*(${BXL('GFCAP')}+${BXL('GFENE')})*(1+${A('FEESC')})^MAX(0,${yr(X)}-2028)`);
-  R.opex =tsRow(ws,rr++,'Opex — total (€m)',Yrow,numF,X=>`${X}$${R.resox}+${X}$${R.batox}+${X}$${R.batgf}`);
+  R.opex =tsRow(ws,rr++,'Opex: total (€m)',Yrow,numF,X=>`${X}$${R.resox}+${X}$${R.batox}+${X}$${R.batgf}`);
   R.ebit =tsRow(ws,rr++,'EBITDA (€m)',Yrow,numF,X=>`${X}$${R.dcrev}+${X}$${R.brev}-${X}$${R.resc}-${X}$${R.resppa}-${X}$${R.opex}`);
   R.cshr =tsRow(ws,rr++,'RES + line capex draw share',Yrow,'0.00',X=>`0.3*(${yr(X)}=${A('SPV_FF')}-2)+0.7*(${yr(X)}=${A('SPV_FF')}-1)`);
   R.capex=tsRow(ws,rr++,'SPV capex, incl. direct line (€m)',Yrow,numF,X=>`${X}$${R.cshr}*($B$${D.RESCX}+$B$${D.LINECX})+(${yr(X)}=${A('SPV_FF')}-1)*${BXL('TCAPEX')}`);
   R.draw =tsRow(ws,rr++,'Debt draw (€m)',Yrow,numF,X=>`${X}$${R.capex}*$B$${D.BGEAR}`);
   R.cflag=tsRow(ws,rr++,'Construction flag',Yrow,intF,X=>`(${yr(X)}>=${A('SPV_FF')}-2)*(${yr(X)}<${A('SPV_FF')})`);
   R.idc=rr++; R.intr=rr++; R.prin=rr++; R.bal=rr++; R.dep=rr++; R.ebt=rr++; R.nol=rr++; R.tax=rr++; R.fcfe=rr++; R.date=rr++; R.xcf=rr++;
-  tsRow(ws,R.idc,'IDC — constr. interest (€m)',Yrow,numF,(X,pX)=>`${X}$${R.cflag}*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}/2)*$B$${D.BRATE}`);
+  tsRow(ws,R.idc,'IDC: constr. interest (€m)',Yrow,numF,(X,pX)=>`${X}$${R.cflag}*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}/2)*$B$${D.BRATE}`);
   tsRow(ws,R.intr,'Interest (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A('SPV_FF')})*(${pX?pX+'$'+R.bal:'0'})*$B$${D.BRATE}`);
   tsRow(ws,R.prin,'Principal repay (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}>=${A('SPV_FF')})*(${yr(X)}<${A('SPV_FF')}+$B$${D.REPY})*MIN((${pX?pX+'$'+R.bal:'0'}),${A('AMORT')}*MAX(0,$B$${D.ANNDS}-${X}$${R.intr})+(1-${A('AMORT')})*$B$${D.ANNPRIN})`);
   tsRow(ws,R.bal,'Debt balance EOY (€m)',Yrow,numF,(X,pX)=>`(${yr(X)}<${A('SPV_FF')})*((${pX?pX+'$'+R.bal:'0'})+${X}$${R.draw}+${X}$${R.idc})+(${yr(X)}>=${A('SPV_FF')})*MAX(0,(${pX?pX+'$'+R.bal:'0'})-${X}$${R.prin})`);
@@ -471,8 +471,8 @@ function buildFullModel(ExcelJS, S){
   ws.getCell(k,1).value='Method note'; ws.getCell(k,2).value='Asset-only returns remain on the Wind, Solar and Battery sheets. Battery arbitrage uses exported day-by-day backtest averages from the selected duration and year. Re-export after changing those dimensions. Any non-zero tie-out is a model reconciliation issue, not a timing convention.';
   return {irr:`SPV!B${IRR}`};
  }
- // asset builders must expose their production row for the SPV pull — patch refs:
- // (windRef/solarRef were created above; attach prodRow by re-reading — simpler: store during build)
+ // Asset builders must expose their production row for the SPV pull; patch refs:
+ // windRef/solarRef were created above. Attach prodRow by re-reading; storing during build is simpler.
  const spvRef=spvSheet();
 
  // ================= OUTPUT =================

@@ -123,11 +123,15 @@ $indexPath = Join-Path $repo 'index.html'
 $appPath = Join-Path $repo 'gdc_app.js'
 $dataPath = Join-Path $repo 'gdc_data.js'
 $modelPath = Join-Path $repo 'model_export.js'
-$index = if (Test-Path -LiteralPath $indexPath) { Get-Content -LiteralPath $indexPath -Raw } else { '' }
-$app = if (Test-Path -LiteralPath $appPath) { Get-Content -LiteralPath $appPath -Raw } else { '' }
-$data = if (Test-Path -LiteralPath $dataPath) { Get-Content -LiteralPath $dataPath -Raw } else { '' }
-$model = if (Test-Path -LiteralPath $modelPath) { Get-Content -LiteralPath $modelPath -Raw } else { '' }
+$index = if (Test-Path -LiteralPath $indexPath) { Get-Content -LiteralPath $indexPath -Raw -Encoding UTF8 } else { '' }
+$app = if (Test-Path -LiteralPath $appPath) { Get-Content -LiteralPath $appPath -Raw -Encoding UTF8 } else { '' }
+$data = if (Test-Path -LiteralPath $dataPath) { Get-Content -LiteralPath $dataPath -Raw -Encoding UTF8 } else { '' }
+$model = if (Test-Path -LiteralPath $modelPath) { Get-Content -LiteralPath $modelPath -Raw -Encoding UTF8 } else { '' }
 $publicText = $index + "`n" + $app + "`n" + $data + "`n" + $model
+
+if ($publicText -match '[\u2010-\u2015]') {
+    Add-Failure 'Public assets contain long-dash characters. Rewrite the copy with standard punctuation.'
+}
 
 $assetMatches = [regex]::Matches($index, '(?:href|src)="(gdc\.(?:css|js)|gdc_(?:app|data)\.js)\?v=([A-Za-z0-9._-]+)"')
 $tokens = @($assetMatches | ForEach-Object { $_.Groups[2].Value } | Select-Object -Unique)

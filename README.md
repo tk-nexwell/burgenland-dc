@@ -1,4 +1,4 @@
-# Project Burgenland — Live Power SPV Model
+# Project Burgenland: Live Power SPV Model
 
 Interactive public-planning dashboard deployed through GitHub Pages.
 
