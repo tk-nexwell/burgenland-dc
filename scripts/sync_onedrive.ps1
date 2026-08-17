@@ -383,7 +383,10 @@ $newMirrorInstalled = $false
 $preserveStageOnFailure = $false
 try {
     [void](New-Item -ItemType Directory -Path $stagePath)
-    $archiveArguments = @('archive', '--format=zip', "--output=$archivePath", $head, '--') +
+    # The system Git configuration on Windows commonly sets core.autocrlf=true. Force it off for
+    # the archive operation so the generated mirror contains the exact committed blob bytes.
+    $archiveArguments = @('-c', 'core.autocrlf=false', 'archive', '--format=zip',
+        "--output=$archivePath", $head, '--') +
         @($declaredFiles)
     [void](Invoke-RepoGit -Arguments $archiveArguments)
     Expand-Archive -LiteralPath $archivePath -DestinationPath $stagePath
@@ -432,8 +435,12 @@ try {
             throw "Mirror destination exists but is not a directory: $destinationFull"
         }
         $destinationItem = Get-Item -LiteralPath $destinationFull -Force
-        if (($destinationItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-            throw "Mirror destination is a reparse point and will not be renamed: $destinationFull"
+        $destinationLinkType = [string]$destinationItem.LinkType
+        $destinationLinkTarget = [string]($destinationItem.Target -join '')
+        if (($destinationItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and
+            (-not [string]::IsNullOrWhiteSpace($destinationLinkType) -or
+             -not [string]::IsNullOrWhiteSpace($destinationLinkTarget))) {
+            throw "Mirror destination is a link or junction and will not be renamed: $destinationFull"
         }
         [IO.Directory]::Move($destinationFull, $backupPath)
         $oldMirrorMoved = $true
