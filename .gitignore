@@ -1,4 +1,5 @@
 # Local transfer and proof artifacts are never part of the public site.
+outputs/
 *.bundle
 MIRROR_HEAD.txt
 MIRROR_HASHES.json

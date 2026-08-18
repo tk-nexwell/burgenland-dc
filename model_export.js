@@ -12,6 +12,7 @@
 //  - Tie-out check row + a ✓/⚠ flag (via CHOOSE, not IF) next to each asset's equity IRR.
 function buildFullModel(ExcelJS, S){
  const wb=new ExcelJS.Workbook(); wb.creator='Nexwell Power'; wb.created=new Date();
+ wb.calcProperties.fullCalcOnLoad=true;
  const Y0=2026, YN=2060, NY=YN-Y0+1, c0=2;
  const lastC=colL(c0+NY-1);
  // styles

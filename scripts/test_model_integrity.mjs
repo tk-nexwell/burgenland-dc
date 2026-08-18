@@ -5,6 +5,7 @@ const root = new URL('../', import.meta.url);
 const app = readFileSync(new URL('gdc_app.js', root), 'utf8');
 const data = readFileSync(new URL('gdc_data.js', root), 'utf8');
 const html = readFileSync(new URL('index.html', root), 'utf8');
+const excel = readFileSync(new URL('model_export.js', root), 'utf8');
 
 const fail = (message) => { throw new Error(message); };
 const check = (condition, message) => { if (!condition) fail(message); };
@@ -276,11 +277,17 @@ check(/-\(r\.resPPA\+r\.gridCost\+r\.opex\)/.test(app), 'SPV cash-flow chart no 
 check(/const\s+gridMWh\s*=\s*Math\.max\(0,y1b\.gridMWh\|\|0\)/.test(app), 'Data-center bill no longer reads grid energy from the SPV row.');
 check(/gridMWh=Math\.max\(0,yr\.gridMWh\|\|0\),resGen=Math\.max\(0,yr\.resGen\|\|0\)/.test(app), 'SPV waterfall no longer reads dispatched energy from the selected SPV row.');
 
-// The workbook remains in the repository for future reconciliation work, but it must have no UI entry point.
-check(!/\bdlXLSX\b/.test(html), 'Excel export is still exposed in the public HTML.');
+// Keep the illustrative workbook discoverable while loading its sizeable dependencies only on demand.
 const visibleHtml = html.replace(/<!--[\s\S]*?-->/g, '');
 const buttons = visibleHtml.match(/<button\b[\s\S]*?<\/button>/gi) || [];
-check(!buttons.some((button) => /\b(?:Excel|XLSX)\b/i.test(button)), 'Excel export button remains in the public UI.');
-check(!/<script\b[^>]*\bsrc\s*=\s*["'][^"']*model_export\.js/i.test(html), 'Workbook builder is still loaded by the public page.');
+const excelButton = buttons.find((button) => /\bExcel model\b/i.test(button));
+check(excelButton, 'Excel model download button is missing from the public UI.');
+check(/\bonclick\s*=\s*["']dlXLSX\(\)["']/i.test(excelButton), 'Excel model button is not wired to dlXLSX().');
+check(/\baria-label\s*=\s*["'][^"']*illustrative Excel model[^"']*["']/i.test(excelButton), 'Excel model button needs an accessible illustrative label.');
+check(/function\s+dlXLSX\s*\(\)/.test(app), 'Excel download handler is missing.');
+check(/model_export\.js/.test(app), 'Excel download handler no longer lazy-loads the workbook builder.');
+check(/function\s+buildFullModel\s*\(/.test(excel), 'Excel workbook builder entry point is missing.');
+check(/calcProperties\.fullCalcOnLoad\s*=\s*true/.test(excel), 'Excel workbook is not configured to recalculate formulas when opened.');
+check(!/<script\b[^>]*\bsrc\s*=\s*["'][^"']*model_export\.js/i.test(html), 'Workbook builder should remain lazy-loaded rather than block the public page.');
 
-console.log('Model integrity regression checks passed (gate, sanitizer, battery, hourly supply/SPV, UI export).');
+console.log('Model integrity regression checks passed (gate, sanitizer, battery, hourly supply/SPV, illustrative Excel export).');

@@ -27,7 +27,7 @@
   </div>
   <h1 class="wmk"><button type="button" class="wmHead" onclick="go('overview',event)" title="Back to the overview"><span class="nk">GDC</span> Nickelsdorf</button></h1>
   <div class="viewtoggle">
-    <!-- Excel export is intentionally withheld until workbook formulas pass scenario parity tests. -->
+    <button type="button" class="chip" onclick="dlXLSX()" aria-label="Download illustrative Excel model" title="Download the illustrative formula-driven planning model (not yet parity-validated against every dashboard scenario)">⬇ Excel model</button>
    <button type="button" class="chip" id="themeBtn" onclick="toggleTheme()" title="Switch between the screen theme and the paper theme"></button>
    <button type="button" class="chip" onclick="printAsk()" title="Save this page, or the whole dashboard, as a PDF">⎙ PDF</button>
    <button type="button" class="chip" onclick="scenDrawer()" title="Save, load, compare and share slider positions">☰ Scenarios</button>
