@@ -31,8 +31,10 @@ surveyed route.
 - Added shareable page routes, browser history, focus/scroll handling, selected-state semantics,
   labelled controls and a compact mobile navigation row.
 - Added an interactive future-state masterplan with six selectable assets and explicit Open actions.
-- Withheld the Excel download. The workbook still lacks full parity for hourly dispatch, portfolio
-  toggles, clipping, infrastructure scope and SPV reconciliation.
+- Re-exposed the Excel download as an explicitly illustrative planning model. The workbook still
+  lacks full parity for hourly dispatch, portfolio toggles, clipping, infrastructure scope and SPV
+  reconciliation; the public control and tooltip preserve that limitation rather than implying a
+  fully reconciled dashboard export.
 
 ## Visual assessment
 
