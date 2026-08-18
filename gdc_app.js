@@ -268,11 +268,11 @@ function v3Toggle(sec){ M.v3[sec]=!M.v3[sec]; render(); }
 /* ============ 3 · MODEL STATE & DEFAULTS ============ */
 const M={
  view:'INT',
- macro:{infl:0.02,tax:0.23,gearing:0.70,merchReal:100,tenor:20,allInRate:0.047,ppaTermY:20,amort:'annuity'},
+ macro:{infl:0.02,tax:0.23,gearing:0.70,merchReal:100,tenor:20,allInRate:0.052,ppaTermY:20,amort:'annuity'},
  v3:{wind:false,solar:false,battery:false},
  wind:{on:true,mw:320,capexPerMW:1.45,grossCF:0.290636,loss:0.02,lineLoss:0.045,opexPerMW:0.04,gridFee:0,degr:0.003,ppa:94,contr:1,basis:'model',lifeY:25,codY:2029},
  solar:{on:true,mw:357,capexPerMW:0.60,grossCF:0.1566,loss:0.02,lineLoss:0.033,opexPerMW:0.032,gridFee:0,degr:0.003,ppa:94,contr:1,basis:'model',lifeY:25,codY:2029},
- battery:{on:true,powerMW:500,durationH:8,capexPerKWh:130,rte:0.87,opexPct:0.02,degr:0.015,socFloor:0.10,gridYear:2035,priceYear:'2025',captureFactor:1.0,cyclesDay:1,ancPerMW:20,capChargeMWyr:40,mktCapFee:false,compression:0.02,gearing:0.60,debtRate:0.05,substation:24.25,interconnect:17,gridCapFee:0,gridEnergyFee:0,btmCharge:0,lifeY:25}, // defaults: 8h · behind-the-meter charging via direct line → grid fees 0 (sliders remain) · DC reliability charge 40 k€/MW/yr
+ battery:{on:true,powerMW:500,durationH:8,capexPerKWh:130,rte:0.87,opexPct:0.02,degr:0.015,socFloor:0.10,gridYear:2035,priceYear:'2025',captureFactor:1.0,cyclesDay:1,ancPerMW:20,capChargeMWyr:40,mktCapFee:false,compression:0.02,gearing:0.60,debtRate:0.052,substation:24.25,interconnect:17,gridCapFee:0,gridEnergyFee:0,btmCharge:0,lifeY:25}, // defaults: 8h · behind-the-meter charging via direct line → grid fees 0 (sliders remain) · DC reliability charge 40 k€/MW/yr
  dc:{curtail:0,firmMW:500,dcPrice:120,spvMode:'pass',spvMargin:0.03,marginMode:'pct',marginEur:3.5,
    revPerMW:5.00,powerPass:true,claimShare:0.40,firmTermY:3,   // DC revenue EUR m per MW of connection a year; powerPass = the data center bills power on to its tenant
 srcMode:'fixed',resFix:99,beMargin:0.03,gridEnergyFee:8.4,gridCapFeeKW:42.84,feeEsc:0.04,resMode:'ppa'}, // public planning case; tariffs, fees and escalation require validation before decision use
@@ -1313,7 +1313,7 @@ const ASKS=[
   apply:()=>{M.battery.gridYear=2099;}, go:['summary','batt'],
   say:'The battery remains behind the meter and earns the reliability charge.'},
  {q:'Debt cost increases by 2 percentage points',
-  apply:()=>{M.macro.allInRate=Math.min(0.08,M.macro.allInRate+0.02);M.battery.debtRate=Math.min(0.09,(M.battery.debtRate||0.05)+0.02);},
+  apply:()=>{M.macro.allInRate=Math.min(0.08,M.macro.allInRate+0.02);M.battery.debtRate=Math.min(0.09,(M.battery.debtRate||M.macro.allInRate)+0.02);},
   go:['summary','fin'], say:'All-in rate and the battery debt rate both up 200 basis points.'},
   {q:'Network charge doubles before construction',
    apply:()=>{M.dc.gridCapFeeKW=85.68;}, go:['datacentre','fin'],
@@ -1576,7 +1576,7 @@ function battSection(){
   ${sliderHTML('battery','ancPerMW','Ancillary',0,60,5,' €k/MW/yr')}
   ${sliderHTML('battery','capChargeMWyr','DC reliability charge',0,150,5,' €k/MW/yr')}
   ${sliderHTML('battery','gearing','Leverage',0,0.9,0.05,'%',100)}
-  ${sliderHTML('battery','debtRate','Battery debt rate',0.02,0.08,0.0025,'%',100)}
+  ${sliderHTML('battery','debtRate','Battery debt rate',0.02,0.08,0.001,'%',100)}
   ${sliderHTML('battery','substation','Grid-interface allowance',0,120,0.25,' €m')}
   ${sliderHTML('battery','interconnect','DC connection (3×3.5km, customer)',0,120,1,' €m')}
   <div class="inp"><label>Grid market start<b id="lbl_battery_gridYear">${b.gridYear>=2099?'Behind meter':b.gridYear}</b></label><div class="seg">${['2030','2032','2035','2036','2099'].map(y=>`<button class="${b.gridYear==y?'on':''}" onclick="M.battery.gridYear=${y};render()">${y==2099?'Behind meter':y}</button>`).join('')}</div></div>
