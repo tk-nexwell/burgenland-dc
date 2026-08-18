@@ -22,6 +22,11 @@ It is a generated, read-only working mirror for convenient access. After a relea
 previous mirror remains beside it as a timestamped backup. The new mirror contains commit and
 SHA-256 proof files but never a `.git` directory, undeclared extras, or local-only material.
 
+Nobody has to run that by hand. `scripts/auto_sync.ps1 -Register` installs a Windows scheduled task
+that fetches `origin/main`, moves the checkout to the published commit when it is behind, and
+rebuilds the mirror. It moves in one direction only, from GitHub to the disk, and it stops rather
+than resetting if the checkout carries real local edits.
+
 See `DEPLOY_INSTRUCTIONS.md` for the operating procedure. Treat a file present in OneDrive but not
 in the canonical Git commit as an output or backup, never as a second source of truth.
 

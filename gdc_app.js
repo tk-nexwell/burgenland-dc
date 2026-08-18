@@ -873,9 +873,7 @@ function drawAssetCharts(R,col){
    yaxis3:{overlaying:'y',side:'right',position:1.0,anchor:'free',range:[0,Math.max(3,(dst?dst.max:2)*1.2)],
            gridcolor:'transparent',title:{text:'DSCR ×',font:{size:11.5}}},
    margin:{b:112},
-   shapes:[{type:'line',xref:'paper',x0:0,x1:0.88,yref:'y3',y0:1.30,y1:1.30,line:{color:'#ff6b6b',width:1,dash:'dash'}}],
-   annotations:[{xref:'paper',x:0.012,yref:'y3',y:1.30,yanchor:'bottom',text:'1.30x covenant reference',showarrow:false,font:{size:11,color:'#ff6b6b'}},
-     dst?{xref:'paper',yref:'paper',x:0.5,y:-0.60,xanchor:'center',yanchor:'top',showarrow:false,
+   annotations:[dst?{xref:'paper',yref:'paper',x:0.5,y:-0.60,xanchor:'center',yanchor:'top',showarrow:false,
        text:'DSCR '+dscrBadge(dst),font:{size:12.5,color:'#c3d1c9'}}:null].filter(Boolean)
   }),CFG);
  const cfl=R.rows.filter(r=>r.y<R.cod+R.life); const sub=[],dts=[],roll=[];
@@ -2045,9 +2043,7 @@ function drawSpvCashflow(){
    xaxis:{domain:[0,0.93],gridcolor:'#2b3644'},
    yaxis:{title:{text:'€m',font:{size:12}},gridcolor:'#2b3644'},
    yaxis2:{overlaying:'y',side:'right',range:[0,Math.max(3,(sDst?sDst.max:2)*1.2)],gridcolor:'transparent',title:{text:'DSCR ×',font:{size:11.5}}},
-   margin:{t:60,b:108},
-   shapes:[{type:'line',xref:'paper',x0:0,x1:0.93,yref:'y2',y0:1.30,y1:1.30,line:{color:'#ff6b6b',width:1,dash:'dash'}}],
-   annotations:[{xref:'paper',x:0.012,yref:'y2',y:1.30,yanchor:'bottom',text:'1.30x covenant reference',showarrow:false,font:{size:11,color:'#ff6b6b'}}]}),CFG);
+   margin:{t:60,b:108}}),CFG);
 }
 /* Public production view: the shape is illustrative and deliberately contains no project meters. */
 let prodView={wind:'shape',solar:'shape'};
@@ -4042,7 +4038,8 @@ function ctInstall(){
   // only bar charts pay for the copy.
   try{if(id){
    const barish=(data||[]).some(t=>t&&t.type==='bar');
-   CT[id]={data:barish?(data||[]).map(t=>{const c=Object.assign({},t);
+   CT[id]={layout:layout||{},
+     data:barish?(data||[]).map(t=>{const c=Object.assign({},t);
      if(Array.isArray(t.x))c.x=t.x.slice(); if(Array.isArray(t.y))c.y=t.y.slice(); return c;}):(data||[])};
    setTimeout(()=>ctEnsure(id),0);}}catch(e){}
   const r=orig(el,data,layout,cfg);
@@ -4081,25 +4078,98 @@ function ctEnsure(id){
  const panel=document.createElement('div'); panel.id='ctp_'+id; panel.className='ctPanel'; panel.style.display='none';
  wrap.insertAdjacentElement('afterend',panel);
 }
+/* One matrix builder feeds both the Table panel and the CSV, so a reader exports exactly what the
+   chart drew. Three things the first builder got wrong and this one handles:
+     - horizontal bars carry their values in x and their categories in y, so a tornado exported its
+       driver labels as data and split each series across half the rows;
+     - a trace with no x array, or a pie or heatmap sitting beside ordinary curves, dropped the
+       other series instead of being handled on its own terms;
+     - numbers left as raw floats, so a spreadsheet showed them as General and a share read 0.4237.
+   Values now carry one decimal, and a series the chart itself labels as a percentage carries a
+   percent sign, which is what a spreadsheet needs to store it as a percentage. */
+function ctAxisKey(t,ax){
+ const k=String((ax==='x'?t.xaxis:t.yaxis)||ax);
+ return (ax==='x'?'xaxis':'yaxis')+(k.length>1?k.slice(1):'');
+}
+function ctAxTitle(ax){
+ if(!ax||!ax.title)return '';
+ return String(ax.title.text!==undefined?ax.title.text:ax.title);
+}
+/* A series counts as a percentage when the chart already presents it as one: the hover readout
+   closes with a percent sign, or the axis it sits on uses a percent tick format, suffix or title.
+   A d3 percent tick format means the stored value is a fraction, so it is scaled once here. */
+function ctUnit(t,lay,valAx){
+ const ht=String(t.hovertemplate||'');
+ if(new RegExp('%\\{'+valAx+'(?::[^}]*)?\\}\\s*%').test(ht))return {pct:true,frac:false};
+ const ax=(lay&&lay[ctAxisKey(t,valAx)])||{};
+ if(String(ax.tickformat||'').indexOf('%')>=0)return {pct:true,frac:true};
+ if(String(ax.ticksuffix||'').trim()==='%')return {pct:true,frac:false};
+ if(/(^|[\s(\/])%|%$/.test(ctAxTitle(ax)))return {pct:true,frac:false};
+ return {pct:false,frac:false};
+}
+/* One decimal is the floor, not a ceiling. A chart that hovers DSCR to two places or a correlation
+   to three would otherwise export less precision than it displays, so the trace's own hover format
+   raises the count where it asks for more. */
+function ctDigits(t,valAx){
+ const m=new RegExp('%\\{'+valAx+':[^}]*?\\.(\\d+)[a-zA-Z%]').exec(String(t.hovertemplate||''));
+ return Math.max(1,Math.min(6,m?parseInt(m[1],10):1));
+}
+function ctCell(v,u){
+ if(v===''||v==null)return '';
+ if(typeof v!=='number')return String(v);
+ if(!isFinite(v))return '';
+ const d=(u&&u.digits!=null)?u.digits:1;
+ if(u&&u.pct)return (u.frac?v*100:v).toFixed(d)+'%';
+ return v.toFixed(d);
+}
+/* The key column holds labels and periods, not measurements, so a year stays 2029 and never
+   becomes 2029.0. */
+function ctKeyCell(v){
+ if(v==null)return '';
+ if(typeof v==='number')return Number.isInteger(v)?String(v):v.toFixed(1);
+ return String(v);
+}
+function ctSeries(t,i){
+ const nm=t.name||('series '+(i+1));
+ if(Array.isArray(t.labels))return {name:nm,cats:t.labels,vals:t.values||[],valAx:'y'};
+ const horiz=(t.orientation==='h');
+ const vals=Array.isArray(horiz?t.x:t.y)?(horiz?t.x:t.y):[];
+ const cats=Array.isArray(horiz?t.y:t.x)?(horiz?t.y:t.x):vals.map((_,k)=>k);
+ return {name:nm,cats:cats,vals:vals,valAx:horiz?'x':'y'};
+}
 function ctMatrix(id){
  const rec=CT[id]; if(!rec)return null;
- const D=rec.data;
- if(D.length&&D[0].z){                                   // heatmap or surface: matrix
-  const t=D[0], xs=t.x||t.z[0].map((_,i)=>i);
-  return {cols:['row \\ col'].concat(xs.map(String)),
-          rows:t.z.map((r,ri)=>[(t.y&&t.y[ri]!=null?t.y[ri]:ri)].concat(r))};
+ const lay=rec.layout||{};
+ const D=(rec.data||[]).filter(t=>t&&t.visible!==false);
+ if(!D.length)return null;
+ const zt=D.filter(t=>Array.isArray(t.z)), xy=D.filter(t=>!Array.isArray(t.z));
+ if(zt.length&&!xy.length){                              // heatmap or surface: matrix
+  const t=zt[0], xs=Array.isArray(t.x)?t.x:((t.z[0]||[]).map((_,i)=>i));
+  return {cols:['row \\ col'].concat(xs.map(ctKeyCell)),
+          rows:t.z.map((r,ri)=>[ctKeyCell(t.y&&t.y[ri]!=null?t.y[ri]:ri)].concat(r.map(v=>ctCell(v,null))))};
  }
- if(D.length&&D[0].labels)                               // pie
-  return {cols:['label','value'],rows:D[0].labels.map((l,i)=>[l,D[0].values[i]])};
- const xs=[], seen=new Set();                            // xy series: union of x
- D.forEach(t=>(t.x||[]).forEach(x=>{const k=String(x);if(!seen.has(k)){seen.add(k);xs.push(x);}}));
- const maps=D.map(t=>{const m=new Map();(t.x||[]).forEach((x,i)=>m.set(String(x),t.y?t.y[i]:''));return m;});
- return {cols:['x'].concat(D.map((t,i)=>t.name||('series '+(i+1)))),
-         rows:xs.map(x=>[x].concat(maps.map(m=>{const v=m.get(String(x));return v===undefined?'':v;})))};
+ if(!xy.length)return null;
+ const S=xy.map(ctSeries);
+ const units=xy.map((t,i)=>{const u=ctUnit(t,lay,S[i].valAx);u.digits=ctDigits(t,S[i].valAx);return u;});
+ const seen=new Set(), order=[];                          // union of every series' categories
+ S.forEach(s=>s.cats.forEach(c=>{const k=String(c);if(!seen.has(k)){seen.add(k);order.push(c);}}));
+ const cats=(order.length&&order.every(c=>typeof c==='number'&&isFinite(c)))
+   ?order.slice().sort((a,b)=>a-b):order;
+ const maps=S.map(s=>{const m=new Map();s.cats.forEach((c,i)=>m.set(String(c),s.vals[i]));return m;});
+ const keyTitle=ctAxTitle(lay[xy[0].orientation==='h'?'yaxis':'xaxis']).trim();
+ return {cols:[keyTitle||'x'].concat(S.map(s=>s.name)),
+         rows:cats.map(c=>[ctKeyCell(c)].concat(
+           maps.map((m,i)=>{const v=m.get(String(c));return v===undefined?'':ctCell(v,units[i]);})))};
+}
+function ctQuote(v,sep){
+ const t=String(v==null?'':v);
+ if(sep===','&&/["\r\n,]/.test(t))return '"'+t.replace(/"/g,'""')+'"';
+ return t;
 }
 function ctText(id,sep){
  const m=ctMatrix(id); if(!m)return'';
- return [m.cols.join(sep)].concat(m.rows.map(r=>r.map(v=>sep===','&&String(v).includes(',')?'"'+v+'"':v).join(sep))).join('\r\n');
+ return [m.cols.map(c=>ctQuote(c,sep)).join(sep)]
+   .concat(m.rows.map(r=>r.map(v=>ctQuote(v,sep)).join(sep))).join('\r\n');
 }
 function ctDl(id,fmt){
  const t=ctText(id,fmt==='csv'?',':'\t'); if(!t)return;
@@ -4107,6 +4177,7 @@ function ctDl(id,fmt){
  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='burgenland_'+id+'.'+fmt;a.click();
  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
 }
+function ctNumish(v){return /^-?[\d.,]+%?$/.test(String(v));}
 function ctToggle(id){
  const p=document.getElementById('ctp_'+id); if(!p)return;
  if(p.style.display==='none'){
@@ -4114,7 +4185,7 @@ function ctToggle(id){
   p.innerHTML='<div style="max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:8px"><table style="width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums"><thead style="position:sticky;top:0;background:#16202c"><tr>'+
    m.cols.map(c=>'<th style="text-align:left;padding:4px 9px">'+c+'</th>').join('')+
    '</tr></thead><tbody>'+
-   m.rows.map(r=>'<tr>'+r.map(v=>'<td style="padding:2px 9px;border-top:1px solid var(--gridfaint);text-align:'+(typeof v==='number'?'right':'left')+'">'+v+'</td>').join('')+'</tr>').join('')+
+   m.rows.map(r=>'<tr>'+r.map((v,i)=>'<td style="padding:2px 9px;border-top:1px solid var(--gridfaint);text-align:'+(i>0&&ctNumish(v)?'right':'left')+'">'+v+'</td>').join('')+'</tr>').join('')+
    '</tbody></table></div>';
   p.style.display='block';
  }else{p.style.display='none';p.innerHTML='';}

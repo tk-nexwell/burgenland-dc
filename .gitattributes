@@ -1,0 +1,7 @@
+# The repository stores LF. Windows editors write CRLF, which used to leave every tracked file
+# looking modified in git status and hid the real change inside the noise. Normalise on commit and
+# check out LF so the working tree matches the committed bytes on every platform.
+* text=auto eol=lf
+
+# Binary assets are never line-ending normalised.
+*.png binary

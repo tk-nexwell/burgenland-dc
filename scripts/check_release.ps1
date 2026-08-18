@@ -163,8 +163,8 @@ if (Test-Path -LiteralPath $futureImage -PathType Leaf) {
 if ($app -notmatch 'assets/nickelsdorf-masterplan-future-state\.png') {
     Add-Failure 'gdc_app.js does not reference the required future-state masterplan.'
 }
-if ($index -notmatch '(?i)>Planning scenario</span>') {
-    Add-Failure 'The public header must identify the dashboard as a planning scenario.'
+if ($app -match '1\.30x covenant reference') {
+    Add-Failure 'The retired 1.30x covenant reference line is back in gdc_app.js.'
 }
 if ($app -notmatch '(?i)Site layout showing the campus, generation, storage and electrical corridor') {
     Add-Failure 'The future-state visualization must carry the standard site-layout caption.'

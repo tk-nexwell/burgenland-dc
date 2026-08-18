@@ -16,31 +16,50 @@ This OneDrive path is an output, not a second checkout:
 Do not edit, commit from, or add a `.git` directory to the OneDrive mirror. Rebuild it from the
 canonical checkout after publication.
 
+## Publication is a push
+
+GitHub Pages serves `main` at `gdc-nickelsdorf.com`. A push to `main` is the deployment; there is
+no separate publish step and no batch file to run. `deploy.bat` has been deleted.
+
 ## Release sequence
 
 1. Make changes only in `C:\Users\ThomasKoenig\GitHub\burgenland-dc`.
 2. Review `git status` and `git diff`; stage only the intended public files and release controls.
+   Windows editors write CRLF while this repository stores LF, so `git status` can mark every file
+   as modified. `git diff --ignore-cr-at-eol` shows what actually changed.
 3. Run `powershell -File scripts/check_release.ps1` and resolve every blocker. The tracked-file
    checks deliberately catch a new asset that was created but not staged.
-4. Commit the complete change to `main` and push it to `origin`.
+4. Commit the complete change to `main` and push it to `origin`. That push publishes the site.
 5. Wait for the `Public release check` workflow and the GitHub Pages deployment to succeed at the
    same commit SHA.
-6. With the canonical checkout clean, preview the mirror operation with
-   `powershell -File scripts/sync_onedrive.ps1`. The preview still fetches and verifies the source,
-   but does not copy, rename, or delete anything.
-7. Build the mirror with `powershell -File scripts/sync_onedrive.ps1 -Apply`. The script exports
-   committed Git bytes only, runs the release checks, verifies every declared file, moves the old
-   mirror to a timestamped backup, installs the new mirror, and verifies it again.
+6. The checkout and the OneDrive mirror follow on their own if the scheduled task from
+   `scripts/auto_sync.ps1 -Register` is installed. To move them immediately instead, run
+   `powershell -File scripts/auto_sync.ps1`.
+7. To rebuild the mirror by hand, preview with `powershell -File scripts/sync_onedrive.ps1`, then
+   apply with `powershell -File scripts/sync_onedrive.ps1 -Apply`. The script exports committed Git
+   bytes only, runs the release checks, verifies every declared file, moves the old mirror to a
+   timestamped backup, installs the new mirror, and verifies it again.
 8. Confirm `MIRROR_HEAD.txt` contains the published SHA and inspect `MIRROR_PROOF.json` for the
    per-file SHA-256 values. Then verify the live HTML, CSS, JavaScript, data, CSV and future-state
    image are served from that same SHA.
+
+## Keeping the disk in step with GitHub
+
+`scripts/auto_sync.ps1` is the unattended version of steps 6 and 7.
+
+    powershell -File scripts\auto_sync.ps1 -Register     install the scheduled task
+    powershell -File scripts\auto_sync.ps1               run one synchronisation now
+    powershell -File scripts\auto_sync.ps1 -Unregister   remove the scheduled task
+
+It only ever moves work from GitHub to the disk. It fetches `origin/main`, resets the checkout to
+the published commit when it is behind, clears line-ending-only noise, and rebuilds the mirror when
+`MIRROR_HEAD.txt` is not already at that commit. If the checkout carries real local edits it stops
+and names them instead of resetting, because those edits are the one thing a sync cannot recover.
 
 Do not use `git add -A` without reviewing the result. Do not publish a transfer bundle, generated
 proof file, encrypted meter archive, earlier visual candidate or other local-only artifact to Git.
 The mirror script exports the exact tracked set declared by the manifest; an undeclared tracked
 file blocks the release instead of silently appearing in OneDrive or GitHub Pages.
-
-`deploy.bat` is retired and intentionally performs no deployment or synchronization.
 
 ## Cache rule
 

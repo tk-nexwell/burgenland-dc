@@ -91,7 +91,6 @@ header .sub{color:var(--mut);font-size:12px}
 @media(max-width:640px){.nxLogo{height:46px}}
 .brand .logo{height:22px;width:auto;display:block}
 .brand .bx{color:var(--mut);font-size:13px}
-.publicStatus{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#ffd27a;border:1px solid rgba(255,210,122,.35);background:rgba(255,178,62,.08);border-radius:999px;padding:5px 8px;white-space:nowrap}
 .viewtoggle{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .chip{background:linear-gradient(180deg,var(--surf2),var(--surf1));border:1px solid var(--line);border-radius:20px;padding:6px 13px;cursor:pointer;color:var(--nx-grey2);font-size:12px;font-weight:500;box-shadow:var(--elev1);transition:transform .14s,box-shadow .14s,color .14s}
 .chip:hover{transform:translateY(-1px);box-shadow:var(--elev2);color:var(--txt)}
