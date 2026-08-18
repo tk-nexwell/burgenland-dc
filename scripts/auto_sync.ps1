@@ -29,8 +29,18 @@ function Write-Step([string]$Message) { Write-Host "  $Message" }
 function Invoke-RepoGit {
     param([Parameter(Mandatory = $true)][string[]]$Arguments, [switch]$AllowFailure)
 
-    $output = & git -C $repo @Arguments 2>&1
-    if ($LASTEXITCODE -ne 0 -and -not $AllowFailure) {
+    # git reports ordinary progress on stderr, and 'fetch' always does. Under
+    # $ErrorActionPreference = 'Stop', merging that into the success stream makes PowerShell raise
+    # NativeCommandError and abort a run that in fact succeeded. Judge the result by the exit code.
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = & git -C $repo @Arguments 2>&1
+        $code = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previous
+    }
+    if ($code -ne 0 -and -not $AllowFailure) {
         throw "git $($Arguments -join ' ') failed: $(($output | Out-String).Trim())"
     }
     return ($output | Out-String).Trim()
