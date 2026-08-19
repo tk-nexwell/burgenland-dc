@@ -166,6 +166,15 @@ if ($app -notmatch 'assets/nickelsdorf-masterplan-future-state\.png') {
 if ($app -match '1\.30x covenant reference') {
     Add-Failure 'The retired 1.30x covenant reference line is back in gdc_app.js.'
 }
+# The on-demand workbook builder is not loaded by index.html, so the asset-token check above cannot
+# see it. Fetched bare it is cached by the browser for as long as GitHub Pages says, which silently
+# freezes the exported workbook while the dashboard keeps updating.
+if ($app -notmatch "(?s)need\.push\('model_export\.js'\s*\+\s*\(tok") {
+    Add-Failure 'model_export.js must be fetched with the release token, not bare.'
+}
+if ($app -notmatch '(?m)^function assetToken\(\)') {
+    Add-Failure 'gdc_app.js must derive the release token for its on-demand companion files.'
+}
 if ($app -notmatch '(?i)Site layout showing the campus, generation, storage and electrical corridor') {
     Add-Failure 'The future-state visualization must carry the standard site-layout caption.'
 }

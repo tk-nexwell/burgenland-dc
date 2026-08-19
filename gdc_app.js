@@ -311,10 +311,25 @@ function fleetDC(){return (M.wind.on!==false?M.wind.mw:0)+(M.solar.on!==false?M.
 function lineMW(){return fleetAC();}
 function resCapFeeM(y,gridPeakMW=M.dc.firmMW){return Math.max(0,gridPeakMW)*(M.dc.gridCapFeeKW!=null?M.dc.gridCapFeeKW:42.84)/1000*feeF(y==null?FF:y);}
 // ---------- Full-formula Excel model export (ExcelJS + model_export.js companion file) ----------
+/* index.html carries a release token on the three assets it loads itself, which is what stops a
+   browser serving yesterday's dashboard. model_export.js is fetched here instead, on the first
+   click of the Excel button, and it used to be fetched bare. GitHub Pages serves it with a long
+   max-age, so a reader who had downloaded the workbook builder once kept that copy indefinitely:
+   the dashboard updated on every release and the exported workbook silently did not. Read the
+   token off this file's own script tag so the companion always moves with the release that
+   shipped it. */
+function assetToken(){
+ try{
+  const s=document.querySelector('script[src*="gdc_app.js"]');
+  const m=s&&/[?&]v=([^&"']+)/.exec(s.getAttribute('src')||'');
+  return m?m[1]:'';
+ }catch(e){ return ''; }
+}
 function withXL(cb){
  const need=[];
  if(!window.ExcelJS)need.push('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js');
- if(typeof buildFullModel==='undefined')need.push('model_export.js');
+ const tok=assetToken();
+ if(typeof buildFullModel==='undefined')need.push('model_export.js'+(tok?'?v='+tok:''));
  if(!need.length)return cb();
  let left=need.length;
  need.forEach(src=>{const s=document.createElement('script');s.src=src;s.onload=()=>{if(--left===0)cb();};s.onerror=()=>alert('Could not load '+src);document.head.appendChild(s);});

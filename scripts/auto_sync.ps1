@@ -59,7 +59,11 @@ if ($Register) {
         throw 'IntervalMinutes must be between 5 and 1440.'
     }
     $script = Join-Path $repo 'scripts\auto_sync.ps1'
-    $command = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$script`""
+    # -WindowStyle Hidden alone still allocates a console, which flashes a window on every run.
+    # conhost --headless gives the process no console at all, which is how Windows' own background
+    # PowerShell tasks are registered.
+    $command = "conhost.exe --headless powershell.exe -NoLogo -NoProfile -NonInteractive " +
+        "-WindowStyle Hidden -ExecutionPolicy Bypass -File `"$script`""
     schtasks.exe /Create /TN $taskName /TR $command /SC MINUTE /MO $IntervalMinutes /F | Out-Null
     Write-Host "Registered '$taskName' to run every $IntervalMinutes minutes." -ForegroundColor Green
     Write-Host "Run it now with: schtasks /Run /TN `"$taskName`""
@@ -131,7 +135,10 @@ if ($mirrorHead -eq $remote) {
 }
 
 Write-Step 'Rebuilding the OneDrive mirror from the published commit.'
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $sync -Apply
+# The child inherits nothing from how the parent was launched. Without this it opens its own
+# visible console for the length of the mirror rebuild, which is the window a reader actually sees.
+& conhost.exe --headless powershell.exe -NoLogo -NoProfile -NonInteractive -WindowStyle Hidden `
+    -ExecutionPolicy Bypass -File $sync -Apply
 if ($LASTEXITCODE -ne 0) { throw 'scripts/sync_onedrive.ps1 -Apply reported a failure.' }
 
 Write-Host "Checkout and OneDrive mirror are both at $($remote.Substring(0, 7))." -ForegroundColor Green

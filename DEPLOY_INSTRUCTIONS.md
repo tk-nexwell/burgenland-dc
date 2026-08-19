@@ -45,7 +45,8 @@ no separate publish step and no batch file to run. `deploy.bat` has been deleted
 
 ## Keeping the disk in step with GitHub
 
-`scripts/auto_sync.ps1` is the unattended version of steps 6 and 7.
+No scheduled task is installed at present. `scripts/auto_sync.ps1` is the unattended version of
+steps 6 and 7, for whoever wants to install it.
 
     powershell -File scripts\auto_sync.ps1 -Register     install the scheduled task
     powershell -File scripts\auto_sync.ps1               run one synchronisation now
@@ -66,6 +67,14 @@ file blocks the release instead of silently appearing in OneDrive or GitHub Page
 When `gdc.css`, `gdc_data.js`, or `gdc_app.js` changes, also change the matching `?v=` asset token in
 `index.html`. This prevents an investor's browser from retaining an older dashboard asset after a
 successful deployment.
+
+`model_export.js` is not loaded by `index.html`. It is fetched on the first click of the Excel
+button, and `gdc_app.js` reads the release token off its own script tag and appends it to that
+fetch. So bumping the token in `index.html` releases the workbook builder too, and nothing extra is
+needed. Do not change that fetch back to a bare filename: GitHub Pages serves the file with a long
+max-age, so a bare fetch leaves every returning reader building the workbook from whichever copy
+their browser happened to cache first, while the dashboard around it updates normally. The release
+check fails if the token is dropped.
 
 ## Confidentiality
 
