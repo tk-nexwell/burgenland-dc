@@ -32,10 +32,9 @@ no separate publish step and no batch file to run. `deploy.bat` has been deleted
 4. Commit the complete change to `main` and push it to `origin`. That push publishes the site.
 5. Wait for the `Public release check` workflow and the GitHub Pages deployment to succeed at the
    same commit SHA.
-6. The checkout and the OneDrive mirror follow on their own if the scheduled task from
-   `scripts/auto_sync.ps1 -Register` is installed. To move them immediately instead, run
-   `powershell -File scripts/auto_sync.ps1`.
-7. To rebuild the mirror by hand, preview with `powershell -File scripts/sync_onedrive.ps1`, then
+6. Bring the checkout back in step when you next need it: `git fetch origin` then
+   `git reset --hard origin/main` from a clean tree.
+7. To rebuild the mirror, preview with `powershell -File scripts/sync_onedrive.ps1`, then
    apply with `powershell -File scripts/sync_onedrive.ps1 -Apply`. The script exports committed Git
    bytes only, runs the release checks, verifies every declared file, moves the old mirror to a
    timestamped backup, installs the new mirror, and verifies it again.
@@ -43,19 +42,16 @@ no separate publish step and no batch file to run. `deploy.bat` has been deleted
    per-file SHA-256 values. Then verify the live HTML, CSS, JavaScript, data, CSV and future-state
    image are served from that same SHA.
 
-## Keeping the disk in step with GitHub
+## Nothing runs on a schedule
 
-No scheduled task is installed at present. `scripts/auto_sync.ps1` is the unattended version of
-steps 6 and 7, for whoever wants to install it.
+There is no scheduled task, on this machine or any other. A push to `main` is the deployment, and
+GitHub Pages needs nothing else. The OneDrive mirror is a convenience copy: rebuild it with
+`scripts/sync_onedrive.ps1 -Apply` when somebody wants one, and leave it otherwise.
 
-    powershell -File scripts\auto_sync.ps1 -Register     install the scheduled task
-    powershell -File scripts\auto_sync.ps1               run one synchronisation now
-    powershell -File scripts\auto_sync.ps1 -Unregister   remove the scheduled task
-
-It only ever moves work from GitHub to the disk. It fetches `origin/main`, resets the checkout to
-the published commit when it is behind, clears line-ending-only noise, and rebuilds the mirror when
-`MIRROR_HEAD.txt` is not already at that commit. If the checkout carries real local edits it stops
-and names them instead of resetting, because those edits are the one thing a sync cannot recover.
+A previous `scripts/auto_sync.ps1` ran this every fifteen minutes through Task Scheduler. It has
+been removed. If anything like it is ever reinstated, launch it through `conhost.exe --headless`
+and hide every child process too: `-WindowStyle Hidden` on its own still allocates a console, which
+paints a window on the desktop at every run.
 
 Do not use `git add -A` without reviewing the result. Do not publish a transfer bundle, generated
 proof file, encrypted meter archive, earlier visual candidate or other local-only artifact to Git.

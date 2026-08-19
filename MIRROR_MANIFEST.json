@@ -31,7 +31,6 @@
     "README.md",
     "DEPLOY_INSTRUCTIONS.md",
     "MIRROR_MANIFEST.json",
-    "scripts/auto_sync.ps1",
     "scripts/check_release.ps1",
     "scripts/sanitize_public_release.mjs",
     "scripts/sync_onedrive.ps1",
