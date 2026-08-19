@@ -1,4 +1,4 @@
-# Project Burgenland: Live Power SPV Model
+# Project Burgenland: Live Energy SPV Model
 
 Interactive public-planning dashboard deployed through GitHub Pages.
 
@@ -32,7 +32,7 @@ in the canonical Git commit as an output or backup, never as a second source of 
 ## Return convention
 
 Wind and solar both use a 2029 first-generation year. Wind, solar and battery asset returns exclude
-private-line capex because they are plant-only views. The consolidated Power SPV return includes all
+private-line capex because they are plant-only views. The consolidated Energy SPV return includes all
 assets assigned to that SPV, including the private line and interface scope. Its operating cash flow
 uses the same 8,760-hour renewable, battery and residual-grid dispatch as the Supply and data-center
 views; annual generation-minus-load netting is not used.

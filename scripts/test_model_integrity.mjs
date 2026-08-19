@@ -66,24 +66,32 @@ const defaults = clone(stateContext.auditState.M);
 
 vm.runInContext(
   `${section(app, 'function solarAC(){', 'function fleetDC(){', 'AC fleet calculation')}\n` +
-  `${section(app, 'function trancheBlend(){', '// Residual (non-RES) power:', 'tranche synchronization')}\n` +
-  'globalThis.auditTranche={trancheBlend,syncTranchePpa,resetAll,fleetAC};',
+  `${section(app, 'function trancheFor(sec){', '// Residual (non-RES) power:', 'tranche synchronization')}\n` +
+  'globalThis.auditTranche={trancheFor,trancheBlend,syncTranchePpa,resetAll,fleetAC};',
   stateContext,
 );
 const trancheFns = stateContext.auditTranche;
-const fleetAC = trancheFns.fleetAC();
-const trancheOneMW = Math.min(publicTranche.t1MW, fleetAC);
-const expectedBlend = +(
-  (trancheOneMW * publicTranche.p1 + Math.max(0, fleetAC - trancheOneMW) * publicTranche.p2) / fleetAC
-).toFixed(1);
-near(defaults.wind.ppa, expectedBlend, 1e-12, 'default wind PPA tranche blend');
-near(defaults.solar.ppa, expectedBlend, 1e-12, 'default solar PPA tranche blend');
+const expectAsset = (mw, t1) => {
+  const inTranche = Math.min(t1, mw);
+  return (inTranche * publicTranche.p1 + Math.max(0, mw - inTranche) * publicTranche.p2) / mw;
+};
+const expectedWind = expectAsset(defaults.wind.mw, publicTranche.t1W);
+const expectedSolar = expectAsset(defaults.solar.mw, publicTranche.t1S);
+near(defaults.wind.ppa, expectedWind, 1e-12, 'default wind PPA tranche blend');
+near(defaults.solar.ppa, expectedSolar, 1e-12, 'default solar PPA tranche blend');
 
 stateContext.auditState.M.wind.ppa = 1;
 stateContext.auditState.M.solar.ppa = 2;
-near(trancheFns.syncTranchePpa(), expectedBlend, 1e-12, 'synchronized tranche blend');
-near(stateContext.auditState.M.wind.ppa, expectedBlend, 1e-12, 'synchronized wind PPA');
-near(stateContext.auditState.M.solar.ppa, expectedBlend, 1e-12, 'synchronized solar PPA');
+near(trancheFns.syncTranchePpa(), expectedWind, 1e-12, 'synchronized tranche blend');
+near(stateContext.auditState.M.wind.ppa, expectedWind, 1e-12, 'synchronized wind PPA');
+near(stateContext.auditState.M.solar.ppa, expectedSolar, 1e-12, 'synchronized solar PPA');
+
+// stage-1 sizing: capacity inside tranche 1 must price flat at p1 for each asset independently
+stateContext.auditState.M.wind.mw = publicTranche.t1W;
+stateContext.auditState.M.solar.mw = publicTranche.t1S;
+trancheFns.syncTranchePpa();
+near(stateContext.auditState.M.wind.ppa, publicTranche.p1, 1e-12, 'stage-1 wind PPA at tranche-1 price');
+near(stateContext.auditState.M.solar.ppa, publicTranche.p1, 1e-12, 'stage-1 solar PPA at tranche-1 price');
 
 stateContext.TRANCHE.p1 = 1;
 stateContext.TRANCHE.p2 = 2;
@@ -92,9 +100,8 @@ stateContext.auditState.M.solar.ppa = 4;
 trancheFns.resetAll();
 near(stateContext.TRANCHE.p1, publicTranche.p1, 1e-12, 'reset tranche-one price');
 near(stateContext.TRANCHE.p2, publicTranche.p2, 1e-12, 'reset tranche-two price');
-const resetBlend = +trancheFns.trancheBlend().toFixed(1);
-near(stateContext.auditState.M.wind.ppa, resetBlend, 1e-12, 'reset wind PPA tranche blend');
-near(stateContext.auditState.M.solar.ppa, resetBlend, 1e-12, 'reset solar PPA tranche blend');
+near(stateContext.auditState.M.wind.ppa, trancheFns.trancheFor('wind').blend, 1e-12, 'reset wind PPA tranche blend');
+near(stateContext.auditState.M.solar.ppa, trancheFns.trancheFor('solar').blend, 1e-12, 'reset solar PPA tranche blend');
 
 vm.runInContext(
   `${section(app, 'const MODEL_SCHEMA=', '\nfunction restore(', 'scenario validation')}\n` +
@@ -268,7 +275,8 @@ check(firstFullYear, 'SPV calculator did not produce the first full operating ye
 near(firstFullYear.gridMWh, hourlyGridMWh, 1e-9, 'SPV hourly grid-energy plumbing');
 check(hourlyGridMWh > Math.max(0, spvModel.dc.firmMW * 8760 - 2_000_000), 'Regression fixture does not distinguish hourly and annual shortfall.');
 near(firstFullYear.resGen, 1000000, 1e-9, 'SPV hourly renewable-energy plumbing');
-near(firstFullYear.resPPA, 94, 1e-9, 'SPV PPA cost from hourly dispatched renewable MWh');
+const expectedResPPA = (spvModel.wind.ppa * 600000 + spvModel.solar.ppa * 400000) / 1e6;
+near(firstFullYear.resPPA, expectedResPPA, 1e-9, 'SPV PPA cost from hourly dispatched renewable MWh');
 near(firstFullYear.netCharge, 0.9, 1e-12, 'SPV capacity charge from hourly residual peak');
 near(firstFullYear.balanceError, 0, 1e-12, 'SPV dispatch energy balance');
 check(/const\s+D=op\?dispatchYear\(y\)/.test(app), 'SPV no longer calls the shared hourly dispatch for each operating year.');
@@ -276,6 +284,50 @@ check(!/dcLoad-Math\.min\(dcLoad,baseSelf\*genScale\)/.test(app), 'Annual self-s
 check(/-\(r\.resPPA\+r\.gridCost\+r\.opex\)/.test(app), 'SPV cash-flow chart no longer reconciles renewable PPA, grid, and operating cost.');
 check(/const\s+gridMWh\s*=\s*Math\.max\(0,y1b\.gridMWh\|\|0\)/.test(app), 'Data-center bill no longer reads grid energy from the SPV row.');
 check(/gridMWh=Math\.max\(0,yr\.gridMWh\|\|0\),resGen=Math\.max\(0,yr\.resGen\|\|0\)/.test(app), 'SPV waterfall no longer reads dispatched energy from the selected SPV row.');
+
+// Exercise the stakeholder waterfall: senior first, then the sweep split. Every operating euro of
+// revenue must land in exactly one pocket, and the junior funding must conserve: drawn plus accrued
+// coupon equals payments plus the closing balance.
+const wfContext = { console };
+vm.createContext(wfContext);
+vm.runInContext(
+  `${section(data, 'const TRANCHE=', '\nconst TECH', 'tranche for waterfall')}\n` +
+  'const CAP7={wind:79,solar:64};\n' +
+  `${section(app, 'const M={', 'const DEFAULTS_JSON', 'model state for waterfall')}\n` +
+  'const Y0=2026,YN=2070,COD=2028,FF=2029,DEPRY=20;\n' +
+  `${section(app, 'function trancheFor(sec){', '// Residual (non-RES) power:', 'tranche fns for waterfall')}\n` +
+  `${section(app, 'function xirr(', 'let _CLIPF=null;', 'xirr and effCF')}\n` +
+  'function clipFactor(){return 1;}\n' +
+  `${section(app, 'function effCFc(a){', 'function computeBattery(b){', 'asset engine and waterfall')}\n` +
+  `${section(app, 'function fmt(x,d=1){', 'function amortSeg(){', 'annPay for waterfall')}\n` +
+  `${section(app, 'function dscrSeries(', 'function dscrBadge(', 'dscr stats for waterfall')}\n` +
+  'globalThis.auditWf={M,computeWaterfall,syncTranchePpa};',
+  wfContext,
+);
+const wfM = wfContext.auditWf.M;
+wfM.wind.mw = 100; wfM.solar.mw = 100; wfContext.auditWf.syncTranchePpa();
+for (const sec of ['wind', 'solar']) {
+  const wf = clone(wfContext.auditWf.computeWaterfall(sec));
+  let worst = 0;
+  wf.rows.forEach((row) => {
+    if (row.y >= wf.cod && row.fcfe >= 0) {
+      worst = Math.max(worst, Math.abs(row.rev - (row.opex + row.tax + row.senInt + row.senRep + row.subPay + row.be + row.capex)));
+    }
+    check(row.subPay > -1e-9 && row.be > -1e-9 && row.bal > -1e-9, `${sec} waterfall produced a negative allocation.`);
+  });
+  check(worst < 1e-6, `${sec} waterfall does not allocate every euro of revenue (worst ${worst}).`);
+  const closing = wf.rows[wf.rows.length - 1].bal;
+  near(wf.injTot + wf.accrTot, wf.paidTot + closing, 1e-6, `${sec} junior funding conservation`);
+  check(wf.payY != null && wf.payY > wf.cod, `${sec} junior funding never repays in the stage-1 case.`);
+  check(Number.isFinite(wf.subIRR) && Math.abs(wf.subIRR - wfM.sub.subRate) < 0.03, `${sec} funding IRR strays from the coupon.`);
+  check(wf.beFirst === wf.cod, `${sec} Burgenland share is not paid from the first operating year.`);
+}
+wfM.sub.beShare = 0;
+const fullSweep = clone(wfContext.auditWf.computeWaterfall('wind'));
+wfM.sub.beShare = 0.2;
+const partSweep = clone(wfContext.auditWf.computeWaterfall('wind'));
+check(fullSweep.payY <= partSweep.payY, 'A full sweep must not repay the junior funding later than an 80/20 split.');
+near(fullSweep.be10 + fullSweep.paidTot, fullSweep.be10 + fullSweep.paidTot, 0, 'waterfall smoke');
 
 // Keep the illustrative workbook discoverable while loading its sizeable dependencies only on demand.
 const visibleHtml = html.replace(/<!--[\s\S]*?-->/g, '');
@@ -290,4 +342,4 @@ check(/function\s+buildFullModel\s*\(/.test(excel), 'Excel workbook builder entr
 check(/calcProperties\.fullCalcOnLoad\s*=\s*true/.test(excel), 'Excel workbook is not configured to recalculate formulas when opened.');
 check(!/<script\b[^>]*\bsrc\s*=\s*["'][^"']*model_export\.js/i.test(html), 'Workbook builder should remain lazy-loaded rather than block the public page.');
 
-console.log('Model integrity regression checks passed (gate, sanitizer, battery, hourly supply/SPV, illustrative Excel export).');
+console.log('Model integrity regression checks passed (gate, sanitizer, battery, hourly supply/SPV, financing waterfall, illustrative Excel export).');

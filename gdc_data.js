@@ -47,7 +47,7 @@ const SPREAD={"byDur":[{"h":2,"last":{"days":365,"soldGWh":532.8,"boughtGWh":612
 
 
 
-const TRANCHE={t1MW:250,p1:100,p2:90,enabled:true};
+const TRANCHE={t1W:100,t1S:100,p1:100,p2:80,enabled:true}; // per-asset PPA tranches: first t1W MW of wind and t1S MWp of solar at p1, the balance at p2
 
 const TECH={
  turbRatedMW:7.2,rotorD:162,hubH:166,dCross:4.5,dDown:7.5,padHa:0.40,

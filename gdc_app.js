@@ -18,7 +18,7 @@
      7  Shared UI components
      8  Asset pages: wind and solar
      9  Sensitivity, scenarios, scorecard
-    10  Battery, spreads, Power SPV pages
+    10  Battery, spreads, Energy SPV pages
     11  Data center pages
     12  Prices pages
     13  Technical drawings (SVG)
@@ -270,8 +270,9 @@ const M={
  view:'INT',
  macro:{infl:0.02,tax:0.23,gearing:0.70,merchReal:100,tenor:20,allInRate:0.052,ppaTermY:20,amort:'annuity'},
  v3:{wind:false,solar:false,battery:false},
- wind:{on:true,mw:320,capexPerMW:1.45,grossCF:0.290636,loss:0.02,lineLoss:0.045,opexPerMW:0.04,gridFee:0,degr:0.003,ppa:94,contr:1,basis:'model',lifeY:25,codY:2029},
- solar:{on:true,mw:357,capexPerMW:0.60,grossCF:0.1566,loss:0.02,lineLoss:0.033,opexPerMW:0.032,gridFee:0,degr:0.003,ppa:94,contr:1,basis:'model',lifeY:25,codY:2029},
+ wind:{on:true,mw:320,capexPerMW:1.45,grossCF:0.290636,loss:0.02,lineLoss:0.045,opexPerMW:0.04,gridFee:0,degr:0.003,ppa:86.25,contr:1,basis:'model',lifeY:25,codY:2029},
+ solar:{on:true,mw:357,capexPerMW:0.60,grossCF:0.1566,loss:0.02,lineLoss:0.033,opexPerMW:0.032,gridFee:0,degr:0.003,ppa:85.60224089635854,contr:1,basis:'model',lifeY:25,codY:2029},
+ sub:{subRate:0.08,beShare:0.20,stepAdd:0,stepY:5}, // construction funding from the Energy SPV: coupon, Burgenland Energie's share of distributions while it is outstanding, optional coupon step-up after N operating years
  battery:{on:true,powerMW:500,durationH:8,capexPerKWh:130,rte:0.87,opexPct:0.02,degr:0.015,socFloor:0.10,gridYear:2035,priceYear:'2025',captureFactor:1.0,cyclesDay:1,ancPerMW:20,capChargeMWyr:40,mktCapFee:false,compression:0.02,gearing:0.60,debtRate:0.052,substation:24.25,interconnect:17,gridCapFee:0,gridEnergyFee:0,btmCharge:0,lifeY:25}, // defaults: 8h · behind-the-meter charging via direct line → grid fees 0 (sliders remain) · DC reliability charge 40 k€/MW/yr
  dc:{curtail:0,firmMW:500,dcPrice:120,spvMode:'pass',spvMargin:0.03,marginMode:'pct',marginEur:3.5,
    revPerMW:5.00,powerPass:true,claimShare:0.40,firmTermY:3,   // DC revenue EUR m per MW of connection a year; powerPass = the data center bills power on to its tenant
@@ -282,11 +283,20 @@ srcMode:'fixed',resFix:99,beMargin:0.03,gridEnergyFee:8.4,gridCapFeeKW:42.84,fee
 const DEFAULTS_JSON=JSON.stringify(M);
 const DEFAULT_TRANCHE_JSON=JSON.stringify(TRANCHE);
 const Y0=2026,YN=2070,COD=2028,FF=2029,DEPRY=20;
-function trancheBlend(){
- const mw=fleetAC(),t1=Math.min(TRANCHE.t1MW,mw);
- return mw>0?(t1*TRANCHE.p1+Math.max(0,mw-t1)*TRANCHE.p2)/mw:TRANCHE.p1;
+/* Per-asset PPA tranches. The first t1W MW of wind and the first t1S MWp of solar earn p1;
+   capacity above the tranche earns p2. Each asset model runs on its own blended price, and the
+   blend re-solves automatically whenever a capacity slider moves. */
+function trancheFor(sec){
+ const a=M[sec], mw=a.mw, t1=Math.min(sec==='wind'?TRANCHE.t1W:TRANCHE.t1S,mw), mw2=Math.max(0,mw-t1);
+ const blend=mw>0?(t1*TRANCHE.p1+mw2*TRANCHE.p2)/mw:TRANCHE.p1;
+ return {t1,mw2,blend};
 }
-function syncTranchePpa(){const blend=+trancheBlend().toFixed(1);M.wind.ppa=blend;M.solar.ppa=blend;return blend;}
+function trancheBlend(sec){return trancheFor(sec||'wind').blend;}
+function syncTranchePpa(){
+ M.wind.ppa=trancheFor('wind').blend;      // exact, so the Excel tranche formulas reproduce it to the cent
+ M.solar.ppa=trancheFor('solar').blend;
+ return M.wind.ppa;
+}
 function resetAll(){
  const d=JSON.parse(DEFAULTS_JSON),tr=JSON.parse(DEFAULT_TRANCHE_JSON),v=M.view;
  for(const k in d)M[k]=d[k];for(const k in tr)TRANCHE[k]=tr[k];M.view=v;
@@ -336,13 +346,17 @@ function withXL(cb){
 }
 function dlXLSX(){withXL(()=>{
  const W=computeAsset(M.wind),S2=computeAsset(M.solar),BC=computeBattery(M.battery),BF=computeBatteryFin(),SP=computeSPV(M.dc.dcPrice);
+ const WFW=computeWaterfall('wind'),WFS=computeWaterfall('solar');
  const chk=rows=>{const o={};rows.forEach(x=>o[x.y]=x.fcfe);return o;};
+ const chkWf=Wf=>{const bal={},be={};Wf.rows.forEach(x=>{bal[x.y]=x.bal;be[x.y]=x.be;});return{bal,be};};
  const S={today:new Date().toISOString().slice(0,10),priceYear:M.battery.priceYear,FF:FF,COD:COD,
   CAP7w:CAP7.wind,CAP7s:CAP7.solar,linePer100:M.conn.directPer100,dcac:(M.conn.dcac||1),spvIRR:isNaN(SP.irr)?0:SP.irr,
   macro:M.macro,wind:M.wind,solar:M.solar,
+  tranche:{on:TRANCHE.enabled?1:0,t1W:TRANCHE.t1W,t1S:TRANCHE.t1S,p1:TRANCHE.p1,p2:TRANCHE.p2},sub:M.sub,
   battery:Object.assign({},M.battery,{backtestAvgBuy:BC.avgBuy,backtestAvgSell:BC.avgSell,backtestSelfShare:BC.fSelf}),dc:M.dc,
   ph:(PRICES.per_year[M.battery.priceYear]||PRICES.per_year['2025']).ph,
-  chkWind:chk(W.rows),chkSolar:chk(S2.rows),chkBatt:chk(BF.rows)};
+  chkWind:chk(W.rows),chkSolar:chk(S2.rows),chkBatt:chk(BF.rows),
+  chkWfWind:chkWf(WFW),chkWfSolar:chkWf(WFS)};
  const wb=buildFullModel(window.ExcelJS,S);
  wb.xlsx.writeBuffer().then(buf=>{const b=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='GDC_Nickelsdorf_Model_'+S.today+'.xlsx';document.body.appendChild(a);a.click();a.remove();});
@@ -447,6 +461,45 @@ function computePlantPortfolio(){
   totalCapex:(wOn?W.totalCapex:0)+(sOn?S.totalCapex:0),
   equity:(wOn?W.equity:0)+(sOn?S.equity:0),
   debt:(wOn?W.debt:0)+(sOn?S.debt:0)};
+}
+/* ---- Stakeholder waterfall: who is paid, in what order -------------------------------------
+   Burgenland Energie owns the plant but invests nothing. The senior project-finance lender is
+   serviced first, inside computeAsset (interest plus scheduled principal). The 30% junior leg is
+   construction funding advanced by the Energy SPV: it accrues a coupon from the day it is drawn,
+   and unpaid coupon capitalises, so it works cash-paid or PIK alike. Each operating year the cash
+   left after senior debt service and tax is split: a set share sweeps to the Energy SPV funding
+   (coupon first, then principal) and the rest is paid to Burgenland Energie at once. When the
+   funding balance reaches zero, every euro after senior service is Burgenland Energie's.
+   An optional coupon step-up after a set number of operating years rewards early repayment. ---- */
+function computeWaterfall(sec){
+ const a=M[sec], R=computeAsset(a), sb=M.sub||{subRate:0.08,beShare:0.20,stepAdd:0,stepY:5};
+ const cod=R.cod, share=Math.min(1,Math.max(0,1-(sb.beShare||0)));
+ const rows=[], subCF=[], subDT=[];
+ let bal=0, peak=0, payY=null, injTot=0, accrTot=0, paidTot=0, beTot=0, beCum=0, beFirst=null;
+ R.rows.forEach(r=>{
+  const inj=r.y<cod?Math.max(0,-r.fcfe):0;                                  // the 30% equity leg, advanced by the Energy SPV
+  const rate=(sb.subRate||0)+(((sb.stepAdd||0)>0&&r.y>=cod+(sb.stepY||0))?sb.stepAdd:0);
+  const accr=(bal+inj/2)*rate;                                              // accrues from drawdown; unpaid coupon capitalises
+  const owed=bal+inj+accr;
+  const dist=(r.y>=cod)?Math.max(0,r.fcfe):0;                               // cash after senior debt service and tax
+  const subPay=Math.min(owed,Math.max(0,dist*share));                       // the sweep, capped at what is still owed
+  const be=dist-subPay;                                                     // Burgenland Energie's cash, from day one if the share allows
+  bal=owed-subPay; if(bal<1e-9)bal=0;
+  if(payY==null&&r.y>=cod&&owed>1e-9&&bal===0)payY=r.y;
+  peak=Math.max(peak,owed);
+  injTot+=inj; accrTot+=accr; paidTot+=subPay; beTot+=be; beCum+=be;
+  if(beFirst==null&&be>1e-6)beFirst=r.y;
+  const draw=r.y<cod?Math.max(0,r.fcfe+r.capex):0;                          // senior construction drawdown
+  subCF.push(subPay-inj); subDT.push(r.y+0.99);
+  rows.push({y:r.y,inj,rate,accr,owed,dist,subPay,be,bal,beCum,
+    draw,senInt:r.int,senRep:r.repay,senBal:r.debt,
+    rev:r.rev,opex:r.opex,tax:r.tax,capex:r.capex,ebitda:r.ebitda,fcfe:r.fcfe});
+ });
+ const subIRR=xirr(subCF,subDT);
+ const be10=rows.filter(r=>r.y>=cod&&r.y<cod+10).reduce((s,r)=>s+r.be,0);
+ const dsc=dscrStats(dscrSeries(R.rows,cod,cod+Math.min(M.macro.tenor,R.life)));
+ return {rows,R,cod,subIRR,subMOIC:injTot>0?paidTot/injTot:NaN,payY,payN:payY!=null?payY-cod+1:null,
+   peak,injTot,accrTot,paidTot,beTot,be10,beFirst,dsc,share};
 }
 function computeBattery(b){
  const energy=b.powerMW*b.durationH; const cellCapex=energy*1000*b.capexPerKWh/1e6; const sub=(b.substation||0), inter=(b.interconnect||0), icx=sub+inter; const capex=cellCapex+icx;
@@ -620,7 +673,7 @@ function lay(title,opts){
 function HT(unit,dec){return '%{y:,.'+(dec==null?1:dec)+'f} '+unit+'<extra></extra>';}
 
 /* ============ 6 · TABS & ROUTER ============ */
-const TABS=[['overview','Overview'],['wind','Wind'],['solar','Solar'],['summary','Power SPV'],['datacentre','Data Center'],['prices','Prices']];
+const TABS=[['overview','Overview'],['wind','Wind'],['solar','Solar'],['summary','Energy SPV'],['datacentre','Data Center'],['prices','Prices']];
 const TAB_IDS=TABS.map(t=>t[0]);
 function routeTab(){const p=new URLSearchParams(location.search).get('page');return TAB_IDS.includes(p)?p:'overview';}
 let active=routeTab();
@@ -649,7 +702,7 @@ function buildNav(){
  document.getElementById('nav').innerHTML=TABS.map(t=>`<button class="${t[0]===active?'on':''}" aria-current="${t[0]===active?'page':'false'}" onclick="go('${t[0]}',event)" title="${t[1]}">${TABICON[t[0]]||''}<span>${t[1]}</span></button>`).join('');
 }
 function go(t,e){if(e)ripple(e);
- if(t==='battery'){t='summary';spvView='batt';}          // the battery lives inside the Power SPV model now
+ if(t==='battery'){t='summary';spvView='batt';}          // the battery lives inside the Energy SPV model now
  const changed=t!==active;if(changed)writeRoute(t,false);settlePageFocus();
  _pgNav=true;
  /* a clicked card morphs into the page it opens, where the browser supports view transitions */
@@ -730,8 +783,10 @@ function assetPage(sec){
   ${sliderHTML(sec,'opexPerMW','Opex (all-in, incl land)',0,0.12,0.001,isWind?' €k/MW<sub>AC</sub>':' €k/MWp<sub>DC</sub>',1000,opexTip(sec))}
   ${sliderHTML(sec,'gridFee','Grid fee (direct line, nil)',0,10,0.5,' €/MWh')}
   ${sliderHTML(sec,'lifeY','Useful life',10,40,1,' yr')}</div>`;
+ const trI=trancheFor(sec);
  const inputsR=`<div class="panel"><h3>Commercial & financing</h3>
   ${sliderHTML(sec,'ppa','PPA price',0,150,1,' €/MWh')}
+  <div class="muted" style="margin:-4px 0 10px;font-size:12.5px">${TRANCHE.enabled?`Tranche pricing: first ${fmt(trI.t1,0)} ${isWind?'MW':'MWp'} at €${fmt(TRANCHE.p1,0)}, ${fmt(trI.mw2,0)} at €${fmt(TRANCHE.p2,0)} · blended €${fmt(trI.blend,1)}/MWh, re-solved when capacity moves. Moving the PPA slider overrides it; tranche controls sit in Financing & payout.`:`Manual PPA price. Tranche controls in Financing & payout reapply the automatic blend.`}</div>
   ${sliderHTML(sec,'contr','Contracted',0,1,0.05,'%',100)}
   ${sliderHTML('macro','ppaTermY','PPA term',5,30,1,' yr')}
   ${sliderHTML('macro','gearing','Gearing',0,0.9,0.05,'%',100)}
@@ -745,7 +800,7 @@ function assetPage(sec){
   ${kpiM([['Total capex','€'+fmt(R.totalCapex,0),'m'],['Equity','€'+fmt(R.equity,0),'m'],['Debt ('+pct(M.macro.gearing,0)+')','€'+fmt(R.debt,0),'m']])}
  ${kpiM([['Yield',fmt(R.prod/a.mw,0),isWind?'MWh/MW<sub>AC</sub>':'MWh/MWp'],['Capacity factor',pct(effCFc(a),1),'net']])}
   ${kpiM([['Equity IRR',fmt(R.irr*100,1),'%'],['MOIC',fmt(R.moic,1),'x'],['LCOE',fmt(R.lcoe,0),'€/MWh']],col)}</div>`;
- const returnScope=`<div class="info" style="margin:0 0 12px"><b>Return scope: plant capital only.</b> The equity IRR excludes private direct-line capex. Direct-line losses still reduce delivered production; the cable investment is shown and financed separately in Power SPV.</div>`;
+ const returnScope=`<div class="info" style="margin:0 0 12px"><b>Return scope: plant capital only.</b> The equity IRR excludes private direct-line capex. Direct-line losses still reduce delivered production; the cable investment is shown and financed separately in Energy SPV.</div>`;
  const view=assetView[sec];
  const HEADS={
   wind:{t:`${fmt(a.mw,0)} MW wind portfolio and project economics.`,l:''},
@@ -753,6 +808,7 @@ function assetPage(sec){
  const seg=pageHead(isWind?'Wind':'Solar',HEADS[sec].t,HEADS[sec].l,assetSeg(sec,true));
  if(view==='map'){setTimeout(drawMap,0);
   return seg+mapBaseBar()+`<div class="chart sq" id="c_map"></div>`;}
+ if(view==='wf'){setTimeout(()=>drawWaterfall(sec),0);return seg+waterfallPanel(sec);}
  if(view==='prod')return seg+prodPanel(sec);
  if(view==='tech')return seg+bridgePanel(sec)+renderBlock(sec);
  setTimeout(()=>{drawAssetCharts(R,col);},0);
@@ -795,6 +851,106 @@ const BASEMAPS={
    tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,
    attribution:'Esri, Maxar, Earthstar Geographics'}},layers:[{id:'s',type:'raster',source:'s'}]}}};
 let mapBase='dark';
+/* ============ 8b · FINANCING & PAYOUT · the three-party waterfall ============ */
+const wfSt={wind:'sub',solar:'sub'};       // stakeholder selected in the switchable chart
+function setWfSt(sec,v){wfSt[sec]=v;render();}
+function applyTr(key,val){TRANCHE[key]=+val;TRANCHE.enabled=true;syncTranchePpa();_SUPC=null;render();}
+function wfStage1(sec){M[sec].mw=100;if(TRANCHE.enabled)syncTranchePpa();_SUPC=null;_CLIPF=null;render();}
+const WF_C={bank:'#5a6b8c',sub:'#45b85d',be:'#FFCC07',opex:'#ff6b6b',tax:'#b0616a',senP:'#39465a'};
+function waterfallPanel(sec){
+ const isWind=sec==='wind', a=M[sec], W=computeWaterfall(sec), R=W.R, cod=W.cod;
+ const tr=trancheFor(sec), sb=M.sub;
+ const unit=isWind?'MW<sub>AC</sub>':'MWp<sub>DC</sub>';
+ const stColor=WF_C[wfSt[sec]]||WF_C.sub;
+ const intro=`<div class="info" style="margin:0 0 12px;max-width:none"><b>Burgenland Energie owns the plant and invests nothing.</b>
+   ${pct(M.macro.gearing,0)} of the capex is non-recourse senior project finance, repaid over ${M.macro.tenor} years from electricity revenue.
+   The remaining ${pct(1-M.macro.gearing,0)} is construction funding advanced by the Energy SPV at a ${pct(sb.subRate,1)} coupon that accrues from drawdown (cash or PIK alike).
+   Each year the cash left after senior debt service and tax is split: ${pct(W.share,0)} sweeps to the Energy SPV funding until it is repaid, and ${pct(sb.beShare,0)} is paid to Burgenland Energie from the first operating year.
+   Once the funding is repaid, every euro after senior service is Burgenland Energie's. Illustrative planning structure; terms remain to be agreed.</div>`;
+ const kpis=`<div class="kpis">
+  ${kpiM([['Total capex','€'+fmt(R.totalCapex,0),'m'],['Senior debt','€'+fmt(R.debt,0),'m at '+pct(M.macro.allInRate,1)],['Energy SPV funding','€'+fmt(W.injTot,0),'m at '+pct(sb.subRate,1)]])}
+  ${kpiM([['Funding repaid',W.payY!=null?W.payY:'beyond life',W.payY!=null?('year '+W.payN+' of operations'):''],['Funding IRR',isNaN(W.subIRR)?'n/m':fmt(W.subIRR*100,1)+'%','MOIC '+fmt(W.subMOIC,2)+'x']],WF_C.sub)}
+  ${kpiM([['Burgenland cash, first 10 yrs','€'+fmt(W.be10,0),'m for €0 invested'],['Over the '+R.life+'-yr life','€'+fmt(W.beTot,0),'m · first cash '+(W.beFirst!=null?W.beFirst:'n/a')]],WF_C.be)}
+  ${kpiM([['PPA tranche 1',fmt(tr.t1,0)+' '+(isWind?'MW':'MWp'),'at €'+fmt(TRANCHE.p1,0)+'/MWh'],['Tranche 2',fmt(tr.mw2,0)+' '+(isWind?'MW':'MWp'),'at €'+fmt(TRANCHE.p2,0)+'/MWh'],['Blended','€'+fmt(a.ppa,1),'/MWh'+(TRANCHE.enabled?' · auto':' · manual')]])}</div>`;
+ const inputsL=`<div class="panel"><h3>${isWind?'Wind':'Solar'} · size & PPA tranches</h3>
+  ${sliderHTML(sec,'mw','Capacity',50,600,isWind?5:1,' '+unit)}
+  <div class="inp"><label>Tranche 1 size<b>${fmt(sec==='wind'?TRANCHE.t1W:TRANCHE.t1S,0)} ${isWind?'MW':'MWp'}</b></label>
+   <input type="range" min="0" max="400" step="5" value="${sec==='wind'?TRANCHE.t1W:TRANCHE.t1S}" oninput="applyTr('${sec==='wind'?'t1W':'t1S'}',this.value)"></div>
+  <div class="inp"><label>Tranche 1 PPA price<b>€${fmt(TRANCHE.p1,0)}/MWh</b></label>
+   <input type="range" min="60" max="130" step="1" value="${TRANCHE.p1}" oninput="applyTr('p1',this.value)"></div>
+  <div class="inp"><label>Tranche 2 PPA price<b>€${fmt(TRANCHE.p2,0)}/MWh</b></label>
+   <input type="range" min="40" max="110" step="1" value="${TRANCHE.p2}" oninput="applyTr('p2',this.value)"></div>
+  <div class="muted" style="margin:-2px 0 10px;font-size:12.5px">${TRANCHE.enabled?`Blended €${fmt(tr.blend,1)}/MWh re-solves when capacity moves.`:`Manual PPA price active; move a tranche control to reapply the blend.`}</div>
+  <button type="button" class="chip" onclick="wfStage1('${sec}')" style="margin:2px 0 10px">Set stage 1: 100 ${isWind?'MW':'MWp'} at €${fmt(TRANCHE.p1,0)}</button>
+  ${sliderHTML(sec,'capexPerMW','Capex',0.2,2,0.005,isWind?' €k/MW<sub>AC</sub>':' €k/MWp<sub>DC</sub>',1000)}
+  ${sliderHTML(sec,'opexPerMW','Opex (all-in, incl land)',0,0.12,0.001,isWind?' €k/MW<sub>AC</sub>':' €k/MWp<sub>DC</sub>',1000)}</div>`;
+ const inputsR=`<div class="panel"><h3>Financing terms</h3>
+  ${sliderHTML('sub','subRate','Funding coupon',0.02,0.14,0.0025,'%',100)}
+  ${sliderHTML('sub','beShare','Burgenland share while outstanding',0,0.5,0.05,'%',100)}
+  ${sliderHTML('sub','stepAdd','Coupon step-up',0,0.05,0.0025,'%',100)}
+  ${sliderHTML('sub','stepY','Step-up after',1,12,1,' op. yrs')}
+  <div class="muted" style="margin:-2px 0 10px;font-size:12.5px">A step-up above zero raises the coupon from operating year ${sb.stepY}, so early repayment is rewarded.</div>
+  ${sliderHTML('macro','gearing','Senior gearing',0,0.9,0.05,'%',100)}
+  ${sliderHTML('macro','allInRate','Senior all-in rate',0.02,0.08,0.001,'%',100)}
+  ${sliderHTML('macro','tenor','Senior tenor',5,25,1,' yrs')}
+  ${amortSeg()}</div>`;
+ const seg3=`<div class="seg" style="margin:0 0 8px">`+[['bank','Senior lender'],['sub','Energy SPV funding'],['be','Burgenland Energie']]
+   .map(t=>`<button class="${wfSt[sec]===t[0]?'on':''}" onclick="setWfSt('${sec}','${t[0]}')">${t[1]}</button>`).join('')+`</div>`;
+ const st=wfSt[sec], sm=wfStMetrics(W,st);
+ const stChips=`<div class="kpis" style="grid-template-columns:repeat(3,1fr)">${sm.map(p=>kpiM([p],stColor)).join('')}</div>`;
+ const ops10=W.rows.filter(r=>r.y>=cod&&r.y<cod+10);
+ const tbl=`<div class="panel" style="margin-top:14px"><h3>First ten operating years, €m</h3><div class="tableScroll"><table><thead><tr>
+   <th>Year</th><th>Revenue</th><th>Opex</th><th>Tax</th><th>Senior interest</th><th>Senior principal</th><th>Cash after senior</th><th>To Energy SPV</th><th>To Burgenland</th><th>Funding balance</th></tr></thead><tbody>
+   ${ops10.map(r=>`<tr><td><b>${r.y}</b></td><td>${fmt(r.rev,1)}</td><td>${fmt(r.opex,1)}</td><td>${fmt(r.tax,1)}</td><td>${fmt(r.senInt,1)}</td><td>${fmt(r.senRep,1)}</td><td>${fmt(r.dist,1)}</td><td style="color:${WF_C.sub}">${fmt(r.subPay,1)}</td><td style="color:${WF_C.be}">${fmt(r.be,1)}</td><td>${fmt(r.bal,1)}</td></tr>`).join('')}
+  </tbody></table></div>
+  <div class="muted" style="margin-top:8px">Funding balance includes the accrued coupon. The senior loan amortises to ${cod+Math.min(M.macro.tenor,R.life)-1}${W.dsc?'; DSCR '+dscrBadge(W.dsc):''}.</div></div>`;
+ return intro+kpis+`<div class="grid cols3">${inputsL}<div class="charts" style="grid-template-columns:1fr">
+    <div class="chart tall" id="wf_alloc"></div><div class="chart" id="wf_bal"></div>
+    ${seg3}<div class="chart" id="wf_st"></div>${stChips}</div>${inputsR}</div>${tbl}`;
+}
+function wfStMetrics(W,st){
+ const R=W.R,cod=W.cod;
+ if(st==='bank')return [
+  ['Debt at COD','€'+fmt(R.debtAtCod,0)+'m','incl. capitalised IDC'],
+  ['DSCR',W.dsc?fmt(W.dsc.min,2)+'x min':'n/a',W.dsc?'avg '+fmt(W.dsc.avg,2)+'x':''],
+  ['Repaid by',String(cod+Math.min(M.macro.tenor,R.life)-1),pct(M.macro.allInRate,1)+' all-in']];
+ if(st==='be')return [
+  ['Invested','€0m','owns 100% of the plant'],
+  ['First cash',W.beFirst!=null?String(W.beFirst):'n/a',pct(M.sub.beShare,0)+' share while funding is outstanding'],
+  ['Total cash','€'+fmt(W.beTot,0)+'m','over the '+R.life+'-yr life']];
+ return [
+  ['Advanced','€'+fmt(W.injTot,0)+'m','peak exposure €'+fmt(W.peak,0)+'m'],
+  ['IRR',isNaN(W.subIRR)?'n/m':fmt(W.subIRR*100,1)+'%','tracks the '+pct(M.sub.subRate,1)+' coupon'],
+  ['Repaid',W.payY!=null?String(W.payY):'beyond life',W.payY!=null?W.payN+' operating years':'']];
+}
+function drawWaterfall(sec){
+ if(!document.getElementById('wf_alloc'))return;
+ const W=computeWaterfall(sec), R=W.R, cod=W.cod;
+ const endY=cod+Math.min(M.macro.ppaTermY||20,R.life);
+ const ops=W.rows.filter(r=>r.y>=cod&&r.y<endY), yrs=ops.map(r=>r.y);
+ Plotly.react('wf_alloc',[
+  {x:yrs,y:ops.map(r=>r.opex),name:'Opex',type:'bar',marker:{color:WF_C.opex},hovertemplate:HT('€m')},
+  {x:yrs,y:ops.map(r=>r.tax),name:'Tax',type:'bar',marker:{color:WF_C.tax},hovertemplate:HT('€m')},
+  {x:yrs,y:ops.map(r=>r.senInt),name:'Senior interest',type:'bar',marker:{color:WF_C.bank},hovertemplate:HT('€m')},
+  {x:yrs,y:ops.map(r=>r.senRep),name:'Senior principal',type:'bar',marker:{color:WF_C.senP},hovertemplate:HT('€m')},
+  {x:yrs,y:ops.map(r=>r.subPay),name:'Energy SPV funding',type:'bar',marker:{color:WF_C.sub},hovertemplate:HT('€m')},
+  {x:yrs,y:ops.map(r=>r.be),name:'Burgenland Energie',type:'bar',marker:{color:WF_C.be},hovertemplate:HT('€m')},
+  {x:yrs,y:ops.map(r=>r.rev),name:'Revenue',type:'scatter',mode:'lines',line:{color:'#94a2b1',width:1.8,dash:'dot'},hovertemplate:HT('€m')}
+ ],lay('Where each year\'s revenue goes, '+(sec==='wind'?'wind':'solar')+' (€m)',{barmode:'stack',showlegend:true,legend:{orientation:'h',y:-0.22},yaxis:{title:{text:'€m',font:{size:12}}},margin:{b:96}}),CFG);
+ const all=W.rows.filter(r=>r.y>=cod-2&&r.y<endY);
+ Plotly.react('wf_bal',[
+  {x:all.map(r=>r.y),y:all.map(r=>r.bal),name:'Funding outstanding',type:'scatter',fill:'tozeroy',line:{color:WF_C.sub,width:2},hovertemplate:HT('€m')},
+  {x:all.map(r=>r.y),y:all.map(r=>r.beCum),name:'Burgenland cumulative cash',type:'scatter',line:{color:WF_C.be,width:2.4},hovertemplate:HT('€m')}
+ ],lay('Funding balance and Burgenland cumulative cash',{showlegend:true,legend:{orientation:'h',y:-0.26},yaxis:{title:{text:'€m',font:{size:12}}},
+   annotations:W.payY!=null?[{x:W.payY,y:0,yref:'y',text:'repaid '+W.payY,showarrow:true,arrowhead:2,ay:-34,font:{size:11.5,color:WF_C.sub}}]:[]}),CFG);
+ const st=wfSt[sec];
+ const cf=all.map(r=>st==='bank'?(r.senInt+r.senRep-r.draw):st==='sub'?(r.subPay-r.inj):r.be);
+ let run=0; const cum=cf.map(v=>run+=v);
+ Plotly.react('wf_st',[
+  {x:all.map(r=>r.y),y:cf,name:'Annual net cash',type:'bar',marker:{color:cf.map(v=>v>=0?(WF_C[st]||'#45b85d'):'#ff6b6b')},hovertemplate:HT('€m')},
+  {x:all.map(r=>r.y),y:cum,name:'Cumulative',type:'scatter',yaxis:'y2',line:{color:'#94a2b1',width:2},hovertemplate:HT('€m')}
+ ],lay((st==='bank'?'Senior lender':st==='sub'?'Energy SPV funding':'Burgenland Energie')+' cash flow',{showlegend:true,legend:{orientation:'h',y:-0.26},yaxis:{title:{text:'€m/yr',font:{size:12}}},yaxis2:{overlaying:'y',side:'right',gridcolor:'transparent',title:{text:'cumulative €m',font:{size:11.5}}}}),CFG);
+}
 function mapBaseBar(){
  return `<div class="mapBar"><span class="muted" style="font-size:12.5px;margin-right:4px">Basemap</span><div class="seg">`+
   Object.keys(BASEMAPS).map(k=>`<button data-base="${k}" class="${mapBase===k?'on':''}" aria-pressed="${mapBase===k}" onclick="mapBase='${k}';drawMap();">${BASEMAPS[k].label}</button>`).join('')+
@@ -1125,7 +1281,7 @@ function printAsk(){
 function snapshot(){return {version:2,model:JSON.parse(JSON.stringify(M)),tranche:JSON.parse(JSON.stringify(TRANCHE))};}
 const MODEL_SCHEMA=JSON.parse(DEFAULTS_JSON);
 const TRANCHE_SCHEMA=JSON.parse(DEFAULT_TRANCHE_JSON);
-const UNIT_FIELDS=new Set(['infl','tax','gearing','grossCF','loss','lineLoss','rte','degr','socFloor','compression','contr','curtail','spvMargin','beMargin','claimShare','partPct','opexPct']);
+const UNIT_FIELDS=new Set(['infl','tax','gearing','grossCF','loss','lineLoss','rte','degr','socFloor','compression','contr','curtail','spvMargin','beMargin','claimShare','partPct','opexPct','beShare','stepAdd']);
 const ENUM_FIELDS={
  'macro.amort':new Set(['flat','annuity']),
  'dc.marginMode':new Set(['pct','flat']),
@@ -1138,7 +1294,8 @@ function modelNumberOK(path,v){
  const k=path.split('.').pop();
  if(UNIT_FIELDS.has(k))return v>=0&&v<=1;
  if(k==='feeEsc')return v>=0&&v<=0.30;
- if(k==='allInRate'||k==='debtRate')return v>=0&&v<=0.50;
+ if(k==='allInRate'||k==='debtRate'||k==='subRate')return v>=0&&v<=0.50;
+ if(k==='stepY')return Number.isInteger(v)&&v>=0&&v<=30;
  if(k==='dcac')return v>=0.5&&v<=3;
  if(k==='captureFactor')return v>=0.5&&v<=3;
  if(k==='mw'||k==='powerMW'||k==='firmMW')return v>=0&&v<=5000;
@@ -1343,9 +1500,12 @@ const ASKS=[
   apply:()=>{if((M.dc.spvMode||'pass')==='pass')M.dc.spvMargin=Math.round(solveMarginFor(0.07)*10000)/10000;
              else M.dc.dcPrice=Math.round(solveDcFor(0.07)*10)/10;}, go:['summary','fin'],
   say:'Margin solved for a 7% SPV equity return. The euro per MWh follows from it.'},
-  {q:'PPA tranches are €100 and €90/MWh',
-   apply:()=>{TRANCHE.t1MW=250;TRANCHE.p1=100;TRANCHE.p2=90;TRANCHE.enabled=true;syncTranchePpa();}, go:['summary','fin'],
-   say:'Tranche one is set at €100/MWh on 250 MW, with the balance at €90/MWh.'},
+  {q:'PPA tranches reset to €100 and €80/MWh',
+   apply:()=>{TRANCHE.t1W=100;TRANCHE.t1S=100;TRANCHE.p1=100;TRANCHE.p2=80;TRANCHE.enabled=true;syncTranchePpa();}, go:['wind','wf'],
+   say:'The first 100 MW of wind and 100 MWp of solar at €100/MWh, the balance at €80/MWh.'},
+  {q:'Stage 1: 100 MW wind and 100 MWp solar at €100',
+   apply:()=>{M.wind.mw=100;M.solar.mw=100;TRANCHE.t1W=100;TRANCHE.t1S=100;TRANCHE.p1=100;TRANCHE.enabled=true;syncTranchePpa();}, go:['wind','wf'],
+   say:'Stage 1 sizing. Each asset sits inside tranche 1, so both PPAs run at €100/MWh flat.'},
  {q:'Full sensitivity analysis',
   apply:()=>{}, go:['summary','sens'], say:'Every input moved across its own range, ranked by effect.'}
 ];
@@ -1676,7 +1836,7 @@ let spvView='fin';
 const assetView={wind:'fin',solar:'fin',battery:'fin'};
 function setAssetView(sec,v){assetView[sec]=v;render();}
 function assetSeg(sec,withMap){return `<div class="seg">`+
-  [['fin','Financial model'],...(withMap?[['prod','Production'],['map','Map']]:[]),
+  [['fin','Financial model'],...(sec==='wind'||sec==='solar'?[['wf','Financing & payout']]:[]),...(withMap?[['prod','Production'],['map','Map']]:[]),
    ...(sec==='battery'?[['spread','Trading economics']]:[]),['tech','Technical layout']]
    .map(t=>`<button class="${assetView[sec]===t[0]?'on':''}" onclick="setAssetView('${sec}','${t[0]}')">${t[1]}</button>`).join('')+
   `</div>`;}
@@ -1817,7 +1977,7 @@ function dcPage(){
   return `<svg viewBox="0 0 ${W2} 48" style="display:block;width:100%;height:auto">${segs}</svg>
    <div style="display:flex;gap:10px 22px;flex-wrap:wrap;margin-top:10px;font-size:13px;color:var(--t2)">${leg}</div>`;})();
  const billPanel=`<div class="panel" style="margin-bottom:14px"><h3>First full-year power cost · €${fmt(total,0)}m · ${fmt(load/1e6,2)} TWh at €${fmt(unit,1)}/MWh plus the reliability charge</h3>${bar}
-  <p class="muted" style="margin-top:8px">Same invoice as the Power SPV model: €${fmt(y1b.rev,0)}m energy revenue there, plus the €${fmt(relFee,0)}m battery reliability charge.</p></div>`;
+  <p class="muted" style="margin-top:8px">Same invoice as the Energy SPV model: €${fmt(y1b.rev,0)}m energy revenue there, plus the €${fmt(relFee,0)}m battery reliability charge.</p></div>`;
 
  // ---------- 2 · what it costs to build ----------
  const pue=TECH.pue, it=d.firmMW/pue, ov=d.firmMW-it;
@@ -1851,17 +2011,17 @@ function applyT2(v){
  TRANCHE.p2=+v;TRANCHE.enabled=true;syncTranchePpa();render();
 }
 function summaryPage(){
- const VIEWS=[['batt','Battery model'],['fin','Power SPV model'],['spread','Spreads'],['supply','Supply'],['corr','Correlation'],['tech','Technical layout']];
+ const VIEWS=[['batt','Battery model'],['fin','Energy SPV model'],['spread','Spreads'],['supply','Supply'],['corr','Correlation'],['tech','Technical layout']];
  if(!VIEWS.some(v=>v[0]===spvView)&&spvView!=='sens')spvView='fin';
  const segOnly=`<div class="seg">${VIEWS.map(v=>
    `<button class="${spvView===v[0]?'on':''}" onclick="spvView='${v[0]}';render()">${v[1]}</button>`).join('')}</div>`;
- const SPVH={fin:'Power SPV commercial model.',
+ const SPVH={fin:'Energy SPV commercial model.',
    batt:`${fmt(M.battery.powerMW,0)} MW / ${fmt(M.battery.powerMW*M.battery.durationH/1000,1)} GWh battery model.`,
    spread:'Historical and required storage spreads.',
    supply:'Renewable and grid contribution to campus load.',
    tech:'',
    corr:'Wind and solar correlation.'};
- const seg=pageHead('Power SPV',SPVH[spvView]||'','',segOnly);
+ const seg=pageHead('Energy SPV',SPVH[spvView]||'','',segOnly);
  if(spvView==='batt')return seg+battSection();
  if(spvView==='spread')return seg+spreadPanel();
  if(spvView==='sens')return seg+sensPage();
@@ -1873,7 +2033,7 @@ function summaryPage(){
  const y1=SP.rows.find(r=>r.y===FF)||{rev:0,bRev:0,gridCost:0,resPPA:0,opex:0,ebitda:0,gridMWh:0,gridPeakMW:0,battDischargeMWh:0,spillMWh:0};
  const constructionEq=Math.max(0,-SP.rows.filter(r=>r.y<FF&&r.fcfe<0).reduce((s,r)=>s+r.fcfe,0));
  const preMerchantTopup=Math.max(0,-SP.rows.filter(r=>r.y>=FF&&r.y<M.battery.gridYear&&r.fcfe<0).reduce((s,r)=>s+r.fcfe,0));
- const mw=fleetAC(), t1=Math.min(TRANCHE.t1MW,mw), blend=mw>0?(t1*TRANCHE.p1+Math.max(0,mw-t1)*TRANCHE.p2)/mw:TRANCHE.p1;
+ const trW=trancheFor('wind'), trS=trancheFor('solar'), blend=(trW.blend*M.wind.mw+trS.blend*M.solar.mw)/Math.max(1,M.wind.mw+M.solar.mw);
  const battG=(M.battery.gearing!=null?M.battery.gearing:M.macro.gearing);
  const inputsL=`<div class="panel"><h3>Portfolio & supply</h3>
   ${sliderHTML('wind','mw','Wind',50,600,5,' MW<sub>AC</sub>')}
@@ -1888,7 +2048,7 @@ function summaryPage(){
  const inputsR=`<div class="panel"><h3>Contract & financing</h3>
   <div class="inp"><label>Tranche 2 PPA price<b>€${fmt(TRANCHE.p2,0)}/MWh</b></label>
    <input type="range" min="50" max="110" step="1" value="${TRANCHE.p2}" oninput="applyT2(this.value)"></div>
-  <div class="muted" style="margin:-4px 0 10px;font-size:12.5px">${TRANCHE.enabled?`First ${fmt(t1,0)} MW at €${fmt(TRANCHE.p1,0)}, the rest at €${fmt(TRANCHE.p2,0)} · €${fmt(blend,1)}/MWh blended price applied to both asset models`:`Manual asset-level PPA prices are active. Move this control to reapply the €${fmt(blend,1)}/MWh tranche blend.`}</div>
+  <div class="muted" style="margin:-4px 0 10px;font-size:12.5px">${TRANCHE.enabled?`Per asset: first ${fmt(trW.t1,0)} MW wind and ${fmt(trS.t1,0)} MWp solar at €${fmt(TRANCHE.p1,0)}, the balance at €${fmt(TRANCHE.p2,0)} · blends €${fmt(trW.blend,1)} wind, €${fmt(trS.blend,1)} solar, €${fmt(blend,1)} portfolio`:`Manual asset-level PPA prices are active. Move this control to reapply the tranche blends.`}</div>
   ${M.dc.marginMode==='flat'?sliderHTML('dc','marginEur','SPV margin',0,20,0.25,' €/MWh'):sliderHTML('dc','spvMargin','SPV margin',0,0.15,0.0025,'% of energy cost',100)}
   <div class="inp"><label>Margin form<b>${M.dc.marginMode==='flat'?'€/MWh':'% of cost'}</b></label>
    <div class="seg"><button class="${M.dc.marginMode!=='flat'?'on':''}" onclick="M.dc.marginMode='pct';render()">Percentage</button><button class="${M.dc.marginMode==='flat'?'on':''}" onclick="M.dc.marginMode='flat';render()">€/MWh</button></div></div>
@@ -1916,7 +2076,7 @@ function summaryPage(){
   ${row('Battery + substation/tie-in','var(--batt)',fmt(B.capex,0),fmt(BF.equity,0),fmt(BF.debt,0),fmt(battGen/1000,0),fmt(battRev,1),fmt(battEbitda,1),(isNaN(BF.irr)?'n/m':fmt(BF.irr*100,1)+'%'),'LCOS')}
   ${row('Private direct line','var(--acc)',fmt(line,0),fmt(line*(1-M.macro.gearing),0),fmt(line*M.macro.gearing,0),'n/a','n/a','n/a','included in SPV','n/a')}
   </tbody></table></div>
-  <div class="muted" style="margin-top:8px"><b>IRR scope:</b> wind, solar and battery rows are asset-only returns. The consolidated Power SPV return includes every asset assigned to it, including the private line and interface scope. The wind + solar return is calculated as one XIRR from aggregated dated equity cash flows.</div></div>`;
+  <div class="muted" style="margin-top:8px"><b>IRR scope:</b> wind, solar and battery rows are asset-only returns. The consolidated Energy SPV return includes every asset assigned to it, including the private line and interface scope. The wind + solar return is calculated as one XIRR from aggregated dated equity cash flows.</div></div>`;
  const yrCtl=`<div class="panel" style="padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
    <span style="font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)">Year</span>
    <input type="range" min="${FF}" max="${FF+19}" step="1" value="${spvEconY||FF}" style="flex:1;min-width:180px;accent-color:var(--acc);height:4px"
@@ -3491,7 +3651,7 @@ function flowDiagram(){
   <g class="fNode fSeg fN-line"><rect x="452" y="60" width="248" height="98" rx="11" fill="#16211c" stroke="${g}" stroke-width="1.4"/>
    <g transform="translate(468,72)">${GLY.pylon}</g>
    <text x="590" y="93" font-size="14.5" font-weight="640" fill="${txt}" text-anchor="middle" font-family="Inter,sans-serif">Private direct line</text>
-   <text x="590" y="114" font-size="12" fill="${mut}" text-anchor="middle" font-family="Inter,sans-serif">Power SPV route · private electrical corridor</text>
+   <text x="590" y="114" font-size="12" fill="${mut}" text-anchor="middle" font-family="Inter,sans-serif">Energy SPV route · private electrical corridor</text>
    <text x="590" y="136" font-size="11.5" fill="${gh}" text-anchor="middle" font-family="Inter,sans-serif">modelled loss · ${pct(M.wind.lineLoss,1)} wind · ${pct(M.solar.lineLoss,1)} solar</text></g>
   <g class="fSeg fN-batt">${box(452,190,248,52,`${fmt(M.battery.powerMW,0)} MW storage scenario`,`${fmt(M.battery.powerMW*M.battery.durationH/1000,1)} GWh · ${fmt(M.battery.durationH,0)} h · ${pct(M.battery.socFloor,0)} reserve floor`,line,bat,GLY.batt)}</g>
   <g class="fNode fSeg fN-dc"><rect x="858" y="46" width="294" height="122" rx="12" fill="#16211c" stroke="${g}" stroke-width="1.6"/>
@@ -3600,10 +3760,10 @@ const MASTERPLAN_POINTS={
  dc:{n:'01',label:'Data center campus',x:33,y:55,tab:'datacentre',tabLabel:'Data Center',
   text:()=>`The ${fmt(M.dc.firmMW,0)} MW target campus is shown beside the substation and battery, with renewable energy delivered through the private electrical corridor.`,
   facts:()=>[['Target load',fmt(M.dc.firmMW,0)+' MW'],['Annual demand',fmt(M.dc.firmMW*8.76,0)+' GWh']]},
- battery:{n:'02',label:'Battery campus',x:68,y:72,tab:'battery',tabLabel:'Power SPV',
+ battery:{n:'02',label:'Battery campus',x:68,y:72,tab:'battery',tabLabel:'Energy SPV',
   text:()=>`The battery is shown beside the campus substation as part of the campus power system.`,
   facts:()=>[['Power',fmt(M.battery.powerMW,0)+' MW'],['Energy',fmt(M.battery.powerMW*M.battery.durationH/1000,1)+' GWh']]},
- substation:{n:'03',label:'Campus substation',x:77,y:44,tab:'summary',tabLabel:'Power SPV',
+ substation:{n:'03',label:'Campus substation',x:77,y:44,tab:'summary',tabLabel:'Energy SPV',
   text:()=>`The campus substation connects the public grid, private line, storage and campus distribution.`,
   facts:()=>[['Function','Electrical interface'],['Connections','Grid, line + BESS']]},
  solar:{n:'04',label:'Solar portfolio',x:81,y:25,tab:'solar',tabLabel:'Solar',
@@ -3612,7 +3772,7 @@ const MASTERPLAN_POINTS={
  wind:{n:'05',label:'Wind portfolio',x:21,y:18,tab:'wind',tabLabel:'Wind',
   text:()=>`The wind portfolio is shown across the wider Burgenland area and connects through the private electrical corridor.`,
   facts:()=>[['Capacity',fmt(M.wind.mw,0)+' MW'],['Projects',PROJ.filter(p=>p.t==='w').length]]},
- line:{n:'06',label:'Private electrical corridor',x:52,y:32,tab:'summary',tabLabel:'Power SPV',
+ line:{n:'06',label:'Private electrical corridor',x:52,y:32,tab:'summary',tabLabel:'Energy SPV',
   text:()=>`The private electrical corridor links selected wind and solar projects with the campus substation.`,
   facts:()=>[['Wind loss',pct(M.wind.lineLoss,1)],['Solar loss',pct(M.solar.lineLoss,1)]]}
 };
@@ -3641,7 +3801,7 @@ function masterplanSection(){
     <button class="mpFlowNode grid" onclick="go('summary',event)"><span>${ICO.grid}</span><b>Public grid</b><small>${fmt(SS.gridPct,0)}% modelled</small></button>
    </div>
    <div class="mpFlowArrow" aria-hidden="true"><span>→</span><small>energy supply</small></div>
-   <button class="mpFlowNode spv" onclick="go('summary',event)"><span>${TABICON.summary}</span><b>Power SPV</b><small>Private line + ${fmt(M.battery.powerMW,0)} MW storage</small></button>
+   <button class="mpFlowNode spv" onclick="go('summary',event)"><span>${TABICON.summary}</span><b>Energy SPV</b><small>Private line + ${fmt(M.battery.powerMW,0)} MW storage</small></button>
    <div class="mpFlowArrow" aria-hidden="true"><span>→</span><small>campus supply</small></div>
    <button class="mpFlowNode dc" onclick="go('datacentre',event)"><span>${TABICON.datacentre}</span><b>Data center</b><small>${fmt(M.dc.firmMW,0)} MW target</small></button>
   </div>
@@ -3732,10 +3892,10 @@ function castSection(){
    role:'Responsible for electricity supply, the public grid interface and balancing services.',
     mets:[['Supply portfolio',fmt(fleetAC(),0)+' MW AC'],['Zones',PROJ.length+' anonymized'],['Grid balance',fmt(SS.gridPct,0)+'% modelled'],['Modelled term','20 years']],
    go:'wind',jump:'Wind'},
-  {name:'Power SPV',ico:ICO.spv,col:'#12b95a',tint:'rgba(0,154,68,.15)',
+  {name:'Energy SPV',ico:ICO.spv,col:'#12b95a',tint:'rgba(0,154,68,.15)',
    role:'Owns or contracts private power assets and manages measured delivery to the campus.',
     mets:[['Portfolio case',fmt(gwh,0)+' GWh/yr'],['Private assets','line + storage'],['Battery case',fmt(M.battery.powerMW,0)+' MW / '+fmt(B.energy/1000,1)+' GWh'],['Working scope','line + storage']],
-   go:'summary',jump:'Power SPV'},
+   go:'summary',jump:'Energy SPV'},
   {name:'U.S. AI data center landlord',flag:FLAG.us,ico:ICO.dc,col:'#eaf2f8',tint:'rgba(234,242,248,.10)',
    role:'Develops and leases the land, buildings, powered shell and campus electrical infrastructure. Chip ownership and compute operations sit outside this role.',
     mets:[['Target load',fmt(M.dc.firmMW,0)+' MW'],['At full run-rate',fmt(M.dc.firmMW*8.76,0)+' GWh/yr'],['Built scope','land + powered shell'],['Commercial model','powered shell']],
@@ -3802,7 +3962,7 @@ function overviewPage(){
 
  const NAVC=[['wind','Wind',fmt(M.wind.mw,0)+' MW wind model and project economics.'],
    ['solar','Solar',fmt(M.solar.mw,0)+' MWp solar model and capture-price profile.'],
-   ['summary','Power SPV',fmt(M.battery.powerMW,0)+' MW battery, private lines and Power SPV economics.'],
+   ['summary','Energy SPV',fmt(M.battery.powerMW,0)+' MW battery, private lines and Energy SPV economics.'],
    ['datacentre','Data Center',fmt(M.dc.firmMW,0)+' MW target campus, power cost and build assumptions.'],
    ['prices','Prices','Austrian day-ahead since 2015, spreads and negative hours.']];
  const next=`<section class="sect">
